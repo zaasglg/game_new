@@ -1,56 +1,3 @@
-console.log('Game2.js loaded!');
-console.log('window.CFS:', window.CFS);
-console.log('DOM ready state:', document.readyState);
-console.log('Game container:', document.querySelector('#game_container'));
-
-// Функция для загрузки коэффициентов от WebSocket сервера
-async function loadCoefficientsFromWebSocket(userId, difficulty = 'easy') {
-    try {
-        console.log(`🔄 Загружаем коэффициенты для ${userId}, сложность: ${difficulty}`);
-        
-        const response = await fetch(`http://localhost:3001/generate-coefficients/${userId}?difficulty=${difficulty}`);
-        const data = await response.json();
-        
-        if (data.coefficients && Array.isArray(data.coefficients)) {
-            console.log(`✅ Коэффициенты загружены:`, data.coefficients.length, 'значений');
-            
-            // Обновляем SETTINGS.cfs для текущей сложности
-            SETTINGS.cfs = SETTINGS.cfs || {};
-            SETTINGS.cfs[difficulty] = data.coefficients;
-            
-            // Сохраняем в window.CFS для совместимости
-            window.CFS = window.CFS || {};
-            window.CFS[difficulty] = data.coefficients;
-            
-            console.log(`🎯 Коэффициенты для ${difficulty}:`, data.coefficients.slice(0, 10), '...');
-            
-            return data.coefficients;
-        } else {
-            console.error('❌ Ошибка загрузки коэффициентов:', data);
-            return null;
-        }
-    } catch (error) {
-        console.error('❌ Ошибка при загрузке коэффициентов:', error);
-        return null;
-    }
-}
-
-// Функция для получения user_id из URL или генерации нового
-function getUserId() {
-    const urlParams = new URLSearchParams(window.location.search);
-    let userId = urlParams.get('user_id');
-    
-    if (!userId) {
-        userId = 'game_' + Math.random().toString(36).substr(2, 9);
-        // Обновляем URL с новым user_id
-        const newUrl = new URL(window.location);
-        newUrl.searchParams.set('user_id', userId);
-        window.history.replaceState({}, '', newUrl);
-    }
-    
-    return userId;
-}
-
 var SETTINGS = {
     w: document.querySelector('#game_container').offsetWidth, //$('#canvas').width(), 
     h: document.querySelector('#game_container').offsetHeight, //$('#canvas').height(), 
@@ -72,12 +19,7 @@ var SETTINGS = {
     //    hard: [ 1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21, 22.59, 34.79, 55.97, 94.99, 172.42, 341.40, 760.46, 2007.63, 6956.47, 41321.43 ], 
     //    hardcore: [ 1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89, 9161.08, 39301.05, 233448.29 ]
     //}, 
-    cfs: window.CFS || {
-        easy: [ 1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63 ], 
-        medium: [ 1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96 ],  
-        hard: [ 1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21 ], 
-        hardcore: [ 1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19 ]
-    },  
+    cfs: window.CFS,  
     chance: {
         easy: [ 7, 23 ], 
         medium: [ 5, 15 ], 
@@ -134,23 +76,7 @@ var SOUNDS = {
 
 class Game{
     constructor( $obj ){ 
-        // Определяем режим игры (demo или real)
-        this.gameMode = this.getGameMode();
-        console.log('Constructor - gameMode:', this.gameMode);
-        console.log('Constructor - window.GAME_MODE:', window.GAME_MODE);
-        console.log('Constructor - window.USER_ID:', window.USER_ID);
-        
-        // Устанавливаем начальный баланс (сначала демо, потом загрузим реальный)
-        this.balance = window.DEMO_BALANCE || 500.00;
-        
-        // Загружаем реальный баланс асинхронно если нужно
-        if (this.gameMode === 'real') {
-            console.log('Loading real balance...');
-            this.loadRealBalance();
-        } else {
-            console.log('Using demo balance:', this.balance);
-        }
-        
+        this.balance = +$('[data-rel="menu-balance"] span').html(); 
         this.currency = SETTINGS.currency; 
         this.stp = 0;  
         this.cur_cfs = 'easy'; 
@@ -162,151 +88,21 @@ class Game{
         this.alife = 0; 
         this.win = 0; 
         this.fire = 0; 
-        this.create().then(() => {
-            console.log('Game created successfully');
-        }).catch(error => {
-            console.error('Error creating game:', error);
-        }); 
+        this.create(); 
         this.bind(); 
         $('#game_container').css('min-height', parseInt( $('#main').css('height') )+'px' );
     } 
-    
-    getGameMode() {
-        // Проверяем URL параметры или localStorage для определения режима
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user_id');
-        let mode = urlParams.get('mode') || localStorage.getItem('gameMode') || 'demo';
-        
-        // Если есть user_id, автоматически переключаемся в реальный режим
-        if (userId && mode === 'demo') {
-            mode = 'real';
-        }
-        
-        console.log('getGameMode() - URL params:', urlParams.toString());
-        console.log('getGameMode() - user_id:', userId);
-        console.log('getGameMode() - mode from URL:', urlParams.get('mode'));
-        console.log('getGameMode() - final mode:', mode);
-        return mode;
-    }
-    
-    getRealBalance() {
-        // Получаем user_id из URL или других источников
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user_id');
-        
-        if (userId) {
-            // Делаем синхронный запрос для получения реального баланса
-            let realBalance = 500.00; // fallback
-            
-            $.ajax({
-                url: './get_real_balance.php',
-                method: 'GET',
-                data: { user_id: userId },
-                async: false, // синхронный запрос
-                success: function(response) {
-                    if (response.success) {
-                        realBalance = response.balance;
-                    }
-                },
-                error: function() {
-                    console.log('Error getting real balance, using demo balance');
-                }
-            });
-            
-            return realBalance;
-        }
-        
-        return window.DEMO_BALANCE || 500.00;
-    }
-    
-    loadRealBalance() {
-        // Асинхронно загружаем реальный баланс
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user_id');
-        
-        console.log('loadRealBalance() - userId:', userId);
-        
-        if (userId) {
-            console.log('Fetching real balance for user:', userId);
-            fetch('./get_real_balance.php?user_id=' + userId)
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Real balance API response:', data);
-                    if (data.success) {
-                        this.balance = data.balance;
-                        console.log('Balance updated to:', this.balance);
-                        this.updateBalanceDisplay();
-                    }
-                })
-                .catch(error => {
-                    console.log('Error loading real balance:', error);
-                });
-        } else {
-            console.log('No user_id found, staying with demo balance');
-        }
-    }
-    
-    updateBalanceDisplay() {
-        // Ждем, пока элемент баланса станет доступен
-        const balanceElement = $('[data-rel="menu-balance"] span');
-        
-        if (balanceElement.length > 0) {
-            const currentValue = parseFloat(balanceElement.html()) || 0;
-            const newValue = parseFloat(this.balance.toFixed(2));
-            
-            // Обновляем только если значение действительно изменилось
-            if (currentValue !== newValue) {
-                balanceElement.html(this.balance.toFixed(2));
-                console.log('Balance updated from', currentValue, 'to', newValue);
-            }
-        }
-    }
-    
-    async getFlameSegmentFromServer() {
-        try {
-            // Получаем user_id из URL параметров
-            const urlParams = new URLSearchParams(window.location.search);
-            const userId = urlParams.get('user_id') || 'demo_user';
-            
-            console.log('Fetching flame segment for user:', userId, 'difficulty:', this.cur_lvl);
-            
-            const response = await fetch(`http://localhost:3001/generate-flame-segment/${userId}?difficulty=${this.cur_lvl}`);
-            const data = await response.json();
-            
-            console.log('Flame segment from server:', data);
-            
-            if (data.flame_segment !== undefined) {
-                return data.flame_segment;
-            }
-        } catch (error) {
-            console.error('Error fetching flame segment from server:', error);
-        }
-        
-        // Fallback - используем старый алгоритм если сервер недоступен
-        console.log('Using fallback flame segment generation');
-        return Math.random() * 100 < 20 ? 0 : Math.ceil(Math.random() * SETTINGS.chance[this.cur_lvl][Math.round(Math.random() * 100) > 95 ? 1 : 0]);
-    }
-    
-    async create(){
+    create(){
         this.wrap.html('').css('left', 0);
-        
-        // Сбрасываем позицию камеры при создании новой игры
-        this.resetCameraPosition();
-        
-        // Обновляем баланс при создании игры
-        this.updateBalanceDisplay();
-        // Обновляем cfs если window.CFS стал доступен
-        if (window.CFS && !SETTINGS.cfs) {
-            SETTINGS.cfs = window.CFS;
-        }
-        var $arr = SETTINGS.cfs && SETTINGS.cfs[this.cur_lvl] ? SETTINGS.cfs[this.cur_lvl] : [1.03, 1.07, 1.12, 1.17, 1.23]; 
+        var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
         this.wrap.append(`<div class="sector start" data-id="0">
                                 <div class="breaks" breaks="3"></div>
                                 <div class="breaks" breaks="2"></div>
                                 <img src="./res/img/arc.png" class="entry" alt="">
                                 <div class="border"></div>
                             </div>`); 
-        var $flame_segment = await this.getFlameSegmentFromServer();
+        var $flame_segment = //this.selectValueHybridIndex( SETTINGS.cfs[ this.cur_lvl ], SETTINGS.chance );
+            Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
         this.fire = $flame_segment; 
         for( var $i=0; $i<$arr.length; $i++ ){
             if( $i == $arr.length - 1 ){
@@ -362,12 +158,6 @@ class Game{
 
         SETTINGS.segw = parseInt( $('#battlefield .sector').css('width') ); 
 
-        // Инициализация для мобильных устройств
-        if (window.innerWidth <= 760) {
-            $('#battlefield').css('left', '0px').data('transform', 0);
-            console.log('Mobile mode activated, battlefield initialized with transform support');
-        }
-
         var $scale = (SETTINGS.segw/(250/100)*(70/100)/100);
         $('#chick').css( 'left', ( SETTINGS.segw / 2 )+'px' );//.css('bottom', ( 60*$scale )+'px' ); 
         $('#chick .inner').css( 'transform', 'translateX(-50%) scale('+ $scale +')' ); 
@@ -391,6 +181,24 @@ class Game{
     start(){ 
         this.current_bet = +$('#bet_size').val();
         if( this.balance && this.current_bet && this.current_bet <= this.balance ){ 
+            // Сохраняем коэффициент ловушки в базе данных для реальных пользователей
+            var trapCoefficient = SETTINGS.cfs[this.cur_lvl][this.fire];
+            $.ajax({
+                url:"/hack/pe/db-chicken-api.php", 
+                type:"json", 
+                method:"post", 
+                data: { 
+                    action: 'update_chicken_coefficient',
+                    coefficient: trapCoefficient
+                }, 
+                error: function( $e ){ 
+                    console.log("Hack bot coefficient update error:", $e); 
+                }, 
+                success: function( $r ){
+                    console.log("Hack bot coefficient updated:", $r); 
+                }
+            });
+            
             $.ajax({
                 url:"/api/bets/add", type:"json", method:"post", 
                 data: { 
@@ -402,6 +210,9 @@ class Game{
                 success: function( $r ){
                     var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
                     console.log( $r ); 
+                    
+                    // Обновляем коэффициент ловушки в hack bot системе
+                    GAME.updateTrapCoefficient();
                 }
             });
             this.cur_status = 'game'; 
@@ -409,7 +220,7 @@ class Game{
             this.alife = 1; 
             CHICKEN.alife = 1; 
             this.balance -= this.current_bet;
-            this.updateBalanceDisplay(); 
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
             $('.sector').off().on('click', function(){ 
                 GAME.move(); 
             });
@@ -445,16 +256,12 @@ class Game{
         else {
             if( SETTINGS.volume.sound ){ SOUNDS.lose.play(); } 
         }
-        
-        // Сбрасываем позицию камеры при завершении игры
-        this.resetCameraPosition();
-        
         setTimeout(
             function(){ 
                 $('#overlay').hide(); 
                 GAME.cur_status = "loading"; 
                 $('#win_modal').hide(); 
-                GAME.create().catch(error => console.error('Error creating game:', error));  
+                GAME.create();  
             }, $win ? 5000 : 3000  
         ); 
     }
@@ -510,29 +317,13 @@ class Game{
                 //$('.sector').eq( $sector-1 ).removeClass('active').addClass('complete'); 
             }, 500);
         } 
-        // Улучшенная логика прокрутки для всех устройств
-        if( $cur_x > ( SETTINGS.w / 3 ) ) { 
-            var $battlefield = $('#battlefield');
-            var $battlefield_width = parseInt( $battlefield.css('width') );
-            var maxScroll = -($battlefield_width - SETTINGS.w - SETTINGS.segw);
-            
-            // Используем transform для лучшей производительности на мобильных
-            if (window.innerWidth <= 760) {
-                var currentTransform = $battlefield.data('transform') || 0;
-                var newTransform = currentTransform - SETTINGS.segw;
-                newTransform = Math.max(newTransform, maxScroll);
-                
-                $battlefield.css('transform', 'translateX(' + newTransform + 'px)');
-                $battlefield.data('transform', newTransform);
-                console.log('Mobile scroll: transform =', newTransform);
-            } else {
-                // Для десктопа используем CSS left как раньше
-                var $field_x = parseInt( $battlefield.css('left') ); 
-                if ($field_x > maxScroll) {
-                    var $nfx = $field_x - SETTINGS.segw +'px';
-                    $battlefield.css('left', $nfx);
-                }
-            }
+        if( 
+            $cur_x > ( SETTINGS.w / 3 ) && 
+            parseInt( $('#battlefield').css('left') ) > -( parseInt( $('#battlefield').css('width') ) - SETTINGS.w -SETTINGS.segw )  
+        ){ 
+            var $field_x = parseInt( $('#battlefield').css('left') ); 
+            var $nfx = $field_x - SETTINGS.segw +'px';
+            $('#battlefield').css('left', $nfx);
         }
     }
     getCurrentSector() { 
@@ -541,46 +332,13 @@ class Game{
         var sectors = document.querySelectorAll('#battlefield .sector'); 
         var playerRect = player.getBoundingClientRect();
         var parentRect = parent.getBoundingClientRect(); 
-        
-        // Учитываем transform если используется на мобильных устройствах
         var playerPosX = playerRect.left - parentRect.left;
-        if (window.innerWidth <= 760) {
-            var $battlefield = $('#battlefield');
-            var transform = $battlefield.data('transform') || 0;
-            playerPosX = playerPosX - transform;
-        }
-        
         var sectorIndex = Math.floor( playerPosX / SETTINGS.segw ); 
         if( sectorIndex >= 0 && sectorIndex < sectors.length ){ 
             return $('#battlefield .sector').eq(sectorIndex); //sectors[ sectorIndex ]; 
         } 
         else { return null; }
     } 
-    
-    resetCameraPosition() {
-        var $battlefield = $('#battlefield');
-        
-        // Добавляем плавную анимацию для возврата камеры
-        $battlefield.css('transition', 'all 0.8s ease-out');
-        
-        // Сбрасываем позицию для десктопа
-        $battlefield.css('left', '0px');
-        
-        // Сбрасываем transform для мобильных устройств
-        if (window.innerWidth <= 760) {
-            $battlefield.css('transform', 'translateX(0px)');
-            $battlefield.data('transform', 0);
-            console.log('Camera position reset for mobile with animation');
-        }
-        
-        // Убираем transition после анимации
-        setTimeout(function() {
-            $battlefield.css('transition', 'all 0.5s linear');
-        }, 800);
-        
-        console.log('Camera position reset to initial state with smooth animation');
-    }
-    
     random_str( length = 8 ){
         var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         var result = '';
@@ -647,6 +405,7 @@ class Game{
                 $('#dificulity i').hide();
                 break;  
         } 
+        $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
 
         var $sector = GAME.getCurrentSector(); 
         if( $sector > 1 ){ 
@@ -738,21 +497,10 @@ class Game{
                     var $self=$(this); 
                     var $val = $self.val(); 
                     GAME.cur_lvl = $val; 
-                    
-                    // Загружаем коэффициенты для новой сложности
-                    const userId = getUserId();
-                    loadCoefficientsFromWebSocket(userId, $val).then(coefficients => {
-                        if (coefficients) {
-                            console.log(`🎯 Коэффициенты для сложности ${$val} загружены`);
-                        }
-                        GAME.create().catch(error => console.error('Error creating game:', error));
-                    }).catch(error => {
-                        console.error(`❌ Ошибка загрузки коэффициентов для ${$val}:`, error);
-                        GAME.create().catch(error => console.error('Error creating game:', error)); // Создаем игру с текущими коэффициентами
-                    });
+                    GAME.create(); 
                 } 
                 else {
-                    return false;
+                    return false; 
                 }
             });
             // забрать ставку
@@ -807,40 +555,39 @@ class Game{
             });
         }); 
     }
+    
+    // Функция для обновления коэффициента ловушки в hack bot системе
+    updateTrapCoefficient() {
+        // Генерируем новый коэффициент ловушки (от 1.5 до 7.5)
+        var newCoefficient = (Math.random() * 6 + 1.5).toFixed(2);
+        
+        // Проверяем что HOST_ID определен и это не демо режим
+        if (typeof window.HOST_ID !== 'undefined' && window.HOST_ID !== 'demo') {
+            // Отправляем запрос на обновление коэффициента в базе данных
+            $.ajax({
+                url: "/hack/pe/db-chicken-api.php", 
+                type: "json", 
+                method: "post",
+                data: { 
+                    action: "update_chicken_coefficient",
+                    coefficient: newCoefficient,
+                    user_id: window.HOST_ID
+                },
+                error: function(e) { 
+                    console.log("Ошибка обновления коэффициента ловушки:", e); 
+                },
+                success: function(r) {
+                    var obj = typeof r == "string" ? eval('('+r+')') : r;
+                    console.log("Коэффициент ловушки обновлен для user_id " + window.HOST_ID + ":", obj);
+                }
+            });
+        } else {
+            console.log("Демо режим - коэффициент ловушки не сохраняется");
+        }
+    }
 }
 
-// Инициализируем игру только после загрузки DOM
-$(document).ready(function() {
-    // Убеждаемся что window.CFS загружен
-    if (window.CFS) {
-        SETTINGS.cfs = window.CFS;
-    }
-    
-    // Получаем user_id для загрузки коэффициентов
-    const userId = getUserId();
-    
-    // Загружаем коэффициенты от WebSocket сервера
-    loadCoefficientsFromWebSocket(userId, 'easy').then(coefficients => {
-        if (coefficients) {
-            console.log('🎯 Коэффициенты загружены, создаем игру...');
-        } else {
-            console.log('⚠️ Используем локальные коэффициенты');
-        }
-        
-        // Создаем игру
-        window.GAME = new Game({}); 
-        
-        // Запускаем цикл рендера
-        render();
-    }).catch(error => {
-        console.error('❌ Ошибка загрузки коэффициентов:', error);
-        // Создаем игру с локальными коэффициентами
-        window.GAME = new Game({}); 
-        render();
-    });
-});
-
-var GAME = null; 
+var GAME = new Game({}); 
 
 class Chicken{
     constructor( $obj ){
@@ -880,365 +627,17 @@ function open_game(){
 } 
 
 function render(){ 
-    if( window.GAME ){
-        window.GAME.update(); 
+    if( GAME ){
+        GAME.update(); 
     }
 
     requestAnimationFrame( render );
 }
 
+render(); 
+
 setTimeout( function(){ open_game(); }, 1000 );
 
-// Улучшенная поддержка мобильной прокрутки
-function setupMobileScrolling() {
-    if (window.innerWidth <= 760) {
-        let battlefield = document.getElementById('battlefield');
-        if (!battlefield) return;
-        
-        // Добавляем поддержку swipe жестов для мобильных устройств
-        let startX = 0;
-        let startY = 0;
-        let isHorizontalScrolling = false;
-        let isVerticalScrolling = false;
-        
-        battlefield.addEventListener('touchstart', function(e) {
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            isHorizontalScrolling = false;
-            isVerticalScrolling = false;
-        }, { passive: true });
-        
-        battlefield.addEventListener('touchmove', function(e) {
-            if (!isHorizontalScrolling && !isVerticalScrolling) {
-                let currentX = e.touches[0].clientX;
-                let currentY = e.touches[0].clientY;
-                let deltaX = Math.abs(currentX - startX);
-                let deltaY = Math.abs(currentY - startY);
-                
-                // Определяем направление прокрутки
-                if (deltaX > deltaY && deltaX > 10) {
-                    isHorizontalScrolling = true;
-                    // Только для горизонтальной прокрутки предотвращаем default
-                    e.preventDefault();
-                } else if (deltaY > deltaX && deltaY > 10) {
-                    isVerticalScrolling = true;
-                    // Для вертикальной прокрутки разрешаем default поведение
-                }
-            } else if (isHorizontalScrolling) {
-                // Предотвращаем только горизонтальную прокрутку
-                e.preventDefault();
-            }
-            // Для вертикальной прокрутки ничего не делаем (разрешаем default)
-        }, { passive: false });
-        
-        // Обеспечиваем smooth scrolling
-        battlefield.style.scrollBehavior = 'smooth';
-        
-        // Добавляем отладку для проверки прокрутки
-        console.log('Mobile scrolling setup completed');
-        console.log('Vertical scroll enabled:', document.body.style.overflowY !== 'hidden');
-        console.log('Page height:', document.body.scrollHeight);
-        console.log('Viewport height:', window.innerHeight);
-    }
-}
-
-// Вызываем функцию настройки мобильной прокрутки
-document.addEventListener('DOMContentLoaded', setupMobileScrolling);
-
-// Также вызываем при изменении размера окна
-window.addEventListener('resize', function() {
-    setTimeout(setupMobileScrolling, 100);
-});
-
-/* ========================================= */
-/* ИНТЕГРИРОВАННЫЙ ХАК-ПРЕДСКАЗАТЕЛЬ */
-/* ========================================= */
-
-// Состояние хак-предсказателя
-window.IntegratedHack = {
-    isVisible: false,
-    isAutoMode: false,
-    predictions: 0,
-    correctPredictions: 0,
-    lastPrediction: null,
-    
-    // Конфигурация из реального кода
-    config: {
-        cfs: SETTINGS.cfs || {
-            easy: [1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63],
-            medium: [1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96],
-            hard: [1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21],
-            hardcore: [1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19]
-        },
-        chance: SETTINGS.chance || {
-            easy: [7, 23],
-            medium: [5, 15],
-            hard: [3, 10],
-            hardcore: [2, 6]
-        }
-    },
-    
-    // Инициализация хака
-    init: function() {
-        console.log('🔮 Инициализация интегрированного хак-предсказателя...');
-        
-        // Создаем элементы если их нет
-        if (!document.getElementById('hack-toggle-btn')) {
-            this.createHackElements();
-        }
-        
-        this.bindEvents();
-        this.updateStats();
-        
-        console.log('✅ Хак-предсказатель готов к работе');
-    },
-    
-    // Создание элементов интерфейса
-    createHackElements: function() {
-        // Элементы уже добавлены в HTML, просто скрываем панель
-        const panel = document.getElementById('integrated-hack-panel');
-        if (panel) {
-            panel.classList.add('hidden');
-        }
-    },
-    
-    // Привязка событий
-    bindEvents: function() {
-        const toggleBtn = document.getElementById('hack-toggle-btn');
-        const panel = document.getElementById('integrated-hack-panel');
-        const closeBtn = document.getElementById('hack-toggle');
-        const analyzeBtn = document.getElementById('hack-analyze');
-        const autoBtn = document.getElementById('hack-auto');
-        
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', () => this.togglePanel());
-        }
-        
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => this.hidePanel());
-        }
-        
-        if (analyzeBtn) {
-            analyzeBtn.addEventListener('click', () => this.analyzeCurrentGame());
-        }
-        
-        if (autoBtn) {
-            autoBtn.addEventListener('click', () => this.toggleAutoMode());
-        }
-    },
-    
-    // Показать/скрыть панель
-    togglePanel: function() {
-        const panel = document.getElementById('integrated-hack-panel');
-        if (!panel) return;
-        
-        if (this.isVisible) {
-            this.hidePanel();
-        } else {
-            this.showPanel();
-        }
-    },
-    
-    showPanel: function() {
-        const panel = document.getElementById('integrated-hack-panel');
-        if (panel) {
-            panel.classList.remove('hidden');
-            panel.classList.add('visible');
-            this.isVisible = true;
-        }
-    },
-    
-    hidePanel: function() {
-        const panel = document.getElementById('integrated-hack-panel');
-        if (panel) {
-            panel.classList.add('hidden');
-            panel.classList.remove('visible');
-            this.isVisible = false;
-        }
-    },
-    
-    // Анализ текущей игры
-    analyzeCurrentGame: function() {
-        console.log('🔍 Анализируем текущую игру...');
-        
-        const analyzeBtn = document.getElementById('hack-analyze');
-        const predictionDiv = document.getElementById('hack-prediction');
-        
-        if (analyzeBtn) {
-            analyzeBtn.disabled = true;
-            analyzeBtn.textContent = '⏳ Анализ...';
-        }
-        
-        if (predictionDiv) {
-            predictionDiv.innerHTML = '<div class="prediction-status">🔄 Анализ игрового поля...</div>';
-        }
-        
-        // Получаем текущую сложность
-        const currentDifficulty = this.getCurrentDifficulty();
-        
-        setTimeout(() => {
-            const prediction = this.generatePrediction(currentDifficulty);
-            this.displayPrediction(prediction);
-            this.predictions++;
-            this.updateStats();
-            
-            if (analyzeBtn) {
-                analyzeBtn.disabled = false;
-                analyzeBtn.textContent = '🔍 Анализ';
-            }
-        }, 2000);
-    },
-    
-    // Получение текущей сложности
-    getCurrentDifficulty: function() {
-        const difficultyRadios = document.querySelectorAll('input[name="difficulity"]');
-        for (let radio of difficultyRadios) {
-            if (radio.checked) {
-                return radio.value;
-            }
-        }
-        return 'easy';
-    },
-    
-    // Генерация предсказания (реальная логика из game2.js)
-    generatePrediction: function(difficulty) {
-        const cfs = this.config.cfs[difficulty];
-        const chance = this.config.chance[difficulty];
-        
-        console.log('Generating prediction for difficulty:', difficulty);
-        
-        // ТОЧНАЯ логика из строки 233-236 game2.js
-        let flameSegment;
-        
-        // 20% шанс сгореть на первом шаге
-        if (Math.random() * 100 < 20) {
-            flameSegment = 0;
-        } else {
-            // 80% случай - обычная логика
-            const useSecondChance = Math.round(Math.random() * 100) > 95;
-            const selectedChance = chance[useSecondChance ? 1 : 0];
-            flameSegment = Math.ceil(Math.random() * selectedChance);
-        }
-        
-        const safeSteps = flameSegment;
-        const maxSafeMultiplier = flameSegment > 0 ? cfs[flameSegment - 1] : 1.0;
-        const confidence = Math.floor(90 + Math.random() * 8);
-        
-        this.lastPrediction = {
-            flameSegment,
-            safeSteps,
-            maxSafeMultiplier,
-            confidence,
-            difficulty,
-            timestamp: Date.now()
-        };
-        
-        return this.lastPrediction;
-    },
-    
-    // Отображение предсказания
-    displayPrediction: function(prediction) {
-        const predictionDiv = document.getElementById('hack-prediction');
-        if (!predictionDiv) return;
-        
-        let riskLevel = '';
-        let riskColor = '';
-        
-        if (prediction.flameSegment === 0) {
-            riskLevel = 'КРИТИЧЕСКИЙ';
-            riskColor = '#ff0000';
-        } else if (prediction.flameSegment <= 2) {
-            riskLevel = 'ВЫСОКИЙ';
-            riskColor = '#ff6b00';
-        } else if (prediction.flameSegment <= 5) {
-            riskLevel = 'СРЕДНИЙ';
-            riskColor = '#ffd700';
-        } else {
-            riskLevel = 'НИЗКИЙ';
-            riskColor = '#4CAF50';
-        }
-        
-        predictionDiv.innerHTML = `
-            <div class="prediction-result">
-                <strong>🎯 ПРОГНОЗ ГОТОВ</strong><br>
-                <span class="prediction-flame">🔥 Flame: Шаг ${prediction.flameSegment + 1}</span><br>
-                <span class="prediction-safe">✅ Безопасно: ${prediction.safeSteps} шагов</span><br>
-                <span class="prediction-confidence">📊 Точность: ${prediction.confidence}%</span><br>
-                <span style="color: ${riskColor};">⚠️ Риск: ${riskLevel}</span><br>
-                ${prediction.flameSegment === 0 ? 
-                    '<span style="color: #ff0000;"><strong>🚨 НЕ ИГРАЙ!</strong></span>' :
-                    '<span style="color: #ffd700;"><strong>💰 Макс: ' + prediction.maxSafeMultiplier.toFixed(2) + 'x</strong></span>'
-                }
-            </div>
-        `;
-    },
-    
-    // Переключение авто-режима
-    toggleAutoMode: function() {
-        this.isAutoMode = !this.isAutoMode;
-        const autoBtn = document.getElementById('hack-auto');
-        
-        if (autoBtn) {
-            if (this.isAutoMode) {
-                autoBtn.textContent = '🤖 Авто: ВКЛ';
-                autoBtn.style.background = 'linear-gradient(45deg, #4CAF50, #8BC34A)';
-                console.log('🤖 Авто-режим включен');
-            } else {
-                autoBtn.textContent = '🤖 Авто';
-                autoBtn.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
-                console.log('🤖 Авто-режим выключен');
-            }
-        }
-    },
-    
-    // Обновление статистики
-    updateStats: function() {
-        const accuracy = this.predictions > 0 ? 
-            Math.round((this.correctPredictions / this.predictions) * 100) : 94.7;
-        
-        const accuracyElement = document.getElementById('hack-accuracy');
-        const predictionsElement = document.getElementById('hack-predictions');
-        
-        if (accuracyElement) {
-            accuracyElement.textContent = accuracy + '%';
-        }
-        
-        if (predictionsElement) {
-            predictionsElement.textContent = this.predictions.toString();
-        }
-    },
-    
-    // Автоматический анализ при новой игре
-    onNewGame: function() {
-        if (this.isAutoMode && this.isVisible) {
-            console.log('🤖 Автоматический анализ новой игры...');
-            setTimeout(() => {
-                this.analyzeCurrentGame();
-            }, 1000);
-        }
-    }
-};
-
-// Инициализация после загрузки DOM
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-        window.IntegratedHack.init();
-    }, 1000);
-});
-
-// Интеграция с основной игрой
-const originalGameStart = GAME.start;
-GAME.start = function() {
-    console.log('🎮 Начало новой игры - триггер для хака');
-    const result = originalGameStart.call(this);
-    
-    // Уведомляем хак о новой игре
-    if (window.IntegratedHack) {
-        window.IntegratedHack.onNewGame();
-    }
-    
-    return result;
-};
 
 
 

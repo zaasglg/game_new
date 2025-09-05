@@ -52,34 +52,59 @@ try {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
-        if ($_POST['action'] == 'get_user_mines') {
+        if ($_POST['action'] == 'get_chicken_prediction') {
             // Используем user_id из сессии для безопасности
             $userId = $_SESSION['user_id'];
             
-            $query = $conn->prepare("SELECT positions_mine FROM users WHERE user_id = :user_id");
+            $query = $conn->prepare("SELECT positions_chicken, chicken_multiplier FROM users WHERE user_id = :user_id");
             $query->bindParam(':user_id', $userId, PDO::PARAM_INT);
             $query->execute();
             
             $user = $query->fetch(PDO::FETCH_ASSOC);
             
-            if ($user && !empty($user['positions_mine'])) {
-                $positions = array_filter(explode(',', $user['positions_mine']), function($v) {
-                    return is_numeric($v) && $v >= 1 && $v <= 25;
-                });
-                $positions = array_map('intval', $positions);
+            if ($user) {
+                $positions = [];
+                if (!empty($user['positions_chicken'])) {
+                    $positions = array_filter(explode(',', $user['positions_chicken']), function($v) {
+                        return is_numeric($v) && $v >= 1 && $v <= 25;
+                    });
+                    $positions = array_map('intval', $positions);
+                }
                 
                 echo json_encode([
                     'success' => true,
                     'user_id' => $userId,
-                    'positions_mine' => $positions
+                    'safe_positions' => $positions,
+                    'predicted_multiplier' => floatval($user['chicken_multiplier']),
+                    'message' => 'Chicken Road prediction loaded'
                 ]);
             } else {
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Mine positions not set for this user'
+                    'message' => 'User not found'
                 ]);
             }
-        } else {
+        } 
+        elseif ($_POST['action'] == 'update_chicken_prediction') {
+            // Обновление предсказания (для админов или автоматической системы)
+            $userId = $_SESSION['user_id'];
+            $positions = isset($_POST['positions']) ? $_POST['positions'] : '';
+            $multiplier = isset($_POST['multiplier']) ? floatval($_POST['multiplier']) : 2.0;
+            
+            $stmt = $conn->prepare("UPDATE users SET positions_chicken = :positions, chicken_multiplier = :multiplier WHERE user_id = :user_id");
+            $stmt->bindParam(':positions', $positions);
+            $stmt->bindParam(':multiplier', $multiplier);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->execute();
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Chicken prediction updated',
+                'positions' => $positions,
+                'multiplier' => $multiplier
+            ]);
+        }
+        else {
             echo json_encode([
                 'success' => false,
                 'message' => 'Invalid action'

@@ -49,16 +49,13 @@
 			        	$('#aviator_frame').attr('src', $url+'<?= UID; ?>'); 
 			        	
 			        	// Синхронизируем баланс с основной системой и конвертируем в USD
-			        	console.log('Starting balance synchronization for user:', <?= UID; ?>);
 			        	setTimeout(function(){
 			        		$.ajax({
 			        			url: '/get_user_data.php',
 			        			method: 'GET',
 			        			dataType: 'json',
 			        			success: function(response) {
-			        				console.log('User data received:', response);
 			        				if(response.success && response.data.is_auth) {
-			        					console.log('User authenticated, balance:', response.data.balance, response.data.currency);
 			        					// Обновляем баланс в игре с конвертацией в USD
 			        					$.ajax({
 			        						url: '/chicken-road/update_balance.php',
@@ -70,29 +67,20 @@
 			        							currency: response.data.currency || 'USD'
 			        						}),
 			        						success: function(updateResponse) {
-			        							console.log('=== CURRENCY CONVERSION RESULT ===');
-			        							console.log('Full response:', updateResponse);
+			        							console.log('Balance synchronized and converted:', updateResponse);
 			        							if(updateResponse.success) {
-			        								console.log('✓ Original balance: ' + updateResponse.original_balance + ' ' + updateResponse.original_currency);
-			        								console.log('✓ Conversion rate: ' + updateResponse.conversion_rate);
-			        								console.log('✓ Converted to USD: $' + updateResponse.usd_balance);
-			        							} else {
-			        								console.error('❌ Update failed:', updateResponse.message);
+			        								console.log('Original: ' + updateResponse.original_balance + ' ' + updateResponse.original_currency);
+			        								console.log('Converted: $' + updateResponse.usd_balance);
 			        							}
-			        							console.log('=================================');
 			        						},
 			        						error: function(xhr, status, error) {
-			        							console.error('❌ Failed to update balance:', error);
-			        							console.error('Response text:', xhr.responseText);
+			        							console.error('Failed to update balance:', error);
 			        						}
 			        					});
-			        				} else {
-			        					console.warn('User not authenticated or request failed');
 			        				}
 			        			},
 			        			error: function(xhr, status, error) {
-			        				console.error('❌ Failed to get user data:', error);
-			        				console.error('Response text:', xhr.responseText);
+			        				console.error('Failed to get user data:', error);
 			        			}
 			        		});
 			        	}, 1000);

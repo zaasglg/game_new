@@ -199,13 +199,13 @@
 			$cond = []; 
 			$uid = isset( $d['uid'] ) ? App::uid( $d['uid'] ) : ''; 
 			if( $uid ){ $cond['uid'] = $uid; } 
-			if( $cond ) {
+			if( $cond ){
 				$balance = $this->dbo->getField("balance", self::$table, $cond);
 				$amount = isset( $d['amount'] ) ? (float)$d['amount'] : 0; 
 				$this->dbo->upd( self::$table, ['balance'=>($balance+$amount)], $cond ); 
 				$balance = $this->dbo->getField("balance", self::$table, $cond); 
 
-				if( AUTH ) { 
+				if( AUTH ){ 
 					$host_balance = ( $balance * $_SESSION['USER_RATE'] ); 
 					DB2::GI()->upd('users', ['deposit'=>$host_balance], ['user_id'=>AUTH]); 
 				}
@@ -220,16 +220,6 @@
 			$balance = $this->dbo->getField( "balance", self::$table, ['uid'=>UID] ); 
 			$_SESSION['user']['balance'] = $balance; 
 			return $balance; 
-		}
-//
-//=================================== 
-		public function updateBalance( $uid, $amount ){
-			return $this->charge(['uid' => $uid, 'amount' => $amount]);
-		}
-//
-//=================================== 
-		public function getById( $uid ){
-			return $this->dbo->get("SELECT * FROM " . self::$table . " WHERE uid = ?", [$uid]);
 		}
 //
 //=================================== 

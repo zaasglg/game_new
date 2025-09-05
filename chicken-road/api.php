@@ -1,13 +1,4 @@
 <?php 
-	// Проверяем что все константы определены
-	if( !defined('CONTROLLER') ){ 
-		// Если api.php вызван напрямую, определяем константы из URL
-		$uri = $_SERVER['REQUEST_URI'];
-		$parts = explode('/', trim($uri, '/'));
-		define('CONTROLLER', isset($parts[1]) ? $parts[1] : 'cfs');
-		define('ACTION', isset($parts[2]) ? $parts[2] : 'load');
-	}
-	
 	$post = $_REQUEST; 
 	$input = json_decode( file_get_contents('php://input'), 1, 1024 ); 
 	$return = array('error'=>1, 'msg'=>"UNAUTHORIZED"); 

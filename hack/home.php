@@ -47,11 +47,8 @@ try {
         <div class="main">
             <h1 class="translate" data-key="welcome">¡Bienvenido!</h1> <!-- Изменено на испанский -->
             <div class="user__info">
-    <p class="translate user-info-text" data-key="your_id">Tu ID: <span style="color: lightgreen;"><?php echo htmlspecialchars($user_id); ?></span></p>
-    <!-- <p class="translate user-info-text" data-key="your_status">Tu estado: <span style="color: lightgreen;"><?php echo htmlspecialchars($user_status); ?></span></p> -->
-</div>
-
-       
+                <p class="translate user-info-text" data-key="your_id">Tu ID: <span style="color: lightgreen;"><?php echo htmlspecialchars($user_id); ?></span></p>
+            </div>
 
             <label class="switch">
                 <p class="es">ES</p> <!-- Изменено порядок - ES слева -->
@@ -106,10 +103,10 @@ try {
                     <img src="./images/mines.webp" alt="mines">
                     <p class="translate" data-key="mines">Minas</p> <!-- Изменено на испанский -->
                 </a>
-                <a class="footer__link chicken-road" href="chicken-road.php">
-                    <img src="./images/chicken-road.webp" alt="chicken-road">
-                    <p class="translate" data-key="chicken_road">Chicken Road</p>
-                </a>
+                <a class="footer__link chicken" href="chicken_road.php">
+                    <img src="./images/mines.webp" alt="chicken">
+                    <p class="translate" data-key="chicken">Chicken</p>
+                </a> 
             </div>
         </footer>
     </div>

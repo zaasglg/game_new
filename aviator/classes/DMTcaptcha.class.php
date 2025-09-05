@@ -1,11 +1,13 @@
 <?php
 	require_once(CLASS_DIR."DMT-captcha-config.php");
 	class DMTcaptcha{
+		private $keystring;
+		
 		function DMTcaptcha(){
 			require(CLASS_DIR.'/DMT-captcha-config.php');
 			$this->keystring = '';
 			for( $i=0; $i<$length; $i++ ){
-				$this->keystring .= $use_symbols{ mt_rand( 0, $use_symbols_len - 1 ) };
+				$this->keystring .= $use_symbols[ mt_rand( 0, $use_symbols_len - 1 ) ];
 			}
 			$im = imagecreatefromgif( CLASS_DIR ."DMT_captcha_fonts/back.gif" );
 			$width = imagesx($im);

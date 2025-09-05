@@ -178,14 +178,10 @@
         }
 //
 //===================================================== 
-        public function update( $id, $data ){
-            return $this->dbo->upd( self::$table, $data, ['id' => $id] );
-        }
+        
 //
 //===================================================== 
-        public function getById( $id ){
-            return $this->dbo->get("SELECT * FROM " . self::$table . " WHERE id = ?", [$id]);
-        }
+        
 //
 //=====================================================  
 		

@@ -42,16 +42,6 @@
 	}
 	spl_autoload_register( 'cls' );  
 
-	// Принудительно загружаем базовые классы
-	require_once CLASS_DIR . 'Singleton.class.php';
-	require_once CLASS_DIR . 'DBO.class.php';
-	require_once CLASS_DIR . 'DB2.class.php';
-	require_once CLASS_DIR . 'App.class.php';
-	require_once CLASS_DIR . 'Cfs.class.php';
-	require_once CLASS_DIR . 'Users.class.php';
-	require_once CLASS_DIR . 'Bets.class.php';
-	require_once CLASS_DIR . 'Games.class.php';  
-
 	//include_once BASE_DIR ."errorhandler.php"; 
 
 	$input = json_decode( file_get_contents('php://input'), 1, 1024 );

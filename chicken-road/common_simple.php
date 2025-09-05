@@ -12,12 +12,12 @@
     	if( $ex ){ 
     		$_SESSION['user'] = $ex;
     	} else {
-    		// Создаем нового пользователя, баланс будет обновлен через API
+    		// Создаем нового пользователя с начальным балансом
     		$new_user = [
 	    		'name'=> 'User_' . substr(HOST_ID, -4), 
 	    		'real_name'=> 'User_' . substr(HOST_ID, -4),  
 	    		'host_id'=> HOST_ID, 
-	    		'balance'=> 0  // Начальный баланс, будет обновлен из основной системы
+	    		'balance'=> 1000  // Устанавливаем тестовый баланс
 	    	];
     		$_SESSION['user'] = Users::GI()->add( $new_user );
     		$_SESSION['user'] = isset( $_SESSION['user']['data'] ) ? $_SESSION['user']['data'] : [];

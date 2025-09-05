@@ -3,7 +3,7 @@
 		define('BASE_DIR', dirname(__FILE__)."/"); 
 	}
 	include_once BASE_DIR ."init.php"; 
-	include_once BASE_DIR ."common.php"; 
+	//include_once BASE_DIR ."common.php"; 
 	include_once BASE_DIR ."router.php"; 
 	define('LANG', isset( $_REQUEST['lang'] ) ? App::uid( $_REQUEST['lang'] ) : 'en'); 
 	$localization = BASE_DIR ."localization_". LANG .".php"; 

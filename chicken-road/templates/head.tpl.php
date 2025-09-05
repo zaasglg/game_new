@@ -6,7 +6,7 @@
     <meta http-equiv="cache-control" content="no-cache">
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no""> 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title><?= PAGETITLE; ?></title>
@@ -37,7 +37,6 @@
 
     <link rel="stylesheet" type="text/css" href="./res/css/reset.css">
     <link rel="stylesheet" type="text/css" href="./res/css/style.css?<?= rand(0, 99999); ?>">
-    <link rel="stylesheet" type="text/css" href="./res/css/style2_mobile_fix.css?<?= rand(0, 99999); ?>">
 
     <script src="./res/js/jquery.js"></script> 
     <script src="./res/js/howler.min.js"></script> 

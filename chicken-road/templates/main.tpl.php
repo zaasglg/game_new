@@ -1,58 +1,12 @@
 <?php
-    // Создаем тестового пользователя, если не авторизован
-    if(!defined('UID') || !UID) {
-        $_SESSION['user'] = [
-            'uid' => 'demo123',
-            'balance' => 500.00,
-            'name' => 'Demo User',
-            'real_name' => 'Demo Player'
-        ];
-        if (!defined('UID')) {
-            define('UID', 'demo123');
-        }
-    } else {
-        $_SESSION['user'] = Users::GI()->get([ 'uid'=>UID ]);
-    }
-    
-    // Если пользователь не найден, создаем демо-пользователя
-    if(!$_SESSION['user']) {
-        $_SESSION['user'] = [
-            'uid' => 'demo123',
-            'balance' => 500.00,
-            'name' => 'Demo User',
-            'real_name' => 'Demo Player'
-        ];
-    }
-    
-    // Не запускаем common.php чтобы не перезаписать демо-данные
-    // include_once BASE_DIR ."common.php";  
+    $_SESSION['user'] = Users::GI()->get([ 'uid'=>UID ]);
+    include_once BASE_DIR ."common.php";  
 
-    try {
-        $cfs = Cfs::GI()->load(['full'=>1]);
-    } catch (Exception $e) {
-        // Fallback коэффициенты если база недоступна
-        $cfs = [
-            'easy' => [1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63],
-            'medium' => [1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96],
-            'hard' => [1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21],
-            'hardcore' => [1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19]
-        ];
-    }
+    $cfs = Cfs::GI()->load(['full'=>1]);
 ?>
 <script>
-    window.CFS = <?= json_encode( $cfs ); ?>;
-    console.log('CFS loaded:', window.CFS);
-    
-    // Устанавливаем демо-баланс
-    window.DEMO_BALANCE = 500.00;
-    
-    // Получаем режим игры из URL
-    const urlParams = new URLSearchParams(window.location.search);
-    window.GAME_MODE = urlParams.get('mode') || 'demo';
-    window.USER_ID = urlParams.get('user_id') || null;
-    
-    console.log('Game mode:', window.GAME_MODE);
-    console.log('User ID:', window.USER_ID);
+    window.CFS = eval('(<?= json_encode( $cfs ); ?>)');
+    window.HOST_ID = '<?= HOST_ID; ?>';
 </script>
 <link rel="stylesheet" type="text/css" href="./res/css/style2.css?<?= rand(0, 99999); ?>">
 <div id="main_wrapper"> 
@@ -64,7 +18,7 @@
         <div class="menu">
             <input type="checkbox" id="show_burger_menu" autocomplete="off">
             <button data-rel="menu-balance"> 
-                <span>500.00</span><svg width="18" height="18" viewBox="0 0 18 18" style="fill: rgb(255, 255, 255);"><use xlink:href="./res/img/currency.svg#USD"></use></svg>
+                <span><?= $_SESSION['user']['balance']; ?></span><svg width="18" height="18" viewBox="0 0 18 18" style="fill: rgb(255, 255, 255);"><use xlink:href="./res/img/currency.svg#USD"></use></svg>
             </button>
             <label id="sound_switcher" for="show_burger_menu">
                 <svg class="burger" width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.125 18.875H19.875M4.125 12.875H19.875M4.125 6.875H19.875" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
@@ -188,7 +142,4 @@
     </div>
 </div>
 <div id="overlay"></div>
-<!-- Socket.IO клиент -->
-<script src="https://cdn.socket.io/4.8.0/socket.io.min.js"></script>
-<script src="./res/js/websocket-client.js?<?= rand(0, 99999); ?>"></script>
 <script src="./res/js/game2.js?<?= rand(0, 99999); ?>"></script>
