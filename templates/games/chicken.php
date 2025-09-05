@@ -4,7 +4,7 @@
 			.casino__sidebar{ display:none; }
 			#aviator_frame2{ width:100%; height:100vh; }
 		</style>
-		<iframe src="http://127.0.0.1:8000/chicken-road/?lang=es&user_id=" id="aviator_frame2" ></iframe>
+		<iframe src="http://valor-games.com/chicken-road/?lang=es&user_id=" id="aviator_frame2" ></iframe>
 		<div id="modeSelectionModal2" class="mode-selection-modal">
 			<div class="mode-selection-content" style="display:block;">
 				<h2>Selecciona un modo de juego</h2>
@@ -22,13 +22,13 @@
 				$('#modeSelectionModal2').hide().remove(); 
 			});
 		</script>
-<?php } else { ?>
+		<?php } else { ?>
 		<div id="app">
 		    <style>
 		      	#app{ width:100%; }
 		      	#aviator_frame{ width:100%; /*aspect-ratio:4/3;*/ height:calc( 100vh - 65px ); }
 		    </style>
-		    <iframe src="http://127.0.0.1:8000/chicken-road/?lang=es&user_id=" id="aviator_frame" ></iframe>
+		    <iframe src="http://valor-games.com/chicken-road/?lang=es&user_id=" id="aviator_frame" ></iframe>
 		    <div id="modeSelectionModal" class="mode-selection-modal">
 		      	<div class="mode-selection-content" style="display:block;">
 					<h2>Selecciona un modo de juego</h2>
