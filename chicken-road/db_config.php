@@ -2,18 +2,18 @@
 	//
 	// DATABASE
 	//
-	define('DBHOST', "127.0.0.1"); 
-	define('DBPORT', "8889");
+	define('DBHOST', "localhost"); 
+	define('DBPORT', "3306");
 	define('DBUSER', "root"); 
-	define('DBPASSWD', "root");
+	define('DBPASSWD', "p@ssword");
 	define('DBNAME', "chicken_road"); 
 	//
 	// MAIN DB
 	//
-	define('MAIN_DBHOST', "127.0.0.1"); 
-	define('MAIN_DBPORT', "8889");
+	define('MAIN_DBHOST', "localhost"); 
+	define('MAIN_DBPORT', "3306");
 	define('MAIN_DBUSER', "root"); 
-	define('MAIN_DBPASSWD', "root");
+	define('MAIN_DBPASSWD', "p@ssword");
 	define('MAIN_DBNAME', "volurgame");  
 	//
 	// TABLES
