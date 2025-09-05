@@ -1,0 +1,1 @@
+2025/06/10 02:32:13 [crit] 4750#4750: *1 connect() to unix:/run/php/php-fpm.sock failed (2: No such file or directory) while connecting to upstream, client: 104.23.172.84, server: valor-lat.com, request: "GET /cgi-sys/defaultwebpage.cgi HTTP/1.1", upstream: "fastcgi://unix:/run/php/php-fpm.sock:", host: "valor-lat.com", referrer: "http://valor-lat.com/"

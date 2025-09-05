@@ -1,0 +1,79 @@
+{
+    "withdrawalButtonsByCountry": {
+        "Argentina": [
+            { "banco": "Astropay" },
+            { "banco": "Mercado Pago" },
+            { "banco": "ecoPayz" },
+            { "banco": "Payeer" },
+            { "banco": "BinancePay" }
+        ],
+        "Colombia": [
+            { "banco": "Nequi" },
+            { "banco": "Astropay" },
+            { "banco": "ecoPayz" },
+            { "banco": "Payeer" },
+            { "banco": "Bancolombia" },
+            { "banco": "BinancePay" }
+        ],
+        "Ecuador": [
+            { "banco": "Transferencia Bancaria" },
+            { "banco": "Guayaquil" },
+            { "banco": "Pichincha" },
+            { "banco": "Western Union" },
+            { "banco": "BinancePay" }
+        ],
+        "Chile": [
+            { "banco": "Banco de Chile " },
+            { "banco": "Banco Santander Chile " },
+            { "banco": "Banco BCI" },
+            { "banco": "Banco Estado" },
+            { "banco": "Scotiabank Chile " },
+            { "banco": "Banco Itaú Chile" }
+        ],
+        "Guatemala": [
+            { "banco": "Banco Industrial" },
+            { "banco": "Banco GT Continental " },
+            { "banco": "Banco Promerica Guatemala" },
+            { "banco": "Banco Ficohsa Guatemala" }
+        ],
+        "Paraguay": [
+            { "banco": "BANCO CENTRAL DEL PARAGUAY" },
+            { "banco": "BANCO NACIONAL DE FOMENTO" },
+            { "banco": "BANCO GNB PARAGUAY" },
+            { "banco": "CITIBANK N.A." },
+            { "banco": "SUDAMERIS BANK S.A.E.C.A." },
+            { "banco": "BANCO ITAU PARAGUAY S.A." },
+            { "banco": "BANCO CONTINENTAL S.A." },
+            { "banco": "banco BISA(ex-Amambay)" },
+            { "banco": "FINANCIERA PARAGUAYO JAPONESASAE.C.A." },
+            { "banco": "FINANCIERA EXPORTADORA PARAGUAYA S.A." },
+            { "banco": "SOLAR S.A.DE AHORRO Y PRESTAMO PARA LA VIVIENDA" },
+            { "banco": "TU FINANCIERAS.A." },
+            { "banco": "FIC S.A.DE FINANZAS" },
+            { "banco": "Ueno Bank" },
+            { "banco": "Banco Familiar" },
+            { "banco": "BinancePay" }
+        ],
+        "Costa Rica": [
+            { "banco": "Transferencia Bancaria" },
+            { "banco": "Skrill" },
+            { "banco": "ecoPayz" },
+            { "banco": "Payeer" },
+            { "banco": "BinancePay" }
+        ],
+        "Bolivia": [
+            { "banco": "Skrill" },
+            { "banco": "Jetonbank" },
+            { "banco": "Banco sol" },
+            { "banco": "BinancePay" }
+        ],
+        "Peru": [
+            { "banco": "BCP" },
+            { "banco": "BBVA Continental" },
+            { "banco": "Scotiabank" },
+            { "banco": "Interbank Peru" },
+            { "banco": "Sticpay" },
+            { "banco": "BinancePay" }
+        ]
+    }
+}

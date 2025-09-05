@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JavaScript Test</title>
+    <script src="./res/js/jquery.js"></script>
+</head>
+<body>
+    <div id="game_container" style="width: 800px; height: 600px;"></div>
+    <div id="battlefield"></div>
+    <div id="main" style="height: 600px;"></div>
+    
+    <script>
+        // Симулируем window.CFS
+        window.CFS = {
+            "easy":[1.03,1.07,1.12,1.17,1.23,1.29,1.36,1.44,1.53,1.63],
+            "medium":[1.12,1.28,1.47,1.7,1.98,2.33,2.76,3.32,4.03,4.96],
+            "hard":[1.23,1.55,1.98,2.56,3.36,4.49,5.49,7.53,10.56,15.21],
+            "hardcore":[1.63,2.8,4.95,9.08,15.21,30.12,62.96,140.24,337.19,890.19]
+        };
+        
+        console.log('CFS set:', window.CFS);
+        
+        // Симулируем body data attributes
+        $('body').attr('data-sound', 1);
+        $('body').attr('data-music', 1);
+        $('body').attr('data-currency', 'USD');
+    </script>
+    
+    <script src="./res/js/howler.min.js"></script>
+    <script src="./res/js/game2.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+    "limitedByCountry": {
+        "Colombia": 70000000,
+        "Ecuador": 20000,
+        "Argentina": 22000000,
+        "Paraguay": 160000000,
+        "Costa Rica": 11000000,
+        "Uruguay": 800000,
+        "Peru": 70000,
+        "Bolivia": 168000,
+        "Guatemala": 190000,
+        "Venezuela": 1000000,
+        "El Salvador": 22000,
+        "Panama": 22000,
+        "Mexico": 400000,
+        "Brazil": 150000,
+        "Chile": 22000000,
+        "Honduras": 600000,
+        "Dominican Republic": 170000
+    }
+}

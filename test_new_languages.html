@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-translate="head.title">Valor Casino Official Site</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            direction: ltr;
+        }
+        .language-selector {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .language-btn {
+            margin: 5px;
+            padding: 8px 15px;
+            border: 1px solid #007bff;
+            background: white;
+            color: #007bff;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .language-btn.active {
+            background: #007bff;
+            color: white;
+        }
+        .content {
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .arabic {
+            direction: rtl;
+            text-align: right;
+        }
+        .test-section {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Тест новых языков: Французский и Арабский</h1>
+    
+    <div class="language-selector">
+        <h3>Выберите язык:</h3>
+        <button class="language-btn" onclick="changeLanguage('en')">English</button>
+        <button class="language-btn" onclick="changeLanguage('es')">Español</button>
+        <button class="language-btn" onclick="changeLanguage('pt')">Português</button>
+        <button class="language-btn active" onclick="changeLanguage('fr')">Français</button>
+        <button class="language-btn" onclick="changeLanguage('ar')">العربية</button>
+    </div>
+
+    <div class="content" id="content">
+        <div class="test-section">
+            <h3>Заголовок сайта:</h3>
+            <p data-translate="head.title">Valor Casino Official Site: Top Online Slots & Quick Sign-Up 🎰</p>
+        </div>
+
+        <div class="test-section">
+            <h3>Навигация:</h3>
+            <ul>
+                <li data-translate="header.home">Home</li>
+                <li data-translate="header.games">Games</li>
+                <li data-translate="header.casino">Casino</li>
+                <li data-translate="header.bonuses">Bonuses</li>
+                <li data-translate="header.live_games">Live Games</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>Игры:</h3>
+            <ul>
+                <li data-translate="index.main.chicken_road">Chicken Road</li>
+                <li data-translate="index.main.aviator">Aviator</li>
+                <li data-translate="index.main.mines">Mines</li>
+                <li data-translate="index.main.crash">Crash</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>Авторизация:</h3>
+            <p>
+                <button data-translate="header.login">Log In</button>
+                <button data-translate="header.register">Sign Up</button>
+            </p>
+            <p>
+                <label data-translate="modal.email_phone">Email / Phone</label><br>
+                <input type="text" placeholder="Email / Phone" data-translate-placeholder="modal.email_phone">
+            </p>
+            <p>
+                <label data-translate="modal.password">Password</label><br>
+                <input type="password" placeholder="Password" data-translate-placeholder="modal.password">
+            </p>
+        </div>
+
+        <div class="test-section">
+            <h3>Футер:</h3>
+            <p data-translate="footer.copyright">© 2021 - 2025. ValorCasino. All Rights Reserved</p>
+            <p data-translate="footer.questions">Have Questions?</p>
+            <p data-translate="footer.contact_us">Write or call us, and we'll respond immediately!</p>
+            <p data-translate="footer.help_chat">Help Chat</p>
+        </div>
+
+        <div class="test-section">
+            <h3>Языки:</h3>
+            <ul>
+                <li data-translate="footer.english">English</li>
+                <li data-translate="footer.spanish">Spanish</li>
+                <li data-translate="footer.portuguese">Portuguese</li>
+                <li data-translate="footer.french">French</li>
+                <li data-translate="footer.arabic">Arabic</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let translations = {};
+        let currentLang = 'fr';
+
+        // Загружаем переводы
+        fetch('./translations.json')
+            .then(response => response.json())
+            .then(data => {
+                translations = data;
+                applyTranslations(currentLang);
+            })
+            .catch(error => console.error('Error loading translations:', error));
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            
+            // Обновляем активную кнопку
+            document.querySelectorAll('.language-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Применяем переводы
+            applyTranslations(lang);
+            
+            // Обновляем направление текста для арабского
+            const content = document.getElementById('content');
+            if (lang === 'ar') {
+                content.classList.add('arabic');
+            } else {
+                content.classList.remove('arabic');
+            }
+        }
+
+        function applyTranslations(lang) {
+            const commonTranslations = translations.common || {};
+            const indexTranslations = translations['index.php'] || {};
+            const combinedTranslations = {
+                ...commonTranslations,
+                ...indexTranslations
+            };
+
+            // Обрабатываем элементы с data-translate
+            document.querySelectorAll('[data-translate]').forEach(element => {
+                const fullKey = element.getAttribute('data-translate');
+                const [section, key] = fullKey.split('.');
+                const translation = combinedTranslations[section]?.[key]?.[lang];
+
+                if (translation) {
+                    if (element.tagName === 'INPUT' && element.hasAttribute('placeholder')) {
+                        element.setAttribute('placeholder', translation);
+                    } else {
+                        element.textContent = translation;
+                    }
+                }
+            });
+
+            // Обрабатываем элементы с data-translate-placeholder
+            document.querySelectorAll('[data-translate-placeholder]').forEach(element => {
+                const fullKey = element.getAttribute('data-translate-placeholder');
+                const [section, key] = fullKey.split('.');
+                const translation = combinedTranslations[section]?.[key]?.[lang];
+
+                if (translation) {
+                    element.setAttribute('placeholder', translation);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Game Balance</title>
+    <script src="./res/js/jquery.min.js"></script>
+</head>
+<body>
+    <h1>Test Game Balance</h1>
+    
+    <div style="padding: 20px; background: #333; color: white;">
+        <button data-rel="menu-balance" style="padding: 10px; background: #555; color: white; border: none;">
+            Balance: <span>999.99</span> USD
+        </button>
+    </div>
+    
+    <script>
+        window.DEMO_BALANCE = 500.00;
+        window.GAME_MODE = 'demo';
+        
+        // Простой тест класса Game с обновлением баланса
+        class TestGame {
+            constructor() {
+                this.balance = window.DEMO_BALANCE || 500.00;
+                this.updateBalanceDisplay();
+            }
+            
+            updateBalanceDisplay() {
+                $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
+                console.log('Balance updated to:', this.balance);
+            }
+        }
+        
+        $(document).ready(function() {
+            console.log('Creating test game...');
+            const testGame = new TestGame();
+            
+            // Тест изменения баланса
+            setTimeout(() => {
+                testGame.balance = 123.45;
+                testGame.updateBalanceDisplay();
+                console.log('Changed balance to 123.45');
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>Chicken Road - Mobile Scroll Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #394265;
+            color: white;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .test-info {
+            background: #2d324d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .test-link {
+            display: block;
+            background: #61c55b;
+            color: white;
+            padding: 15px;
+            text-decoration: none;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .test-link:hover {
+            background: #4fa64a;
+        }
+        .device-info {
+            background: #3a3d51;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🐔 Chicken Road - Mobile Scroll Test</h1>
+        
+        <div class="test-info">
+            <h3>✅ Исправления применены:</h3>
+            <ul>
+                <li>Добавлена поддержка CSS transform для мобильных устройств</li>
+                <li>Настроены touch-action и overflow для правильной прокрутки</li>
+                <li>Добавлены swipe жесты с поддержкой вертикальной прокрутки</li>
+                <li>Обновлен viewport meta tag</li>
+                <li>🆕 Исправлена вертикальная прокрутка страницы</li>
+                <li><strong>🆕 Добавлен автоматический сброс камеры при завершении игры</strong></li>
+            </ul>
+        </div>
+
+        <a href="./index.php" class="test-link">
+            🎮 Запустить игру Chicken Road
+        </a>
+
+        <a href="./index.php?mode=demo" class="test-link">
+            🎮 Запустить в демо режиме
+        </a>
+
+        <div class="device-info">
+            <strong>Информация об устройстве:</strong><br>
+            Screen Width: <span id="screenWidth"></span>px<br>
+            User Agent: <span id="userAgent"></span><br>
+            Mobile Mode: <span id="mobileMode"></span>
+        </div>
+
+        <div class="test-info">
+            <h3>🧪 Как тестировать:</h3>
+            <ol>
+                <li>Запустите игру</li>
+                <li>Начните играть (нажмите кнопку PLAY)</li>
+                <li>Попробуйте горизонтальную прокрутку свайпом влево/вправо</li>
+                <li>Проверьте, что игровое поле прокручивается при движении курицы</li>
+                <li>🆕 Попробуйте вертикальную прокрутку страницы вверх/вниз</li>
+                <li>🆕 Убедитесь, что панель управления ставками доступна</li>
+                <li><strong>🆕 Проиграйте или заберите выигрыш - камера должна плавно вернуться в начальное положение</strong></li>
+            </ol>
+        </div>
+
+        <div style="height: 500px; background: #2d324d; margin: 20px 0; padding: 20px; border-radius: 8px;">
+            <h3>📏 Тест вертикальной прокрутки</h3>
+            <p>Это длинная секция для тестирования вертикальной прокрутки.</p>
+            <p>Прокрутите вверх и вниз, чтобы убедиться, что прокрутка работает правильно.</p>
+            <p>Вы должны видеть кнопки игры выше и ниже этой секции.</p>
+            <div style="height: 200px; background: #394265; margin: 20px 0; display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+                <span>Дополнительный контент для тестирования прокрутки</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('screenWidth').textContent = window.innerWidth;
+        document.getElementById('userAgent').textContent = navigator.userAgent.substring(0, 50) + '...';
+        document.getElementById('mobileMode').textContent = window.innerWidth <= 760 ? 'ДА' : 'НЕТ';
+        
+        // Дополнительная диагностика
+        console.log('Mobile test page loaded');
+        console.log('Screen dimensions:', window.innerWidth + 'x' + window.innerHeight);
+        console.log('Mobile mode:', window.innerWidth <= 760);
+    </script>
+</body>
+</html>

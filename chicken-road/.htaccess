@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# API routes
+RewriteRule ^api/settings$ api/settings.php [L]
+RewriteRule ^api/game$ api/game.php [L]
+
+# Default route
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]

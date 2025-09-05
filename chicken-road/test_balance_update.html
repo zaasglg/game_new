@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Balance Update</title>
+</head>
+<body>
+    <h1>Test Balance Update</h1>
+    
+    <button data-rel="menu-balance">
+        <span>999.99</span> USD
+    </button>
+    
+    <script>
+        console.log('Testing balance update...');
+        
+        window.DEMO_BALANCE = 500.00;
+        window.GAME_MODE = 'demo';
+        window.USER_ID = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded');
+            const balanceElement = document.querySelector('[data-rel="menu-balance"] span');
+            console.log('Balance element found:', balanceElement);
+            
+            if (balanceElement) {
+                console.log('Current balance text:', balanceElement.textContent);
+                balanceElement.textContent = window.DEMO_BALANCE.toFixed(2);
+                console.log('Updated balance text:', balanceElement.textContent);
+            }
+        });
+    </script>
+</body>
+</html>

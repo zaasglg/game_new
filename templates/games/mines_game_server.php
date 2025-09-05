@@ -1,0 +1,64 @@
+<?php if( IS_MOBILE ){ ?> 
+        <style>
+            .casino{ display:block; }
+            .casino__sidebar{ display:none; }
+            #aviator_frame2{ width:100%; height:100vh; }
+        </style>
+        <iframe src="https://mines.valor-games.com?user_id=" id="aviator_frame2" ></iframe>
+        <div id="modeSelectionModal2" class="mode-selection-modal">
+            <div class="mode-selection-content" style="display:block;">
+                <h2>Selecciona un modo de juego</h2>
+                <button class="mode-two-btn" data-mode="demo">Modo demostración</button>
+                <button class="mode-two-btn" data-mode="real">El juego de siempre</button>
+                <p style="display:none;"><?= json_encode( $_SESSION ); ?></p>
+            </div>
+        </div>
+        <script>
+            $('#modeSelectionModal2 .mode-two-btn').off().on('click', function(){
+                var $self=$(this); 
+                var $mode = $self.attr('data-mode'); 
+                var $url = $('#aviator_frame2').attr('src');
+                if( $mode == 'demo' ){ $('#aviator_frame2').attr('src', $url+'demo'); }
+                else { $('#aviator_frame2').attr('src', $url+'<?= UID; ?>'); } 
+                $('#modeSelectionModal2').hide().remove(); 
+            });
+        </script>
+<?php } else { ?>
+        <div id="app">
+            <style>
+              #app{ width:100%; }
+              #aviator_frame{ width:100%; /*aspect-ratio:4/3;*/ height:calc( 100vh - 65px ); }
+            </style>
+            <iframe src="https://mines.valor-games.com?user_id=" id="aviator_frame" ></iframe>
+            <div id="modeSelectionModal" class="mode-selection-modal">
+              	<div class="mode-selection-content" style="display:block;">
+                	<h2>Selecciona un modo de juego</h2>
+                	<button class="mode-two-btn" data-mode="demo">Modo demostración</button>
+                	<button class="mode-two-btn" data-mode="real">El juego de siempre</button>
+                	<p style="display:none;"><?= json_encode( $_SESSION ); ?></p>
+              	</div>
+            </div>
+            <script>
+              	$('#modeSelectionModal .mode-two-btn').off().on('click', function(){
+                	var $self=$(this); 
+                	var $mode = $self.attr('data-mode'); 
+                	var $url = $('#aviator_frame').attr('src');
+                	if( $mode == 'demo' ){ $('#aviator_frame').attr('src', $url+'demo'); }
+                	else { $('#aviator_frame').attr('src', $url+'<?= UID; ?>'); } 
+                	$('#modeSelectionModal').hide().remove(); 
+              	});
+              	/*
+              	setInterval(function(){
+                	$.ajax({
+                  		url:"/get_balance.php", type:"json", method:"post", data:{}, 
+                  		error:function($e){ console.error($e); }, 
+                  		success: function($r){
+                    		var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
+                    		if( $obj && $obj.deposit ){ $('#balance').html( $obj.deposit ); }
+                  		}
+                	});
+              	}, 2000);
+              	*/
+            </script>
+         </div>
+<?php } ?>
