@@ -2,10 +2,10 @@
 	//
 	// DATABASE
 	//
-		define('DBHOST', "127.0.0.1"); 
+		define('DBHOST', "localhost"); 
 	define('DBPORT', "8889");
 	define('DBUSER', "root"); 
-	define('DBPASSWD', "root");
+	define('DBPASSWD', value: "p@ssword");
 	define('DBNAME', "chicken_road"); 
 	//
 	// MAIN DB
@@ -16,10 +16,10 @@
 	//define('MAIN_DBPASSWD', "xE2tZ9qH5f");
 	//define('MAIN_DBNAME', "dbvalor");  
 	//
-	define('MAIN_DBHOST', "127.0.0.1"); 
+	define('MAIN_DBHOST', "localhost"); 
 	define('MAIN_DBPORT', "8889");
 	define('MAIN_DBUSER', "root"); //"valorgames_dbvalor"); 
-	define('MAIN_DBPASSWD', "root"); //"fO2~lJf=4]-H");
+	define('MAIN_DBPASSWD', "p@ssword"); //"fO2~lJf=4]-H");
 	define('MAIN_DBNAME', "chicken_road");  
 	//
 	// TABLES
