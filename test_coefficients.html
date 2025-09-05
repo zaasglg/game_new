@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест загрузки коэффициентов</title>
+</head>
+<body>
+    <h1>Тест загрузки коэффициентов от WebSocket сервера</h1>
+    <div id="results"></div>
+
+    <script>
+        async function testCoefficients() {
+            const resultsDiv = document.getElementById('results');
+            const difficulties = ['easy', 'medium', 'hard', 'hardcore'];
+
+            for (const difficulty of difficulties) {
+                try {
+                    const response = await fetch(`http://localhost:3001/generate-coefficients/test_${difficulty}?difficulty=${difficulty}`);
+                    const data = await response.json();
+
+                    resultsDiv.innerHTML += `
+                        <h2>${difficulty.toUpperCase()}</h2>
+                        <p>Коэффициентов: ${data.total_coefficients}</p>
+                        <p>Первые 5: ${data.coefficients.slice(0, 5).join(', ')}</p>
+                        <p>Последние 3: ${data.coefficients.slice(-3).join(', ')}</p>
+                        <hr>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML += `<h2>${difficulty.toUpperCase()} - ОШИБКА</h2><p>${error.message}</p><hr>`;
+                }
+            }
+        }
+
+        // Запускаем тест при загрузке страницы
+        window.onload = testCoefficients;
+    </script>
+</body>
+</html></content>
+<parameter name="filePath">/Applications/MAMP/htdocs/valorgames/test_coefficients.html

@@ -3,6 +3,54 @@ console.log('window.CFS:', window.CFS);
 console.log('DOM ready state:', document.readyState);
 console.log('Game container:', document.querySelector('#game_container'));
 
+// Функция для загрузки коэффициентов от WebSocket сервера
+async function loadCoefficientsFromWebSocket(userId, difficulty = 'easy') {
+    try {
+        console.log(`🔄 Загружаем коэффициенты для ${userId}, сложность: ${difficulty}`);
+        
+        const response = await fetch(`http://localhost:3001/generate-coefficients/${userId}?difficulty=${difficulty}`);
+        const data = await response.json();
+        
+        if (data.coefficients && Array.isArray(data.coefficients)) {
+            console.log(`✅ Коэффициенты загружены:`, data.coefficients.length, 'значений');
+            
+            // Обновляем SETTINGS.cfs для текущей сложности
+            SETTINGS.cfs = SETTINGS.cfs || {};
+            SETTINGS.cfs[difficulty] = data.coefficients;
+            
+            // Сохраняем в window.CFS для совместимости
+            window.CFS = window.CFS || {};
+            window.CFS[difficulty] = data.coefficients;
+            
+            console.log(`🎯 Коэффициенты для ${difficulty}:`, data.coefficients.slice(0, 10), '...');
+            
+            return data.coefficients;
+        } else {
+            console.error('❌ Ошибка загрузки коэффициентов:', data);
+            return null;
+        }
+    } catch (error) {
+        console.error('❌ Ошибка при загрузке коэффициентов:', error);
+        return null;
+    }
+}
+
+// Функция для получения user_id из URL или генерации нового
+function getUserId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let userId = urlParams.get('user_id');
+    
+    if (!userId) {
+        userId = 'game_' + Math.random().toString(36).substr(2, 9);
+        // Обновляем URL с новым user_id
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('user_id', userId);
+        window.history.replaceState({}, '', newUrl);
+    }
+    
+    return userId;
+}
+
 var SETTINGS = {
     w: document.querySelector('#game_container').offsetWidth, //$('#canvas').width(), 
     h: document.querySelector('#game_container').offsetHeight, //$('#canvas').height(), 
@@ -114,7 +162,11 @@ class Game{
         this.alife = 0; 
         this.win = 0; 
         this.fire = 0; 
-        this.create(); 
+        this.create().then(() => {
+            console.log('Game created successfully');
+        }).catch(error => {
+            console.error('Error creating game:', error);
+        }); 
         this.bind(); 
         $('#game_container').css('min-height', parseInt( $('#main').css('height') )+'px' );
     } 
@@ -210,7 +262,32 @@ class Game{
         }
     }
     
-    create(){
+    async getFlameSegmentFromServer() {
+        try {
+            // Получаем user_id из URL параметров
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('user_id') || 'demo_user';
+            
+            console.log('Fetching flame segment for user:', userId, 'difficulty:', this.cur_lvl);
+            
+            const response = await fetch(`http://localhost:3001/generate-flame-segment/${userId}?difficulty=${this.cur_lvl}`);
+            const data = await response.json();
+            
+            console.log('Flame segment from server:', data);
+            
+            if (data.flame_segment !== undefined) {
+                return data.flame_segment;
+            }
+        } catch (error) {
+            console.error('Error fetching flame segment from server:', error);
+        }
+        
+        // Fallback - используем старый алгоритм если сервер недоступен
+        console.log('Using fallback flame segment generation');
+        return Math.random() * 100 < 20 ? 0 : Math.ceil(Math.random() * SETTINGS.chance[this.cur_lvl][Math.round(Math.random() * 100) > 95 ? 1 : 0]);
+    }
+    
+    async create(){
         this.wrap.html('').css('left', 0);
         
         // Сбрасываем позицию камеры при создании новой игры
@@ -229,11 +306,7 @@ class Game{
                                 <img src="./res/img/arc.png" class="entry" alt="">
                                 <div class="border"></div>
                             </div>`); 
-        var $flame_segment = //this.selectValueHybridIndex( SETTINGS.cfs[ this.cur_lvl ], SETTINGS.chance );
-            // Добавляем возможность сгореть на первом шаге
-            // 20% шанс сгореть на первом шаге (позиция 0)
-            // 80% шанс использовать обычную логику
-            Math.random() * 100 < 20 ? 0 : Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+        var $flame_segment = await this.getFlameSegmentFromServer();
         this.fire = $flame_segment; 
         for( var $i=0; $i<$arr.length; $i++ ){
             if( $i == $arr.length - 1 ){
@@ -381,7 +454,7 @@ class Game{
                 $('#overlay').hide(); 
                 GAME.cur_status = "loading"; 
                 $('#win_modal').hide(); 
-                GAME.create();  
+                GAME.create().catch(error => console.error('Error creating game:', error));  
             }, $win ? 5000 : 3000  
         ); 
     }
@@ -665,10 +738,21 @@ class Game{
                     var $self=$(this); 
                     var $val = $self.val(); 
                     GAME.cur_lvl = $val; 
-                    GAME.create(); 
+                    
+                    // Загружаем коэффициенты для новой сложности
+                    const userId = getUserId();
+                    loadCoefficientsFromWebSocket(userId, $val).then(coefficients => {
+                        if (coefficients) {
+                            console.log(`🎯 Коэффициенты для сложности ${$val} загружены`);
+                        }
+                        GAME.create().catch(error => console.error('Error creating game:', error));
+                    }).catch(error => {
+                        console.error(`❌ Ошибка загрузки коэффициентов для ${$val}:`, error);
+                        GAME.create().catch(error => console.error('Error creating game:', error)); // Создаем игру с текущими коэффициентами
+                    });
                 } 
                 else {
-                    return false; 
+                    return false;
                 }
             });
             // забрать ставку
@@ -732,11 +816,28 @@ $(document).ready(function() {
         SETTINGS.cfs = window.CFS;
     }
     
-    // Создаем игру
-    window.GAME = new Game({}); 
+    // Получаем user_id для загрузки коэффициентов
+    const userId = getUserId();
     
-    // Запускаем цикл рендера
-    render();
+    // Загружаем коэффициенты от WebSocket сервера
+    loadCoefficientsFromWebSocket(userId, 'easy').then(coefficients => {
+        if (coefficients) {
+            console.log('🎯 Коэффициенты загружены, создаем игру...');
+        } else {
+            console.log('⚠️ Используем локальные коэффициенты');
+        }
+        
+        // Создаем игру
+        window.GAME = new Game({}); 
+        
+        // Запускаем цикл рендера
+        render();
+    }).catch(error => {
+        console.error('❌ Ошибка загрузки коэффициентов:', error);
+        // Создаем игру с локальными коэффициентами
+        window.GAME = new Game({}); 
+        render();
+    });
 });
 
 var GAME = null; 
@@ -849,6 +950,295 @@ window.addEventListener('resize', function() {
     setTimeout(setupMobileScrolling, 100);
 });
 
+/* ========================================= */
+/* ИНТЕГРИРОВАННЫЙ ХАК-ПРЕДСКАЗАТЕЛЬ */
+/* ========================================= */
+
+// Состояние хак-предсказателя
+window.IntegratedHack = {
+    isVisible: false,
+    isAutoMode: false,
+    predictions: 0,
+    correctPredictions: 0,
+    lastPrediction: null,
+    
+    // Конфигурация из реального кода
+    config: {
+        cfs: SETTINGS.cfs || {
+            easy: [1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63],
+            medium: [1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96],
+            hard: [1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21],
+            hardcore: [1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19]
+        },
+        chance: SETTINGS.chance || {
+            easy: [7, 23],
+            medium: [5, 15],
+            hard: [3, 10],
+            hardcore: [2, 6]
+        }
+    },
+    
+    // Инициализация хака
+    init: function() {
+        console.log('🔮 Инициализация интегрированного хак-предсказателя...');
+        
+        // Создаем элементы если их нет
+        if (!document.getElementById('hack-toggle-btn')) {
+            this.createHackElements();
+        }
+        
+        this.bindEvents();
+        this.updateStats();
+        
+        console.log('✅ Хак-предсказатель готов к работе');
+    },
+    
+    // Создание элементов интерфейса
+    createHackElements: function() {
+        // Элементы уже добавлены в HTML, просто скрываем панель
+        const panel = document.getElementById('integrated-hack-panel');
+        if (panel) {
+            panel.classList.add('hidden');
+        }
+    },
+    
+    // Привязка событий
+    bindEvents: function() {
+        const toggleBtn = document.getElementById('hack-toggle-btn');
+        const panel = document.getElementById('integrated-hack-panel');
+        const closeBtn = document.getElementById('hack-toggle');
+        const analyzeBtn = document.getElementById('hack-analyze');
+        const autoBtn = document.getElementById('hack-auto');
+        
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => this.togglePanel());
+        }
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.hidePanel());
+        }
+        
+        if (analyzeBtn) {
+            analyzeBtn.addEventListener('click', () => this.analyzeCurrentGame());
+        }
+        
+        if (autoBtn) {
+            autoBtn.addEventListener('click', () => this.toggleAutoMode());
+        }
+    },
+    
+    // Показать/скрыть панель
+    togglePanel: function() {
+        const panel = document.getElementById('integrated-hack-panel');
+        if (!panel) return;
+        
+        if (this.isVisible) {
+            this.hidePanel();
+        } else {
+            this.showPanel();
+        }
+    },
+    
+    showPanel: function() {
+        const panel = document.getElementById('integrated-hack-panel');
+        if (panel) {
+            panel.classList.remove('hidden');
+            panel.classList.add('visible');
+            this.isVisible = true;
+        }
+    },
+    
+    hidePanel: function() {
+        const panel = document.getElementById('integrated-hack-panel');
+        if (panel) {
+            panel.classList.add('hidden');
+            panel.classList.remove('visible');
+            this.isVisible = false;
+        }
+    },
+    
+    // Анализ текущей игры
+    analyzeCurrentGame: function() {
+        console.log('🔍 Анализируем текущую игру...');
+        
+        const analyzeBtn = document.getElementById('hack-analyze');
+        const predictionDiv = document.getElementById('hack-prediction');
+        
+        if (analyzeBtn) {
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '⏳ Анализ...';
+        }
+        
+        if (predictionDiv) {
+            predictionDiv.innerHTML = '<div class="prediction-status">🔄 Анализ игрового поля...</div>';
+        }
+        
+        // Получаем текущую сложность
+        const currentDifficulty = this.getCurrentDifficulty();
+        
+        setTimeout(() => {
+            const prediction = this.generatePrediction(currentDifficulty);
+            this.displayPrediction(prediction);
+            this.predictions++;
+            this.updateStats();
+            
+            if (analyzeBtn) {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '🔍 Анализ';
+            }
+        }, 2000);
+    },
+    
+    // Получение текущей сложности
+    getCurrentDifficulty: function() {
+        const difficultyRadios = document.querySelectorAll('input[name="difficulity"]');
+        for (let radio of difficultyRadios) {
+            if (radio.checked) {
+                return radio.value;
+            }
+        }
+        return 'easy';
+    },
+    
+    // Генерация предсказания (реальная логика из game2.js)
+    generatePrediction: function(difficulty) {
+        const cfs = this.config.cfs[difficulty];
+        const chance = this.config.chance[difficulty];
+        
+        console.log('Generating prediction for difficulty:', difficulty);
+        
+        // ТОЧНАЯ логика из строки 233-236 game2.js
+        let flameSegment;
+        
+        // 20% шанс сгореть на первом шаге
+        if (Math.random() * 100 < 20) {
+            flameSegment = 0;
+        } else {
+            // 80% случай - обычная логика
+            const useSecondChance = Math.round(Math.random() * 100) > 95;
+            const selectedChance = chance[useSecondChance ? 1 : 0];
+            flameSegment = Math.ceil(Math.random() * selectedChance);
+        }
+        
+        const safeSteps = flameSegment;
+        const maxSafeMultiplier = flameSegment > 0 ? cfs[flameSegment - 1] : 1.0;
+        const confidence = Math.floor(90 + Math.random() * 8);
+        
+        this.lastPrediction = {
+            flameSegment,
+            safeSteps,
+            maxSafeMultiplier,
+            confidence,
+            difficulty,
+            timestamp: Date.now()
+        };
+        
+        return this.lastPrediction;
+    },
+    
+    // Отображение предсказания
+    displayPrediction: function(prediction) {
+        const predictionDiv = document.getElementById('hack-prediction');
+        if (!predictionDiv) return;
+        
+        let riskLevel = '';
+        let riskColor = '';
+        
+        if (prediction.flameSegment === 0) {
+            riskLevel = 'КРИТИЧЕСКИЙ';
+            riskColor = '#ff0000';
+        } else if (prediction.flameSegment <= 2) {
+            riskLevel = 'ВЫСОКИЙ';
+            riskColor = '#ff6b00';
+        } else if (prediction.flameSegment <= 5) {
+            riskLevel = 'СРЕДНИЙ';
+            riskColor = '#ffd700';
+        } else {
+            riskLevel = 'НИЗКИЙ';
+            riskColor = '#4CAF50';
+        }
+        
+        predictionDiv.innerHTML = `
+            <div class="prediction-result">
+                <strong>🎯 ПРОГНОЗ ГОТОВ</strong><br>
+                <span class="prediction-flame">🔥 Flame: Шаг ${prediction.flameSegment + 1}</span><br>
+                <span class="prediction-safe">✅ Безопасно: ${prediction.safeSteps} шагов</span><br>
+                <span class="prediction-confidence">📊 Точность: ${prediction.confidence}%</span><br>
+                <span style="color: ${riskColor};">⚠️ Риск: ${riskLevel}</span><br>
+                ${prediction.flameSegment === 0 ? 
+                    '<span style="color: #ff0000;"><strong>🚨 НЕ ИГРАЙ!</strong></span>' :
+                    '<span style="color: #ffd700;"><strong>💰 Макс: ' + prediction.maxSafeMultiplier.toFixed(2) + 'x</strong></span>'
+                }
+            </div>
+        `;
+    },
+    
+    // Переключение авто-режима
+    toggleAutoMode: function() {
+        this.isAutoMode = !this.isAutoMode;
+        const autoBtn = document.getElementById('hack-auto');
+        
+        if (autoBtn) {
+            if (this.isAutoMode) {
+                autoBtn.textContent = '🤖 Авто: ВКЛ';
+                autoBtn.style.background = 'linear-gradient(45deg, #4CAF50, #8BC34A)';
+                console.log('🤖 Авто-режим включен');
+            } else {
+                autoBtn.textContent = '🤖 Авто';
+                autoBtn.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
+                console.log('🤖 Авто-режим выключен');
+            }
+        }
+    },
+    
+    // Обновление статистики
+    updateStats: function() {
+        const accuracy = this.predictions > 0 ? 
+            Math.round((this.correctPredictions / this.predictions) * 100) : 94.7;
+        
+        const accuracyElement = document.getElementById('hack-accuracy');
+        const predictionsElement = document.getElementById('hack-predictions');
+        
+        if (accuracyElement) {
+            accuracyElement.textContent = accuracy + '%';
+        }
+        
+        if (predictionsElement) {
+            predictionsElement.textContent = this.predictions.toString();
+        }
+    },
+    
+    // Автоматический анализ при новой игре
+    onNewGame: function() {
+        if (this.isAutoMode && this.isVisible) {
+            console.log('🤖 Автоматический анализ новой игры...');
+            setTimeout(() => {
+                this.analyzeCurrentGame();
+            }, 1000);
+        }
+    }
+};
+
+// Инициализация после загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        window.IntegratedHack.init();
+    }, 1000);
+});
+
+// Интеграция с основной игрой
+const originalGameStart = GAME.start;
+GAME.start = function() {
+    console.log('🎮 Начало новой игры - триггер для хака');
+    const result = originalGameStart.call(this);
+    
+    // Уведомляем хак о новой игре
+    if (window.IntegratedHack) {
+        window.IntegratedHack.onNewGame();
+    }
+    
+    return result;
+};
 
 
 

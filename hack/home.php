@@ -106,6 +106,10 @@ try {
                     <img src="./images/mines.webp" alt="mines">
                     <p class="translate" data-key="mines">Minas</p> <!-- Изменено на испанский -->
                 </a>
+                <a class="footer__link chicken-road" href="chicken-road.php">
+                    <img src="./images/chicken-road.webp" alt="chicken-road">
+                    <p class="translate" data-key="chicken_road">Chicken Road</p>
+                </a>
             </div>
         </footer>
     </div>
@@ -136,6 +140,7 @@ try {
             home: "Home",
             aviator: "Aviator",
             mines: "Mines",
+            chicken_road: "Chicken Road",
             predict_now: "Predict now",
             traps: "3 traps",
             your_id: `Your ID: <span style="color: lightgreen;">${userId}</span>`,
@@ -155,6 +160,7 @@ try {
             home: "Inicio",
             aviator: "Aviador",
             mines: "Minas",
+            chicken_road: "Chicken Road",
             predict_now: "Predecir ahora",
             traps: "3 trampas",
             your_id: `Tu ID: <span style="color: lightgreen;">${userId}</span>`,

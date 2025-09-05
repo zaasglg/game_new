@@ -188,4 +188,7 @@
     </div>
 </div>
 <div id="overlay"></div>
+<!-- Socket.IO клиент -->
+<script src="https://cdn.socket.io/4.8.0/socket.io.min.js"></script>
+<script src="./res/js/websocket-client.js?<?= rand(0, 99999); ?>"></script>
 <script src="./res/js/game2.js?<?= rand(0, 99999); ?>"></script>

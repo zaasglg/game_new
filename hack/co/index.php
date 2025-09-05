@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Autorización</title>
-    <link rel="stylesheet" href="./css/reset.css">
-    <link rel="stylesheet" href="./css/normalize.css">
-    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/reset.css?v=1.0">
+    <link rel="stylesheet" href="./css/normalize.css?v=1.0">
+    <link rel="stylesheet" href="./css/style.css?v=1.0">
     <link rel="icon" href="./images/authorization.png" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.min.js"></script>
@@ -69,8 +69,8 @@
     </div>
 
 
-    <script src="./js/toggle.js"></script>
-    <script src="./js/script.js"></script>
-    <script src="./js/lang.js"></script> <!-- Скрипт перевода -->
+    <script src="./js/toggle.js?v=1.0"></script>
+    <script src="./js/script.js?v=1.0"></script>
+    <script src="./js/lang.js?v=1.0"></script> <!-- Скрипт перевода -->
 </body>
 </html>

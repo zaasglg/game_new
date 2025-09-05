@@ -11,11 +11,11 @@ var $trace = true;
 
 const connection = mysql.createPool({  
 	connectionLimit: 5,
-	host: "localhost",
-	port: 3306,
+	host: "127.0.0.1",
+	port: 8889,
 	user: "root",
 	database: "aviator_game",
-	password: "p@ssword", 
+	password: "root", 
 	waitForConnections: true,
 	connectionLimit: 10, 
 	queueLimit: 0 
