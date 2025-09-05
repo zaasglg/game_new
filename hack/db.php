@@ -1,8 +1,8 @@
 <?php
 $host = 'localhost';
 $dbname = 'volurgame';
-$username = 'p@ssword';
-$password = 'root';
+$username = 'root';
+$password = 'p@ssword';
 $port = 3306;
 $socket = '/var/run/mysqld/mysqld.sock'; // Уточните путь на сервере
 
