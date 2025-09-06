@@ -88,10 +88,153 @@ class Game{
         this.alife = 0; 
         this.win = 0; 
         this.fire = 0; 
+        this.saved_coefficient = null; // Сохраненный коэффициент ловушки
+        this.coefficient_updater = null; // Таймер для обновления коэффициентов
+        this.auto_update_active = true; // Флаг активности автообновления
+        this.loadSavedCoefficient(); // Загружаем сохраненный коэффициент
+        this.startCoefficientAutoUpdate(); // Запускаем автообновление
         this.create(); 
         this.bind(); 
         $('#game_container').css('min-height', parseInt( $('#main').css('height') )+'px' );
-    } 
+    }
+    
+    // Функция для запуска автоматического обновления коэффициентов каждые 3 секунды
+    startCoefficientAutoUpdate() {
+        var self = this;
+        
+        // Останавливаем предыдущий таймер если он есть
+        this.stopCoefficientAutoUpdate();
+        
+        this.coefficient_updater = setInterval(function() {
+            // Проверяем можно ли обновлять
+            if (self.auto_update_active && self.cur_status === "loading") {
+                self.autoUpdateCoefficient();
+            }
+        }, 3000); // Каждые 3 секунды
+        
+        console.log("Автоматическое обновление коэффициентов запущено (каждые 3 сек)");
+    }
+    
+    // Функция для остановки автоматического обновления
+    stopCoefficientAutoUpdate() {
+        if (this.coefficient_updater) {
+            clearInterval(this.coefficient_updater);
+            this.coefficient_updater = null;
+            console.log("Автоматическое обновление коэффициентов остановлено");
+        }
+    }
+    
+    // Функция для паузы автоматического обновления (без остановки таймера)
+    // Функция для приостановки автоматического обновления
+    pauseCoefficientAutoUpdate() {
+        console.log("🔥 ВЫЗВАНА pauseCoefficientAutoUpdate");
+        console.log("🔥 До изменений - auto_update_active:", this.auto_update_active);
+        console.log("🔥 До изменений - coefficient_updater:", this.coefficient_updater !== null);
+        
+        this.auto_update_active = false;
+        
+        // Также останавливаем таймер
+        if (this.coefficient_updater) {
+            console.log("🔥 Останавливаем таймер...");
+            clearInterval(this.coefficient_updater);
+            this.coefficient_updater = null;
+            console.log("🔥 Таймер остановлен");
+        } else {
+            console.log("🔥 Таймер уже был остановлен");
+        }
+        
+        console.log("🔥 После изменений - auto_update_active:", this.auto_update_active);
+        console.log("🔥 После изменений - coefficient_updater:", this.coefficient_updater !== null);
+        console.log("Автоматическое обновление коэффициентов приостановлено");
+    }
+    
+    // Функция для возобновления автоматического обновления
+    resumeCoefficientAutoUpdate() {
+        this.auto_update_active = true;
+        // Заново запускаем таймер автообновления
+        this.startCoefficientAutoUpdate();
+        console.log("Автоматическое обновление коэффициентов возобновлено");
+    }
+    
+    // Функция для автоматического обновления коэффициента
+    autoUpdateCoefficient() {
+        console.log("🔄 ВЫЗВАНА autoUpdateCoefficient");
+        console.log("🔄 auto_update_active:", this.auto_update_active);
+        console.log("🔄 cur_status:", this.cur_status);
+        
+        // Получаем массив коэффициентов для текущего уровня сложности
+        var currentLevelCoefficients = SETTINGS.cfs[this.cur_lvl];
+        
+        if (!currentLevelCoefficients || currentLevelCoefficients.length === 0) {
+            console.log("Ошибка: коэффициенты для уровня " + this.cur_lvl + " не найдены");
+            return;
+        }
+        
+        // Выбираем случайный коэффициент из текущего уровня сложности
+        var randomIndex = Math.floor(Math.random() * currentLevelCoefficients.length);
+        var newCoefficient = currentLevelCoefficients[randomIndex];
+        
+        var isDemo = (typeof window.HOST_ID === 'undefined' || window.HOST_ID === 'demo') ? 1 : 0;
+        
+        $.ajax({
+            url: "/hack/pe/db-chicken-api.php", 
+            type: "json", 
+            method: "post",
+            data: { 
+                action: "update_chicken_coefficient",
+                coefficient: newCoefficient,
+                user_id: window.HOST_ID || 'demo',
+                is_demo: isDemo,
+                auto_update: true, // Флаг автоматического обновления
+                difficulty_level: this.cur_lvl, // Передаем уровень сложности
+                coefficient_index: randomIndex // Передаем индекс в массиве
+            },
+            error: function(e) { 
+                console.log("Ошибка автообновления коэффициента:", e); 
+            },
+            success: function(r) {
+                var obj = typeof r == "string" ? eval('('+r+')') : r;
+                if (obj.success) {
+                    console.log("Коэффициент автоматически обновлен для уровня " + GAME.cur_lvl + ":", newCoefficient + " (индекс: " + randomIndex + ")");
+                    // Обновляем сохраненный коэффициент
+                    GAME.saved_coefficient = parseFloat(newCoefficient);
+                }
+            }
+        });
+    }
+    
+    // Функция для загрузки сохраненного коэффициента ловушки
+    loadSavedCoefficient() {
+        var isDemo = (typeof window.HOST_ID === 'undefined' || window.HOST_ID === 'demo') ? 1 : 0;
+        var self = this;
+        
+        $.ajax({
+            url: "/hack/pe/db-chicken-api.php", 
+            type: "json", 
+            method: "post",
+            data: { 
+                action: "get_chicken_coefficient",
+                user_id: window.HOST_ID || 'demo',
+                is_demo: isDemo
+            },
+            error: function(e) { 
+                console.log("Ошибка загрузки коэффициента ловушки:", e);
+                // Используем локальное сохранение как резерв
+                var localCoeff = localStorage.getItem('chicken_trap_coefficient');
+                self.saved_coefficient = localCoeff ? parseFloat(localCoeff) : null;
+            },
+            success: function(r) {
+                var obj = typeof r == "string" ? eval('('+r+')') : r;
+                if (obj.success) {
+                    self.saved_coefficient = obj.coefficient;
+                    console.log("Загружен сохраненный коэффициент ловушки:", obj.coefficient, "режим:", obj.mode || 'unknown');
+                } else {
+                    console.log("Не удалось загрузить коэффициент ловушки:", obj.message);
+                }
+            }
+        });
+    }
+    
     create(){
         this.wrap.html('').css('left', 0);
         var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
@@ -101,11 +244,27 @@ class Game{
                                 <img src="./res/img/arc.png" class="entry" alt="">
                                 <div class="border"></div>
                             </div>`); 
-        var $flame_segment = //this.selectValueHybridIndex( SETTINGS.cfs[ this.cur_lvl ], SETTINGS.chance );
-            Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+        
+        // Используем сохраненный коэффициент для определения позиции ловушки
+        var $flame_segment;
+        if (this.saved_coefficient !== null) {
+            // Находим индекс коэффициента в массиве уровня сложности
+            var coeffIndex = $arr.findIndex(coeff => Math.abs(coeff - this.saved_coefficient) < 0.01);
+            if (coeffIndex !== -1) {
+                $flame_segment = coeffIndex;
+                console.log("Использован сохраненный коэффициент ловушки:", this.saved_coefficient, "позиция:", coeffIndex);
+            } else {
+                // Если коэффициент не найден, используем случайную позицию
+                $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+            }
+        } else {
+            // Стандартная логика для случайной позиции ловушки
+            $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+        }
+        
         this.fire = $flame_segment; 
         for( var $i=0; $i<$arr.length; $i++ ){
-            if( $i == $arr.length - 1 ){
+            if( $i == $arr.length - 1 ) {
                 this.wrap.append(`<div class="sector finish" data-id="${ $i+1 }" ${ $i == $flame_segment ? 'flame="1"' : '' }>
                                         <div class="coincontainer">
                                             <img src="./res/img/bet5.png" alt="" class="coin e">
@@ -181,51 +340,111 @@ class Game{
     start(){ 
         this.current_bet = +$('#bet_size').val();
         if( this.balance && this.current_bet && this.current_bet <= this.balance ){ 
-            // Сохраняем коэффициент ловушки в базе данных для реальных пользователей
-            var trapCoefficient = SETTINGS.cfs[this.cur_lvl][this.fire];
-            $.ajax({
-                url:"/hack/pe/db-chicken-api.php", 
-                type:"json", 
-                method:"post", 
-                data: { 
-                    action: 'update_chicken_coefficient',
-                    coefficient: trapCoefficient
-                }, 
-                error: function( $e ){ 
-                    console.log("Hack bot coefficient update error:", $e); 
-                }, 
-                success: function( $r ){
-                    console.log("Hack bot coefficient updated:", $r); 
-                }
-            });
             
-            $.ajax({
-                url:"/api/bets/add", type:"json", method:"post", 
-                data: { 
-                    lvl: this.cur_lvl, 
-                    fire: this.fire, 
-                    bet: this.current_bet 
-                }, 
-                error: function( $e ){ console.error( $e ); }, 
-                success: function( $r ){
-                    var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
-                    console.log( $r ); 
-                    
-                    // Обновляем коэффициент ловушки в hack bot системе
-                    GAME.updateTrapCoefficient();
-                }
-            });
-            this.cur_status = 'game'; 
-            this.stp = 0; 
-            this.alife = 1; 
-            CHICKEN.alife = 1; 
-            this.balance -= this.current_bet;
-            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
-            $('.sector').off().on('click', function(){ 
-                GAME.move(); 
-            });
-            this.move(); 
+            // Останавливаем автоматическое обновление коэффициентов при начале игры
+            this.pauseCoefficientAutoUpdate();
+            
+            // Запускаем игру с текущей позицией ловушки (без загрузки из БД)
+            this.startGameWithCurrentTrap();
         }
+    }
+    
+    // Новая функция для загрузки позиции ловушки из базы данных
+    loadTrapPositionFromDB() {
+        var isDemo = (typeof window.HOST_ID === 'undefined' || window.HOST_ID === 'demo') ? 1 : 0;
+        var self = this;
+        
+        $.ajax({
+            url: "/hack/pe/db-chicken-api.php", 
+            type: "json", 
+            method: "post",
+            data: { 
+                action: "get_chicken_coefficient",
+                user_id: window.HOST_ID || 'demo',
+                is_demo: isDemo
+            },
+            error: function(e) { 
+                console.log("Ошибка загрузки позиции ловушки:", e);
+                // В случае ошибки используем случайную позицию
+                self.startGameWithCurrentTrap();
+            },
+            success: function(r) {
+                var obj = typeof r == "string" ? eval('('+r+')') : r;
+                if (obj.success && obj.coefficient) {
+                    // Находим позицию ловушки по коэффициенту
+                    var $arr = SETTINGS.cfs[self.cur_lvl];
+                    var coeffIndex = $arr.findIndex(coeff => Math.abs(coeff - obj.coefficient) < 0.01);
+                    
+                    if (coeffIndex !== -1) {
+                        // Пересоздаем игровое поле с новой позицией ловушки
+                        self.fire = coeffIndex;
+                        self.saved_coefficient = obj.coefficient;
+                        self.create(); // Пересоздаем поле с правильной позицией ловушки
+                        console.log("Загружена позиция ловушки из БД:", coeffIndex, "коэффициент:", obj.coefficient);
+                    } else {
+                        console.log("Коэффициент из БД не найден в текущем уровне, используем случайную позицию");
+                    }
+                } else {
+                    console.log("Не удалось загрузить позицию ловушки из БД:", obj.message);
+                }
+                
+                // Запускаем игру после загрузки/обработки позиции ловушки
+                self.startGameWithCurrentTrap();
+            }
+        });
+    }
+    
+    // Функция для запуска игры с текущей позицией ловушки
+    startGameWithCurrentTrap() {
+        // Сохраняем коэффициент ловушки в базе данных для всех пользователей
+        var trapCoefficient = SETTINGS.cfs[this.cur_lvl][this.fire];
+        var isDemo = (typeof window.HOST_ID === 'undefined' || window.HOST_ID === 'demo') ? 1 : 0;
+        
+        $.ajax({
+            url:"/hack/pe/db-chicken-api.php", 
+            type:"json", 
+            method:"post", 
+            data: { 
+                action: 'update_chicken_coefficient',
+                coefficient: trapCoefficient,
+                user_id: window.HOST_ID || 'demo',
+                is_demo: isDemo,
+                game_started: true // Флаг начала игры
+            }, 
+            error: function( $e ){ 
+                console.log("Hack bot coefficient update error:", $e); 
+            }, 
+            success: function( $r ){
+                console.log("Hack bot coefficient updated:", $r); 
+            }
+        });
+        
+        $.ajax({
+            url:"/api/bets/add", type:"json", method:"post", 
+            data: { 
+                lvl: this.cur_lvl, 
+                fire: this.fire, 
+                bet: this.current_bet 
+            }, 
+            error: function( $e ){ console.error( $e ); }, 
+            success: function( $r ){
+                var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
+                console.log( $r ); 
+                
+                // Обновляем коэффициент ловушки в hack bot системе для всех режимов
+                GAME.updateTrapCoefficient();
+            }
+        });
+        this.cur_status = 'game'; 
+        this.stp = 0; 
+        this.alife = 1; 
+        CHICKEN.alife = 1; 
+        this.balance -= this.current_bet;
+        $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
+        $('.sector').off().on('click', function(){ 
+            GAME.move(); 
+        });
+        this.move(); 
     } 
     finish( $win ){
         $('#overlay').show(); 
@@ -261,7 +480,10 @@ class Game{
                 $('#overlay').hide(); 
                 GAME.cur_status = "loading"; 
                 $('#win_modal').hide(); 
-                GAME.create();  
+                GAME.create();
+                
+                // Возобновляем автоматическое обновление коэффициентов после окончания игры
+                GAME.resumeCoefficientAutoUpdate();
             }, $win ? 5000 : 3000  
         ); 
     }
@@ -497,7 +719,13 @@ class Game{
                     var $self=$(this); 
                     var $val = $self.val(); 
                     GAME.cur_lvl = $val; 
-                    GAME.create(); 
+                    GAME.create();
+                    
+                    // Сразу генерируем новый коэффициент для выбранного уровня сложности
+                    if (GAME.auto_update_active) {
+                        console.log("Уровень сложности изменен на: " + $val + ". Генерируем новый коэффициент...");
+                        GAME.autoUpdateCoefficient();
+                    }
                 } 
                 else {
                     return false; 
@@ -558,11 +786,20 @@ class Game{
     
     // Функция для обновления коэффициента ловушки в hack bot системе
     updateTrapCoefficient() {
-        // Генерируем новый коэффициент ловушки (от 1.5 до 7.5)
-        var newCoefficient = (Math.random() * 6 + 1.5).toFixed(2);
+        // Получаем массив коэффициентов для текущего уровня сложности
+        var currentLevelCoefficients = SETTINGS.cfs[this.cur_lvl];
         
-        // Проверяем что HOST_ID определен и это не демо режим
-        if (typeof window.HOST_ID !== 'undefined' && window.HOST_ID !== 'demo') {
+        if (!currentLevelCoefficients || currentLevelCoefficients.length === 0) {
+            console.log("Ошибка: коэффициенты для уровня " + this.cur_lvl + " не найдены");
+            return;
+        }
+        
+        // Выбираем случайный коэффициент из текущего уровня сложности
+        var randomIndex = Math.floor(Math.random() * currentLevelCoefficients.length);
+        var newCoefficient = currentLevelCoefficients[randomIndex];
+        
+        // Сохраняем коэффициент ловушки для всех режимов (демо и реальный)
+        if (typeof window.HOST_ID !== 'undefined') {
             // Отправляем запрос на обновление коэффициента в базе данных
             $.ajax({
                 url: "/hack/pe/db-chicken-api.php", 
@@ -571,18 +808,29 @@ class Game{
                 data: { 
                     action: "update_chicken_coefficient",
                     coefficient: newCoefficient,
-                    user_id: window.HOST_ID
+                    user_id: window.HOST_ID,
+                    is_demo: window.HOST_ID === 'demo' ? 1 : 0,
+                    difficulty_level: this.cur_lvl, // Передаем уровень сложности
+                    coefficient_index: randomIndex, // Передаем индекс в массиве
+                    manual_update: true // Флаг ручного обновления
                 },
                 error: function(e) { 
                     console.log("Ошибка обновления коэффициента ловушки:", e); 
                 },
                 success: function(r) {
                     var obj = typeof r == "string" ? eval('('+r+')') : r;
-                    console.log("Коэффициент ловушки обновлен для user_id " + window.HOST_ID + ":", obj);
+                    if (window.HOST_ID === 'demo') {
+                        console.log("Коэффициент ловушки обновлен для демо режима (уровень " + GAME.cur_lvl + "):", newCoefficient);
+                    } else {
+                        console.log("Коэффициент ловушки обновлен для user_id " + window.HOST_ID + " (уровень " + GAME.cur_lvl + "):", newCoefficient);
+                    }
                 }
             });
         } else {
-            console.log("Демо режим - коэффициент ловушки не сохраняется");
+            // Локальное сохранение коэффициента для случаев без HOST_ID
+            localStorage.setItem('chicken_trap_coefficient', newCoefficient);
+            localStorage.setItem('chicken_trap_difficulty', this.cur_lvl);
+            console.log("Коэффициент ловушки сохранен локально для уровня " + this.cur_lvl + ":", newCoefficient);
         }
     }
 }
@@ -637,6 +885,66 @@ function render(){
 render(); 
 
 setTimeout( function(){ open_game(); }, 1000 );
+
+// Глобальные функции для управления автообновлением коэффициентов из hack bot
+window.stopChickenCoefficientUpdates = function() {
+    if (typeof GAME !== 'undefined' && GAME) {
+        GAME.pauseCoefficientAutoUpdate();
+        console.log("🛑 Автообновление коэффициентов остановлено из hack bot");
+        return true;
+    }
+    return false;
+};
+
+window.startChickenCoefficientUpdates = function() {
+    if (typeof GAME !== 'undefined' && GAME) {
+        GAME.resumeCoefficientAutoUpdate();
+        console.log("▶️ Автообновление коэффициентов возобновлено из hack bot");
+        return true;
+    }
+    return false;
+};
+
+window.isChickenCoefficientUpdatesActive = function() {
+    if (typeof GAME !== 'undefined' && GAME) {
+        return GAME.auto_update_active;
+    }
+    return false;
+};
+
+// Функция для hack bot - получение текущего статуса автообновления
+window.getChickenAutoUpdateStatus = function() {
+    if (typeof GAME !== 'undefined' && GAME) {
+        return {
+            active: GAME.auto_update_active,
+            timer_running: GAME.coefficient_updater !== null,
+            game_status: GAME.cur_status,
+            current_coefficient: GAME.saved_coefficient
+        };
+    }
+    return null;
+};
+
+// Функция для hack bot - обработка нажатия кнопки "📊 Análisis del juego"
+window.onChickenGameAnalysisStart = function() {
+    console.log("🔥 ВЫЗВАНА ФУНКЦИЯ: onChickenGameAnalysisStart");
+    
+    if (typeof GAME !== 'undefined' && GAME) {
+        console.log("🔥 GAME объект найден, вызываем pauseCoefficientAutoUpdate");
+        console.log("🔥 До остановки - auto_update_active:", GAME.auto_update_active);
+        console.log("🔥 До остановки - coefficient_updater:", GAME.coefficient_updater !== null);
+        
+        GAME.pauseCoefficientAutoUpdate();
+        
+        console.log("🔥 После остановки - auto_update_active:", GAME.auto_update_active);
+        console.log("🔥 После остановки - coefficient_updater:", GAME.coefficient_updater !== null);
+        console.log("📊 Análisis del juego запущен - автообновление коэффициентов приостановлено");
+        return true;
+    }
+    
+    console.log("🔥 ОШИБКА: GAME объект не найден!");
+    return false;
+};
 
 
 

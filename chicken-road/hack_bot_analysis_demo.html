@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hack Bot Analysis Demo - Chicken Road</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .hack-bot-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .hack-bot-title {
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .status-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #00d2ff;
+        }
+        .status-item {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-label {
+            font-weight: bold;
+        }
+        .status-value {
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-active {
+            background: #27ae60;
+            color: #fff;
+        }
+        .status-inactive {
+            background: #e74c3c;
+            color: #fff;
+        }
+        .status-analysis {
+            background: #f39c12;
+            color: #fff;
+        }
+        .hack-button {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .hack-button:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        .hack-button:hover:before {
+            left: 100%;
+        }
+        .btn-analysis {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: 2px solid #ff6b6b;
+        }
+        .btn-analysis:hover {
+            background: linear-gradient(45deg, #ee5a24, #ff6b6b);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+        .btn-analysis:active {
+            transform: translateY(0);
+        }
+        .btn-analysis.active {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(243, 156, 18, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(243, 156, 18, 0); }
+        }
+        .btn-stop {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            border: 2px solid #34495e;
+        }
+        .btn-stop:hover {
+            background: linear-gradient(45deg, #34495e, #2c3e50);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 73, 94, 0.4);
+        }
+        .coefficient-display {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(45deg, #8e44ad, #3498db);
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .log-section {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #00d2ff;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            font-size: 12px;
+            font-family: monospace;
+            border-left: 3px solid #00d2ff;
+            padding-left: 10px;
+        }
+        .log-success {
+            border-left-color: #27ae60;
+            color: #2ecc71;
+        }
+        .log-warning {
+            border-left-color: #f39c12;
+            color: #f1c40f;
+        }
+        .log-error {
+            border-left-color: #e74c3c;
+            color: #e67e22;
+        }
+        .info-box {
+            background: rgba(52, 152, 219, 0.2);
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="hack-bot-container">
+        <div class="hack-bot-title">
+            🚀 HACK BOT ANÁLISIS
+        </div>
+
+        <div class="info-box">
+            <strong>📋 Instrucciones:</strong><br>
+            1. Haz clic en "📊 Análisis del juego" para pausar auto-actualización<br>
+            2. La auto-actualización se reanudará después del fin del juego o cash out<br>
+            3. Observa el estado en el panel de abajo
+        </div>
+
+        <div class="status-panel">
+            <div class="status-item">
+                <span class="status-label">🔄 Auto-actualización:</span>
+                <span id="auto-status" class="status-value status-inactive">PARADO</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">📊 Análisis del juego:</span>
+                <span id="analysis-status" class="status-value status-inactive">INACTIVO</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">🎮 Estado del juego:</span>
+                <span id="game-status" class="status-value">ESPERANDO</span>
+            </div>
+        </div>
+
+        <div class="coefficient-display">
+            🎯 Coeficiente: <span id="coefficient-value">Cargando...</span>
+        </div>
+
+        <button id="analysis-btn" class="hack-button btn-analysis" onclick="toggleAnalysis()">
+            📊 Análisis del juego
+        </button>
+
+        <button class="hack-button btn-stop" onclick="stopAnalysis()">
+            ⏹️ Detener análisis
+        </button>
+
+        <div class="log-section">
+            <div class="log-title">📝 Registro de actividad</div>
+            <div id="log-container">
+                <div class="log-entry">Sistema iniciado. Esperando comandos...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        let analysisActive = false;
+        let logCount = 0;
+
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('log-container');
+            const timestamp = new Date().toLocaleTimeString();
+            const logClass = type === 'success' ? 'log-success' : 
+                           type === 'warning' ? 'log-warning' : 
+                           type === 'error' ? 'log-error' : '';
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${logClass}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            
+            container.appendChild(logEntry);
+            container.scrollTop = container.scrollHeight;
+            
+            // Ограничиваем количество записей
+            logCount++;
+            if (logCount > 20) {
+                container.removeChild(container.firstChild);
+                logCount--;
+            }
+        }
+
+        function updateStatus() {
+            try {
+                // Обновляем статус автообновления
+                if (typeof window.isChickenCoefficientUpdatesActive === 'function') {
+                    const autoActive = window.isChickenCoefficientUpdatesActive();
+                    const autoStatus = document.getElementById('auto-status');
+                    autoStatus.textContent = autoActive ? 'ACTIVO' : 'PARADO';
+                    autoStatus.className = `status-value ${autoActive ? 'status-active' : 'status-inactive'}`;
+                }
+
+                // Обновляем статус анализа
+                const analysisStatus = document.getElementById('analysis-status');
+                analysisStatus.textContent = analysisActive ? 'ACTIVO' : 'INACTIVO';
+                analysisStatus.className = `status-value ${analysisActive ? 'status-analysis' : 'status-inactive'}`;
+
+                // Обновляем статус игры
+                if (typeof window.getChickenAutoUpdateStatus === 'function') {
+                    const gameStatus = window.getChickenAutoUpdateStatus();
+                    if (gameStatus) {
+                        document.getElementById('game-status').textContent = gameStatus.game_status || 'ESPERANDO';
+                        document.getElementById('coefficient-value').textContent = gameStatus.current_coefficient || 'No cargado';
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+
+        function toggleAnalysis() {
+            if (!analysisActive) {
+                startAnalysis();
+            } else {
+                stopAnalysis();
+            }
+        }
+
+        function startAnalysis() {
+            try {
+                if (typeof window.onChickenGameAnalysisStart === 'function') {
+                    const result = window.onChickenGameAnalysisStart();
+                    if (result) {
+                        analysisActive = true;
+                        const button = document.getElementById('analysis-btn');
+                        button.classList.add('active');
+                        button.innerHTML = '🔄 Análisis en curso...';
+                        
+                        addLog('📊 Análisis del juego iniciado - auto-actualización pausada', 'warning');
+                        updateStatus();
+                    } else {
+                        addLog('❌ Error: No se pudo iniciar el análisis', 'error');
+                    }
+                } else {
+                    addLog('⚠️ API no disponible. Asegúrate de que el juego esté cargado.', 'warning');
+                }
+            } catch (error) {
+                addLog('❌ Error al iniciar análisis: ' + error.message, 'error');
+            }
+        }
+
+        function stopAnalysis() {
+            try {
+                if (typeof window.startChickenCoefficientUpdates === 'function') {
+                    const result = window.startChickenCoefficientUpdates();
+                    if (result) {
+                        analysisActive = false;
+                        const button = document.getElementById('analysis-btn');
+                        button.classList.remove('active');
+                        button.innerHTML = '📊 Análisis del juego';
+                        
+                        addLog('⏹️ Análisis detenido - auto-actualización reanudada', 'success');
+                        updateStatus();
+                    } else {
+                        addLog('❌ Error: No se pudo reanudar auto-actualización', 'error');
+                    }
+                } else {
+                    addLog('⚠️ API no disponible', 'warning');
+                }
+            } catch (error) {
+                addLog('❌ Error al detener análisis: ' + error.message, 'error');
+            }
+        }
+
+        // Simulación de eventos de juego
+        function simulateGameEvents() {
+            // Симулируем случайные события игры
+            setTimeout(function() {
+                if (Math.random() > 0.7) {
+                    addLog('🎮 Simulación: Juego iniciado', 'info');
+                }
+                
+                if (Math.random() > 0.8) {
+                    addLog('💰 Simulación: Cash out realizado - auto-actualización reanudada', 'success');
+                    if (analysisActive) {
+                        stopAnalysis();
+                    }
+                }
+                
+                if (Math.random() > 0.9) {
+                    addLog('💥 Simulación: Juego perdido - auto-actualización reanudada', 'success');
+                    if (analysisActive) {
+                        stopAnalysis();
+                    }
+                }
+            }, Math.random() * 5000 + 2000);
+        }
+
+        // Автоматическое обновление статуса
+        setInterval(updateStatus, 1000);
+
+        // Симуляция событий игры
+        setInterval(simulateGameEvents, 10000);
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 Hack Bot Análisis Demo iniciado', 'success');
+            updateStatus();
+            
+            setTimeout(function() {
+                const apiAvailable = typeof window.onChickenGameAnalysisStart === 'function';
+                if (apiAvailable) {
+                    addLog('✅ API conectado correctamente', 'success');
+                } else {
+                    addLog('⚠️ Esperando conexión con el juego...', 'warning');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

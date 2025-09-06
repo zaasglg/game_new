@@ -1,3 +1,5 @@
 
 # YoYo AI version control directory
 .yoyo/
+chicken-road/db_config.php
+db.php

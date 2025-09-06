@@ -7,7 +7,7 @@ window.addEventListener("DOMContentLoaded", function () {
   async function runCoefficientCycle() {
     try {
       const response = await fetch(
-        "https://avia.valor-games.com/api/cfs/current"
+        "https://127.0.0.1:8000/api/cfs/current"
       );
       const data = await response.json();
 
