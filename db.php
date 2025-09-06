@@ -1,9 +1,16 @@
 <?php
-$host = '127.0.0.1';
+// $host = '127.0.0.1';
+// $dbname = 'volurgame';
+// $username = 'root';
+// $password = 'root';
+// $port = 8889;
+// $socket = '/var/run/mysqld/mysqld.sock'; // Уточните путь на сервере
+
+$host = 'localhost';
 $dbname = 'volurgame';
 $username = 'root';
-$password = 'root';
-$port = 8889;
+$password = 'p@ssword';
+$port = 3306;
 $socket = '/var/run/mysqld/mysqld.sock'; // Уточните путь на сервере
 
 try {
