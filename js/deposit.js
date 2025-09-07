@@ -116,11 +116,10 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Инициализация при загрузке - активируем кнопку, которая уже активна
-    const initialActiveButton = document
-      .querySelector(
-        "._button_45oih_1._button_active_45oih_22, ._payment_45oih_25._payment_active_45oih_66"
-      )
-      .closest("._button_45oih_1");
+    const element = document.querySelector(
+      "._button_45oih_1._button_active_45oih_22, ._payment_45oih_25._payment_active_45oih_66"
+    );
+    const initialActiveButton = element ? element.closest("._button_45oih_1") : null;
     if (initialActiveButton) {
       initialActiveButton.classList.add("._button_active_45oih_22");
       const paymentDiv =
