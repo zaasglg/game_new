@@ -10,7 +10,7 @@ var SETTINGS = {
     volume: {
         active: +$('body').data('sound'), 
         music: +$('body').data('sound') ? 0.2 : 0, 
-        sound: +$('body').data('music') ? 0.9 : 0
+        sound: +$('body').data('sound') ? 0.9 : 0
     }, 
     currency: $('body').attr('data-currency') ? $('body').attr('data-currency')  : "USD", 
     //cfs: {
@@ -28,7 +28,8 @@ var SETTINGS = {
     },
     min_bet: 0.5, 
     max_bet: 150, 
-    segw: parseInt( $('#battlefield .sector').css('width') )  
+    segw: parseInt( $('#battlefield .sector').css('width') ),
+    ws_url: 'ws://localhost:8080'  // WebSocket URL for trap generation
 } 
 
 var SOUNDS = {
@@ -88,155 +89,54 @@ class Game{
         this.alife = 0; 
         this.win = 0; 
         this.fire = 0; 
-        this.saved_coefficient = null; // Сохраненный коэффициент ловушки
-        this.coefficient_updater = null; // Таймер для обновления коэффициентов
-        this.auto_update_active = true; // Флаг активности автообновления
-        this.loadSavedCoefficient(); // Загружаем сохраненный коэффициент
-        this.startCoefficientAutoUpdate(); // Запускаем автообновление
+        this.traps = null; // for WebSocket traps
+        this.ws_attempts = 0;
+        this.ws = new WebSocket(SETTINGS.ws_url);
+        this.ws.onopen = () => { 
+            console.log('Connected to WebSocket for traps'); 
+            this.ws.send(JSON.stringify({type: 'set_level', level: this.cur_lvl}));
+        };
+        this.ws.onmessage = (event) => { 
+            console.log('Received WebSocket message:', event.data);
+            this.handleWSMessage(event); 
+        };
+        this.ws.onerror = (error) => { 
+            console.error('WebSocket error:', error); 
+        };
+        this.ws.onclose = () => { 
+            console.log('WebSocket closed'); 
+        };
         this.create(); 
         this.bind(); 
         $('#game_container').css('min-height', parseInt( $('#main').css('height') )+'px' );
-    }
-    
-    // Функция для запуска автоматического обновления коэффициентов каждые 3 секунды
-    startCoefficientAutoUpdate() {
-        var self = this;
-        
-        // Останавливаем предыдущий таймер если он есть
-        this.stopCoefficientAutoUpdate();
-        
-        this.coefficient_updater = setInterval(function() {
-            // Проверяем можно ли обновлять
-            if (self.auto_update_active && self.cur_status === "loading") {
-                self.autoUpdateCoefficient();
+    } 
+    handleWSMessage(event) {
+        var data = JSON.parse(event.data);
+        console.log('Handling WebSocket message:', data);
+        if (data.type === 'traps') {
+            console.log('Updating traps:', data.traps);
+            this.traps = data.traps;
+            if (this.cur_status === 'loading') {
+                this.updateTraps();
             }
-        }, 3000); // Каждые 3 секунды
-        
-        console.log("Автоматическое обновление коэффициентов запущено (каждые 3 сек)");
-    }
-    
-    // Функция для остановки автоматического обновления
-    stopCoefficientAutoUpdate() {
-        if (this.coefficient_updater) {
-            clearInterval(this.coefficient_updater);
-            this.coefficient_updater = null;
-            console.log("Автоматическое обновление коэффициентов остановлено");
+        } else if (data.type === 'game_traps') {
+            console.log('Game traps received:', data.traps);
+            this.traps = data.traps;
+            this.updateTraps();
         }
     }
-    
-    // Функция для паузы автоматического обновления (без остановки таймера)
-    // Функция для приостановки автоматического обновления
-    pauseCoefficientAutoUpdate() {
-        console.log("🔥 ВЫЗВАНА pauseCoefficientAutoUpdate");
-        console.log("🔥 До изменений - auto_update_active:", this.auto_update_active);
-        console.log("🔥 До изменений - coefficient_updater:", this.coefficient_updater !== null);
-        
-        this.auto_update_active = false;
-        
-        // Также останавливаем таймер
-        if (this.coefficient_updater) {
-            console.log("🔥 Останавливаем таймер...");
-            clearInterval(this.coefficient_updater);
-            this.coefficient_updater = null;
-            console.log("🔥 Таймер остановлен");
-        } else {
-            console.log("🔥 Таймер уже был остановлен");
-        }
-        
-        console.log("🔥 После изменений - auto_update_active:", this.auto_update_active);
-        console.log("🔥 После изменений - coefficient_updater:", this.coefficient_updater !== null);
-        console.log("Автоматическое обновление коэффициентов приостановлено");
-    }
-    
-    // Функция для возобновления автоматического обновления
-    resumeCoefficientAutoUpdate() {
-        this.auto_update_active = true;
-        // Заново запускаем таймер автообновления
-        this.startCoefficientAutoUpdate();
-        console.log("Автоматическое обновление коэффициентов возобновлено");
-    }
-    
-    // Функция для автоматического обновления коэффициента
-    autoUpdateCoefficient() {
-        console.log("🔄 ВЫЗВАНА autoUpdateCoefficient");
-        console.log("🔄 auto_update_active:", this.auto_update_active);
-        console.log("🔄 cur_status:", this.cur_status);
-        
-        // Получаем массив коэффициентов для текущего уровня сложности
-        var currentLevelCoefficients = SETTINGS.cfs[this.cur_lvl];
-        
-        if (!currentLevelCoefficients || currentLevelCoefficients.length === 0) {
-            console.log("Ошибка: коэффициенты для уровня " + this.cur_lvl + " не найдены");
-            return;
-        }
-        
-        // Выбираем случайный коэффициент из текущего уровня сложности
-        var randomIndex = Math.floor(Math.random() * currentLevelCoefficients.length);
-        var newCoefficient = currentLevelCoefficients[randomIndex];
-        
-        var isDemo = (typeof window.HOST_ID === 'undefined' || window.HOST_ID === 'demo') ? 1 : 0;
-        
-        $.ajax({
-            url: "/hack/pe/db-chicken-api.php", 
-            type: "json", 
-            method: "post",
-            data: { 
-                action: "update_chicken_coefficient",
-                coefficient: newCoefficient,
-                user_id: window.HOST_ID || 'demo',
-                is_demo: isDemo,
-                auto_update: true, // Флаг автоматического обновления
-                difficulty_level: this.cur_lvl, // Передаем уровень сложности
-                coefficient_index: randomIndex // Передаем индекс в массиве
-            },
-            error: function(e) { 
-                console.log("Ошибка автообновления коэффициента:", e); 
-            },
-            success: function(r) {
-                var obj = typeof r == "string" ? eval('('+r+')') : r;
-                if (obj.success) {
-                    console.log("Коэффициент автоматически обновлен для уровня " + GAME.cur_lvl + ":", newCoefficient + " (индекс: " + randomIndex + ")");
-                    // Обновляем сохраненный коэффициент
-                    GAME.saved_coefficient = parseFloat(newCoefficient);
-                }
-            }
-        });
-    }
-    
-    // Функция для загрузки сохраненного коэффициента ловушки
-    loadSavedCoefficient() {
-        var isDemo = (typeof window.HOST_ID === 'undefined' || window.HOST_ID === 'demo') ? 1 : 0;
-        var self = this;
-        
-        $.ajax({
-            url: "/hack/pe/db-chicken-api.php", 
-            type: "json", 
-            method: "post",
-            data: { 
-                action: "get_chicken_coefficient",
-                user_id: window.HOST_ID || 'demo',
-                is_demo: isDemo
-            },
-            error: function(e) { 
-                console.log("Ошибка загрузки коэффициента ловушки:", e);
-                // Используем локальное сохранение как резерв
-                var localCoeff = localStorage.getItem('chicken_trap_coefficient');
-                self.saved_coefficient = localCoeff ? parseFloat(localCoeff) : null;
-            },
-            success: function(r) {
-                var obj = typeof r == "string" ? eval('('+r+')') : r;
-                if (obj.success) {
-                    self.saved_coefficient = obj.coefficient;
-                    console.log("Загружен сохраненный коэффициент ловушки:", obj.coefficient, "режим:", obj.mode || 'unknown');
-                } else {
-                    console.log("Не удалось загрузить коэффициент ловушки:", obj.message);
-                }
-            }
-        });
-    }
-    
     create(){
+        this.traps = null;
+        this.ws_attempts = 0;
         this.wrap.html('').css('left', 0);
+        // Создаем поле сразу, не ждем WebSocket
+        this.createBoard();
+        // Если WebSocket подключен, отправляем запрос ловушек
+        if (this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({type: 'request_traps', level: this.cur_lvl}));
+        }
+    }
+    createBoard(){
         var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
         this.wrap.append(`<div class="sector start" data-id="0">
                                 <div class="breaks" breaks="3"></div>
@@ -244,27 +144,99 @@ class Game{
                                 <img src="./res/img/arc.png" class="entry" alt="">
                                 <div class="border"></div>
                             </div>`); 
-        
-        // Используем сохраненный коэффициент для определения позиции ловушки
-        var $flame_segment;
-        if (this.saved_coefficient !== null) {
-            // Находим индекс коэффициента в массиве уровня сложности
-            var coeffIndex = $arr.findIndex(coeff => Math.abs(coeff - this.saved_coefficient) < 0.01);
-            if (coeffIndex !== -1) {
-                $flame_segment = coeffIndex;
-                console.log("Использован сохраненный коэффициент ловушки:", this.saved_coefficient, "позиция:", coeffIndex);
-            } else {
-                // Если коэффициент не найден, используем случайную позицию
-                $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
-            }
-        } else {
-            // Стандартная логика для случайной позиции ловушки
-            $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+        var flameSegments = this.traps || [];
+        // Если нет ловушек от WebSocket, используем случайную генерацию
+        if (flameSegments.length === 0) {
+            var $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+            flameSegments = [$flame_segment];
         }
-        
+        this.fire = flameSegments.length > 0 ? flameSegments[0] : 0;
+        for( var $i=0; $i<$arr.length; $i++ ){
+            if( $i == $arr.length - 1 ){
+                this.wrap.append(`<div class="sector finish" data-id="${ $i+1 }" ${ flameSegments.includes($i) ? 'flame="1"' : '' }>
+                                        <div class="coincontainer">
+                                            <img src="./res/img/bet5.png" alt="" class="coin e">
+                                            <img src="./res/img/bet6.png" alt="" class="coin f">
+                                            <img src="./res/img/bet7.png" alt="" class="coin g">
+                                            <span>${ $arr[ $i ] }x</span>
+                                        </div>
+                                        <div class="breaks" breaks="6"></div>
+                                        <div class="breaks" breaks="5"></div>
+                                        <img src="./res/img/arc2.png" class="arc" alt="">
+                                        <img src="./res/img/stand.png" class="cup" alt="">
+                                        <div class="finish_light"></div>
+                                        <img src="./res/img/trigger.png" class="trigger" alt="">
+                                        <div class="flame"></div>
+                                        <div class="border"></div>
+                                    </div>`);
+            } 
+            else {
+                this.wrap.append(`<div class="sector ${ $i ? 'far' : '' }" data-id="${ $i+1 }" ${ flameSegments.includes($i) ? 'flame="1"' : '' }>
+                                        <div class="breaks" breaks="4"></div>
+                                        <div class="breaks" breaks="5"></div>
+                                        <div class="coincontainer">
+                                            <img src="./res/img/betbg.png" alt="" class="coinwrapper">
+                                            <img src="./res/img/bet1.png" alt="" class="coin a" data-id="1">
+                                            <img src="./res/img/bet2.png" alt="" class="coin b" data-id="2">
+                                            <img src="./res/img/bet3.png" alt="" class="coin c" data-id="3">
+                                            <img src="./res/img/bet4.png" alt="" class="coin d" data-id="4"> 
+                                            <span>${ $arr[ $i ] }x</span>
+                                        </div>
+                                        <div class="breaks"></div>
+                                        <img src="./res/img/frame.png" class="frame" alt="">
+                                        <img src="./res/img/trigger.png" class="trigger" alt="">
+                                        <!--img src="./res/img/lights2.png" class="lights" alt=""-->
+                                        <div class="place_light"></div>
+                                        <div class="flame"></div>
+                                        <div class="border"></div>
+                                    </div>`); 
+            }
+        } 
+        this.wrap.append(`<div class="sector closer" data-id="${ $arr.length+1 }">
+                            <div class="border"></div>
+                        </div>`); 
+
+        this.wrap.append(`<div id="chick" state="idle"><div class="inner"></div></div>`);
+
+        this.wrap.append(`<div id="fire"></div>`); 
+        var $flame_x = document.querySelector('.sector[flame="1"]'); 
+        $flame_x = $flame_x ? $flame_x.offsetLeft : 0; 
+        $('#fire').css('left', $flame_x +'px')
+
+        SETTINGS.segw = parseInt( $('#battlefield .sector').css('width') ); 
+
+        var $scale = (SETTINGS.segw/(250/100)*(70/100)/100);
+        $('#chick').css( 'left', ( SETTINGS.segw / 2 )+'px' );//.css('bottom', ( 60*$scale )+'px' ); 
+        $('#chick .inner').css( 'transform', 'translateX(-50%) scale('+ $scale +')' ); 
+        var $bottom = 50; 
+        if( SETTINGS.w <= 1200 ){ $bottom = 35; }
+        if( SETTINGS.w <= 1100 ){ $bottom = 30; }
+        if( SETTINGS.w <= 1000 ){ $bottom = 25; }
+        if( SETTINGS.w <= 900 ){ $bottom = 5; }
+        if( SETTINGS.w <= 800 ){ $bottom = -15; }
+        $('#chick').css('bottom', $bottom+'px');
+
+        $('.sector').each(function(){
+            var $self = $(this); 
+            var $id = $self.data('id');
+            $('.breaks', $self).each(function(){
+                var $br = $id ? ( Math.round( Math.random() * 12 ) + 4 ) : ( Math.round( Math.random() * 3 ) );
+                $(this).attr('breaks', $br );
+            });
+        });
+    }
+    createFallback(){
+        var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
+        this.wrap.append(`<div class="sector start" data-id="0">
+                                <div class="breaks" breaks="3"></div>
+                                <div class="breaks" breaks="2"></div>
+                                <img src="./res/img/arc.png" class="entry" alt="">
+                                <div class="border"></div>
+                            </div>`); 
+        var $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
         this.fire = $flame_segment; 
         for( var $i=0; $i<$arr.length; $i++ ){
-            if( $i == $arr.length - 1 ) {
+            if( $i == $arr.length - 1 ){
                 this.wrap.append(`<div class="sector finish" data-id="${ $i+1 }" ${ $i == $flame_segment ? 'flame="1"' : '' }>
                                         <div class="coincontainer">
                                             <img src="./res/img/bet5.png" alt="" class="coin e">
@@ -340,126 +312,33 @@ class Game{
     start(){ 
         this.current_bet = +$('#bet_size').val();
         if( this.balance && this.current_bet && this.current_bet <= this.balance ){ 
-            
-            // Останавливаем автоматическое обновление коэффициентов при начале игры
-            this.pauseCoefficientAutoUpdate();
-            
-            // Запускаем игру с текущей позицией ловушки (без загрузки из БД)
-            this.startGameWithCurrentTrap();
+            this.cur_status = 'game'; 
+            this.stp = 0; 
+            this.alife = 1; 
+            CHICKEN.alife = 1; 
+            this.balance -= this.current_bet;
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
+            $('.sector').off().on('click', function(){ 
+                GAME.move(); 
+            });
+            // Уведомляем сервер о начале игры
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({type: 'game_start'}));
+            }
+            this.move(); 
         }
-    }
-    
-    // Новая функция для загрузки позиции ловушки из базы данных
-    loadTrapPositionFromDB() {
-        var isDemo = (typeof window.HOST_ID === 'undefined' || window.HOST_ID === 'demo') ? 1 : 0;
-        var self = this;
-        
-        $.ajax({
-            url: "/hack/pe/db-chicken-api.php", 
-            type: "json", 
-            method: "post",
-            data: { 
-                action: "get_chicken_coefficient",
-                user_id: window.HOST_ID || 'demo',
-                is_demo: isDemo
-            },
-            error: function(e) { 
-                console.log("Ошибка загрузки позиции ловушки:", e);
-                // В случае ошибки используем случайную позицию
-                self.startGameWithCurrentTrap();
-            },
-            success: function(r) {
-                var obj = typeof r == "string" ? eval('('+r+')') : r;
-                if (obj.success && obj.coefficient) {
-                    // Находим позицию ловушки по коэффициенту
-                    var $arr = SETTINGS.cfs[self.cur_lvl];
-                    var coeffIndex = $arr.findIndex(coeff => Math.abs(coeff - obj.coefficient) < 0.01);
-                    
-                    if (coeffIndex !== -1) {
-                        // Пересоздаем игровое поле с новой позицией ловушки
-                        self.fire = coeffIndex;
-                        self.saved_coefficient = obj.coefficient;
-                        self.create(); // Пересоздаем поле с правильной позицией ловушки
-                        console.log("Загружена позиция ловушки из БД:", coeffIndex, "коэффициент:", obj.coefficient);
-                    } else {
-                        console.log("Коэффициент из БД не найден в текущем уровне, используем случайную позицию");
-                    }
-                } else {
-                    console.log("Не удалось загрузить позицию ловушки из БД:", obj.message);
-                }
-                
-                // Запускаем игру после загрузки/обработки позиции ловушки
-                self.startGameWithCurrentTrap();
-            }
-        });
-    }
-    
-    // Функция для запуска игры с текущей позицией ловушки
-    startGameWithCurrentTrap() {
-        // Сохраняем коэффициент ловушки в базе данных для всех пользователей
-        var trapCoefficient = SETTINGS.cfs[this.cur_lvl][this.fire];
-        var isDemo = (typeof window.HOST_ID === 'undefined' || window.HOST_ID === 'demo') ? 1 : 0;
-        
-        $.ajax({
-            url:"/hack/pe/db-chicken-api.php", 
-            type:"json", 
-            method:"post", 
-            data: { 
-                action: 'update_chicken_coefficient',
-                coefficient: trapCoefficient,
-                user_id: window.HOST_ID || 'demo',
-                is_demo: isDemo,
-                game_started: true // Флаг начала игры
-            }, 
-            error: function( $e ){ 
-                console.log("Hack bot coefficient update error:", $e); 
-            }, 
-            success: function( $r ){
-                console.log("Hack bot coefficient updated:", $r); 
-            }
-        });
-        
-        $.ajax({
-            url:"/api/bets/add", type:"json", method:"post", 
-            data: { 
-                lvl: this.cur_lvl, 
-                fire: this.fire, 
-                bet: this.current_bet 
-            }, 
-            error: function( $e ){ console.error( $e ); }, 
-            success: function( $r ){
-                var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
-                console.log( $r ); 
-                
-                // Обновляем коэффициент ловушки в hack bot системе для всех режимов
-                GAME.updateTrapCoefficient();
-            }
-        });
-        this.cur_status = 'game'; 
-        this.stp = 0; 
-        this.alife = 1; 
-        CHICKEN.alife = 1; 
-        this.balance -= this.current_bet;
-        $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
-        $('.sector').off().on('click', function(){ 
-            GAME.move(); 
-        });
-        this.move(); 
     } 
     finish( $win ){
         $('#overlay').show(); 
         this.cur_status = "finish"; 
         this.alife = 0; 
         CHICKEN.alife = 0; 
-        $.ajax({
-            url:"/api/bets/close", type:"json", method:"post", 
-            data:{ stp: GAME.stp }, 
-            error: function( $e ){ console.error( $e ); }, 
-            success: function( $r ){
-                var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
-                console.log( $r ); 
-            }
-        });
+        
+        // Уведомляем сервер об окончании игры
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({type: 'game_end'}));
+        }
+        
         if( $win ){ 
             this.win = 1; 
             $('#fire').addClass('active');
@@ -480,10 +359,7 @@ class Game{
                 $('#overlay').hide(); 
                 GAME.cur_status = "loading"; 
                 $('#win_modal').hide(); 
-                GAME.create();
-                
-                // Возобновляем автоматическое обновление коэффициентов после окончания игры
-                GAME.resumeCoefficientAutoUpdate();
+                GAME.create();  
             }, $win ? 5000 : 3000  
         ); 
     }
@@ -493,41 +369,35 @@ class Game{
         var $state = $chick.attr('state'); 
         if( $state == "idle" ){ 
             this.stp += 1;  
-            $.ajax({
-                url:"/api/bets/move", type:"json", method:"post", 
-                data:{ stp: GAME.stp }, 
-                error: function( $e ){ console.error( $e ); }, 
-                success: function( $r ){
-                    var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
-                    console.log( $r ); 
-                }
-            });
             if( SETTINGS.volume.sound ){ SOUNDS.step.play(); }
             $chick.attr('state', "go"); 
             var $nx =  $cur_x + SETTINGS.segw + 'px'; 
             $chick.css('left', $nx); 
-            var $sector = this.getCurrentSector(); 
-            if( $sector && $sector.next() ){ 
-                $sector.removeClass('active').addClass('complete');
-                $sector = $sector.next();  
-                $('.trigger', $sector).addClass('activated');
-                $sector.addClass('active'); 
-                $sector.next().removeClass('far'); 
-                if( +$sector.attr('flame') ){
-                    $('#fire').addClass('active'); 
-                    CHICKEN.alife = 0; 
-                    $chick.attr('state', 'dead'); 
-                    $sector.removeClass('active').removeClass('complete').addClass('dead');
-                    $('.sector.finish').addClass('lose');
-                    GAME.finish(); 
-                } 
-                else {
-                    if( $('.sector').eq( GAME.stp ).hasClass('finish') ){
-                        GAME.finish(1); 
-                        $('.sector').eq( GAME.stp ).addClass('win');
+            var $sectorIndex = this.getCurrentSector(); 
+            if( $sectorIndex !== null ){ 
+                var $sector = $('.sector').eq($sectorIndex);
+                if( $sector.next() ){ 
+                    $sector.removeClass('active').addClass('complete');
+                    $sector = $sector.next();  
+                    $('.trigger', $sector).addClass('activated');
+                    $sector.addClass('active'); 
+                    $sector.next().removeClass('far'); 
+                    if( +$sector.attr('flame') ){
+                        $('#fire').addClass('active'); 
+                        CHICKEN.alife = 0; 
+                        $chick.attr('state', 'dead'); 
+                        $sector.removeClass('active').removeClass('complete').addClass('dead');
+                        $('.sector.finish').addClass('lose');
+                        GAME.finish(); 
+                    } 
+                    else {
+                        if( $('.sector').eq( GAME.stp ).hasClass('finish') ){
+                            GAME.finish(1); 
+                            $('.sector').eq( GAME.stp ).addClass('win');
+                        }
                     }
-                }
-            } 
+                } 
+            }
             setTimeout(function(){ 
                 if( CHICKEN.alife ){
                     $chick.attr('state', 'idle'); 
@@ -551,13 +421,14 @@ class Game{
     getCurrentSector() { 
         var parent = document.querySelector('#battlefield'); 
         var player = document.querySelector('#chick'); 
+        if (!player) return null;
         var sectors = document.querySelectorAll('#battlefield .sector'); 
         var playerRect = player.getBoundingClientRect();
         var parentRect = parent.getBoundingClientRect(); 
         var playerPosX = playerRect.left - parentRect.left;
         var sectorIndex = Math.floor( playerPosX / SETTINGS.segw ); 
         if( sectorIndex >= 0 && sectorIndex < sectors.length ){ 
-            return $('#battlefield .sector').eq(sectorIndex); //sectors[ sectorIndex ]; 
+            return sectorIndex; 
         } 
         else { return null; }
     } 
@@ -657,9 +528,7 @@ class Game{
                 var $val = $self.is(':checked'); 
                 if( !$val ){ SETTINGS.volume.sound = 0; } 
                 else { SETTINGS.volume.music = 0.9; } 
-                $.ajax({
-                    url:"/api/settings", type:"json", method:"post", data:{ play_sounds: $val ? 1 : 0 }
-                });
+                $.post('./api.php', { action: 'save_sound_settings', sound: $val ? 1 : 0 });
             });
             $('#switch_music').off().on('change', function(){
                 var $self=$(this); 
@@ -672,9 +541,7 @@ class Game{
                     SOUNDS.music.play(); 
                     SETTINGS.volume.music = 0.2;
                 } 
-                $.ajax({
-                    url:"/api/settings", type:"json", method:"post", data:{ play_music: $val ? 1 : 0 }
-                });
+                $.post('./api.php', { action: 'save_music_settings', music: $val ? 1 : 0 });
             });
             // установка ставки в инпуте
             $('#bet_size').off().on('change', function(){ 
@@ -719,13 +586,10 @@ class Game{
                     var $self=$(this); 
                     var $val = $self.val(); 
                     GAME.cur_lvl = $val; 
-                    GAME.create();
-                    
-                    // Сразу генерируем новый коэффициент для выбранного уровня сложности
-                    if (GAME.auto_update_active) {
-                        console.log("Уровень сложности изменен на: " + $val + ". Генерируем новый коэффициент...");
-                        GAME.autoUpdateCoefficient();
+                    if (GAME.ws && GAME.ws.readyState === WebSocket.OPEN) {
+                        GAME.ws.send(JSON.stringify({type: 'set_level', level: GAME.cur_lvl}));
                     }
+                    GAME.create(); 
                 } 
                 else {
                     return false; 
@@ -783,55 +647,17 @@ class Game{
             });
         }); 
     }
-    
-    // Функция для обновления коэффициента ловушки в hack bot системе
-    updateTrapCoefficient() {
-        // Получаем массив коэффициентов для текущего уровня сложности
-        var currentLevelCoefficients = SETTINGS.cfs[this.cur_lvl];
-        
-        if (!currentLevelCoefficients || currentLevelCoefficients.length === 0) {
-            console.log("Ошибка: коэффициенты для уровня " + this.cur_lvl + " не найдены");
-            return;
-        }
-        
-        // Выбираем случайный коэффициент из текущего уровня сложности
-        var randomIndex = Math.floor(Math.random() * currentLevelCoefficients.length);
-        var newCoefficient = currentLevelCoefficients[randomIndex];
-        
-        // Сохраняем коэффициент ловушки для всех режимов (демо и реальный)
-        if (typeof window.HOST_ID !== 'undefined') {
-            // Отправляем запрос на обновление коэффициента в базе данных
-            $.ajax({
-                url: "/hack/pe/db-chicken-api.php", 
-                type: "json", 
-                method: "post",
-                data: { 
-                    action: "update_chicken_coefficient",
-                    coefficient: newCoefficient,
-                    user_id: window.HOST_ID,
-                    is_demo: window.HOST_ID === 'demo' ? 1 : 0,
-                    difficulty_level: this.cur_lvl, // Передаем уровень сложности
-                    coefficient_index: randomIndex, // Передаем индекс в массиве
-                    manual_update: true // Флаг ручного обновления
-                },
-                error: function(e) { 
-                    console.log("Ошибка обновления коэффициента ловушки:", e); 
-                },
-                success: function(r) {
-                    var obj = typeof r == "string" ? eval('('+r+')') : r;
-                    if (window.HOST_ID === 'demo') {
-                        console.log("Коэффициент ловушки обновлен для демо режима (уровень " + GAME.cur_lvl + "):", newCoefficient);
-                    } else {
-                        console.log("Коэффициент ловушки обновлен для user_id " + window.HOST_ID + " (уровень " + GAME.cur_lvl + "):", newCoefficient);
-                    }
-                }
+    updateTraps(){
+        $('.sector').removeAttr('flame');
+        if (this.traps) {
+            this.traps.forEach(index => {
+                $('.sector').eq(index).attr('flame', '1');
             });
-        } else {
-            // Локальное сохранение коэффициента для случаев без HOST_ID
-            localStorage.setItem('chicken_trap_coefficient', newCoefficient);
-            localStorage.setItem('chicken_trap_difficulty', this.cur_lvl);
-            console.log("Коэффициент ловушки сохранен локально для уровня " + this.cur_lvl + ":", newCoefficient);
         }
+        var $flame_x = document.querySelector('.sector[flame="1"]'); 
+        $flame_x = $flame_x ? $flame_x.offsetLeft : 0; 
+        $('#fire').css('left', $flame_x +'px');
+        this.fire = this.traps && this.traps.length > 0 ? this.traps[0] : 0;
     }
 }
 
@@ -885,66 +711,6 @@ function render(){
 render(); 
 
 setTimeout( function(){ open_game(); }, 1000 );
-
-// Глобальные функции для управления автообновлением коэффициентов из hack bot
-window.stopChickenCoefficientUpdates = function() {
-    if (typeof GAME !== 'undefined' && GAME) {
-        GAME.pauseCoefficientAutoUpdate();
-        console.log("🛑 Автообновление коэффициентов остановлено из hack bot");
-        return true;
-    }
-    return false;
-};
-
-window.startChickenCoefficientUpdates = function() {
-    if (typeof GAME !== 'undefined' && GAME) {
-        GAME.resumeCoefficientAutoUpdate();
-        console.log("▶️ Автообновление коэффициентов возобновлено из hack bot");
-        return true;
-    }
-    return false;
-};
-
-window.isChickenCoefficientUpdatesActive = function() {
-    if (typeof GAME !== 'undefined' && GAME) {
-        return GAME.auto_update_active;
-    }
-    return false;
-};
-
-// Функция для hack bot - получение текущего статуса автообновления
-window.getChickenAutoUpdateStatus = function() {
-    if (typeof GAME !== 'undefined' && GAME) {
-        return {
-            active: GAME.auto_update_active,
-            timer_running: GAME.coefficient_updater !== null,
-            game_status: GAME.cur_status,
-            current_coefficient: GAME.saved_coefficient
-        };
-    }
-    return null;
-};
-
-// Функция для hack bot - обработка нажатия кнопки "📊 Análisis del juego"
-window.onChickenGameAnalysisStart = function() {
-    console.log("🔥 ВЫЗВАНА ФУНКЦИЯ: onChickenGameAnalysisStart");
-    
-    if (typeof GAME !== 'undefined' && GAME) {
-        console.log("🔥 GAME объект найден, вызываем pauseCoefficientAutoUpdate");
-        console.log("🔥 До остановки - auto_update_active:", GAME.auto_update_active);
-        console.log("🔥 До остановки - coefficient_updater:", GAME.coefficient_updater !== null);
-        
-        GAME.pauseCoefficientAutoUpdate();
-        
-        console.log("🔥 После остановки - auto_update_active:", GAME.auto_update_active);
-        console.log("🔥 После остановки - coefficient_updater:", GAME.coefficient_updater !== null);
-        console.log("📊 Análisis del juego запущен - автообновление коэффициентов приостановлено");
-        return true;
-    }
-    
-    console.log("🔥 ОШИБКА: GAME объект не найден!");
-    return false;
-};
 
 
 

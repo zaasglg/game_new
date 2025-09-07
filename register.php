@@ -1,5 +1,8 @@
 <?php
+error_log("REGISTER.PHP ACCESSED: " . date('Y-m-d H:i:s') . " - Method: " . $_SERVER['REQUEST_METHOD']);
 session_start(); // Запуск сессии
+
+
 
 // Подключение к базе данных
 require 'db.php';
@@ -64,6 +67,9 @@ try {
             ':country' => $country, 
             ':ref' => $ref, 
         ]);
+        
+        // Логируем успешную регистрацию
+        error_log("NEW REGISTRATION: User: $user_id, Email: $email, Country: $country, Ref: $ref, Time: " . date('Y-m-d H:i:s'));
         $botToken = '8076543915:AAHb5upyRzmAL5kEeE833wKg4HLFNouROzc'; // Токен вашего бота
         $chatId = '-1002585150746'; // ID чата или пользователя
         $country_flags = [
@@ -94,17 +100,28 @@ try {
 
         $url = "https://api.telegram.org/bot$botToken/sendMessage?chat_id=$chatId&text=" . urlencode($message);
         
-       
 
+        // Отправляем запрос через cURL (безопаснее чем file_get_contents)
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $response2 = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        // Логируем результат отправки в Telegram
+        error_log("Telegram send - HTTP: $httpCode, Response: $response2");
 
-       
-
-
-        // Отправляем запрос
-        $response2 = file_get_contents($url);
-
-        $custom_url = "https://app.chatterfy.ai/api/bots/webhooks/30bbfa2b-4f08-447a-b13f-14221c7c99e8/updateDialog?chatId=$ref&fields.reg_status=1&fields.user_id=$user_id&fields.country=$country&stepId=e27913f8-081c-4927-8578-1d529339d5e0"; // Замените на нужный URL
-        $custom_response = file_get_contents($custom_url);
+        $custom_url = "https://app.chatterfy.ai/api/bots/webhooks/30bbfa2b-4f08-447a-b13f-14221c7c99e8/updateDialog?chatId=$ref&fields.reg_status=1&fields.user_id=$user_id&fields.country=$country&stepId=e27913f8-081c-4927-8578-1d529339d5e0";
+        $ch2 = curl_init();
+        curl_setopt($ch2, CURLOPT_URL, $custom_url);
+        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch2, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
+        $custom_response = curl_exec($ch2);
+        curl_close($ch2);
 
 
         // Успешная регистрация

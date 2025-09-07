@@ -2,23 +2,23 @@
 session_start();
 include 'overlaying.php';
 
-// Получаем user_id из URL параметров (как в chicken-road игре)
+// Get user_id from URL parameters (like in chicken-road game)
 $user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : null;
 
-// Если user_id не передан, перенаправляем на главную
+// If user_id is not provided, redirect to home
 if (!$user_id) {
     header("Location: index.php");
     exit();
 }
 
-// Получаем коэффициент ловушки из базы данных
+// Get trap coefficient from database
 require_once '../db.php';
 
 try {
     $stmt = $conn->prepare("SELECT chicken_trap_coefficient FROM users WHERE user_id = :user_id");
     $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
     $stmt->execute();
-    
+
     $trap_coefficient = $stmt->fetchColumn();
     if ($trap_coefficient === false) {
         $trap_coefficient = 0.00;
@@ -30,6 +30,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -38,319 +39,425 @@ try {
     <link rel="stylesheet" href="./css/normalize.css">
     <link rel="stylesheet" href="./css/style.css">
     <link rel="icon" href="./images/home-page.png" />
-    
+
     <style>
-        body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            color: white;
-            font-family: 'Inter', sans-serif;
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .chicken-container {
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 20px;
+            max-width: 400px;
+            width: 90%;
             text-align: center;
         }
 
-        .chicken-header {
+        .chicken-title {
+            font-size: 1.8em;
+            margin-bottom: 40px;
+            color: #00ff88;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        /* Минималистичный дисплей коэффициента */
+        .coefficient-display {
+            background: #111111;
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 30px 20px;
             margin-bottom: 30px;
         }
 
-        .chicken-title {
-            font-size: 2.5em;
-            margin: 20px 0;
-            color: #FFD700;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        /* Большой коэффициент по центру */
-        .coefficient-display {
-            background: linear-gradient(45deg, #ff6b35, #f7931e);
-            border-radius: 20px;
-            padding: 40px 20px;
-            margin: 30px 0;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-            border: 3px solid #FFD700;
-        }
-
         .coefficient-label {
-            font-size: 1.2em;
-            color: white;
-            margin-bottom: 10px;
-            font-weight: bold;
+            font-size: 0.9em;
+            color: #888888;
+            margin-bottom: 15px;
+            font-weight: 400;
         }
 
         .coefficient-value {
-            font-size: 4em;
-            font-weight: bold;
-            color: white;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.7);
             margin: 20px 0;
+        }
+
+        .coefficient-number {
+            font-size: 3.5em;
+            font-weight: 300;
+            color: #00ff88;
         }
 
         .x-symbol {
-            color: #FFD700;
+            color: #00ff88;
+            font-size: 0.7em;
+            margin-left: 5px;
+        }
+
+        #ws-connection-status {
             font-size: 0.8em;
+            color: #666666;
+            margin: 15px 0;
+            padding: 8px;
+            background: #0f0f0f;
+            border-radius: 4px;
+            border: 1px solid #333333;
         }
 
         .coefficient-status {
-            font-size: 1.1em;
-            color: #ffed4a;
-            margin-top: 10px;
+            font-size: 0.9em;
+            color: #cccccc;
+            line-height: 1.4;
         }
 
-        /* Кнопка анализа */
+        /* Минималистичная кнопка */
         .analyze-btn {
-            background: linear-gradient(45deg, #28a745, #20c997);
-            color: white;
+            background: #00ff88;
+            color: #000000;
             border: none;
-            border-radius: 15px;
-            padding: 15px 30px;
-            font-size: 1.3em;
-            font-weight: bold;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: 500;
             cursor: pointer;
-            margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             width: 100%;
         }
 
         .analyze-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6);
+            background: #00cc6a;
+            transform: translateY(-1px);
         }
 
         .analyze-btn:active {
             transform: translateY(0);
         }
 
-        /* Выбор уровня */
-        .level-selector {
-            margin: 30px 0;
-        }
-
-        .level-selector h3 {
-            color: #FFD700;
-            font-size: 1.5em;
-            margin-bottom: 20px;
-        }
-
-        .level-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .level-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid transparent;
-            border-radius: 12px;
-            padding: 15px 10px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .level-btn:hover {
-            transform: scale(1.05);
-            border-color: #FFD700;
-        }
-
-        .level-btn.selected {
-            border-color: #28a745;
-            background: rgba(40, 167, 69, 0.3);
-        }
-
-        .level-btn small {
-            display: block;
-            margin-top: 5px;
-            opacity: 0.8;
-            font-size: 0.8em;
-        }
-
-        /* Информация о выборе */
-        .current-info {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .current-info p {
-            margin: 10px 0;
-            font-size: 1.1em;
-        }
-
-        .current-info span {
-            color: #FFD700;
-            font-weight: bold;
-        }
-
-        /* Статус загрузки */
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
+        /* Анимация пульса */
         .pulse {
             animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Статусы подключения */
+        #ws-connection-status {
+            transition: color 0.3s ease;
         }
     </style>
 </head>
 
 <body>
     <div class="chicken-container">
-        <div class="chicken-header">
-            <h1 class="chicken-title">🐔 Bot Hack Chicken Road</h1>
-        </div>
+        <h1 class="chicken-title">Chicken Road Bot</h1>
 
-        <!-- Большой коэффициент по центру -->
         <div class="coefficient-display">
-            <div class="coefficient-label">El pollo morirá en:</div>
-            <div class="coefficient-value" id="trap-coefficient">
-                <span id="coefficient-number"><?php echo number_format($trap_coefficient, 2); ?></span><span class="x-symbol">x</span>
+            <div class="coefficient-label">Trap Coefficient</div>
+            <div class="coefficient-value">
+                <span id="coefficient-number" class="coefficient-number">0.00</span><span class="x-symbol">x</span>
             </div>
-            <div class="coefficient-status" id="coefficient-status">Listo para analizar</div>
+            <div id="ws-connection-status">Connecting...</div>
+            <div class="coefficient-status" id="coefficient-status">Ready to analyze</div>
         </div>
 
-        <!-- Кнопка анализа -->
         <button class="analyze-btn" id="analyze-btn" onclick="analyzeChickenGame()">
-            📊 Análisis del juego
+            Analyze Game
         </button>
-
-        <!-- Выбор уровня -->
-        <div class="level-selector">
-            <h3>Selecciona el nivel de dificultad:</h3>
-            <div class="level-buttons">
-                <button class="level-btn" data-level="easy" onclick="selectLevel('easy')">
-                    🟢 Fácil<br><small>3 obstáculos</small>
-                </button>
-                <button class="level-btn" data-level="medium" onclick="selectLevel('medium')">
-                    🟡 Medio<br><small>7 obstáculos</small>
-                </button>
-                <button class="level-btn" data-level="hard" onclick="selectLevel('hard')">
-                    🟠 Difícil<br><small>12 obstáculos</small>
-                </button>
-                <button class="level-btn" data-level="hardcore" onclick="selectLevel('hardcore')">
-                    🔴 Extremo<br><small>24 obstáculos</small>
-                </button>
-            </div>
-        </div>
-
-        <!-- Информация о текущем выборе -->
-        <div class="current-info" id="current-info">
-            <p>📋 Nivel seleccionado: <span id="selected-level">No seleccionado</span></p>
-            <p>⚠️ Riesgo: <span id="risk-level">-</span></p>
-            <p>🎯 Recomendación: <span id="recommendation">Selecciona un nivel para analizar</span></p>
-        </div>
-
     </div>
 
     <script>
         const userId = <?php echo $user_id; ?>;
         let currentLevel = null;
-        let analyzing = false;
 
-        // Функция анализа игры
-        function analyzeChickenGame() {
-            if (analyzing) return;
-            
-            analyzing = true;
-            const analyzeBtn = document.getElementById('analyze-btn');
-            const coefficientStatus = document.getElementById('coefficient-status');
-            
-            analyzeBtn.textContent = '🔄 Analizando...';
-            analyzeBtn.classList.add('loading');
-            coefficientStatus.textContent = 'Cargando datos actuales...';
-            coefficientStatus.classList.add('pulse');
+        // WebSocket client for hack bot
+        class ChickenHackWebSocket {
+            constructor() {
+                this.ws = null;
+                this.isConnected = false;
+                this.currentLevel = 'easy';
+                this.lastTraps = [];
+                this.lastCoefficient = <?php echo $trap_coefficient; ?>;
+                this.connect();
+            }
 
-            // Загружаем актуальный коэффициент из базы данных
-            fetch('/hack/pe/db-chicken-api.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `action=get_chicken_coefficient&user_id=<?php echo $user_id; ?>`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.coefficient) {
-                    // Обновляем коэффициент из базы данных
-                    const dbCoefficient = parseFloat(data.coefficient).toFixed(2);
-                    
-                    document.getElementById('coefficient-number').textContent = dbCoefficient;
-                    coefficientStatus.textContent = '¡Datos actualizados desde la base!';
-                    coefficientStatus.classList.remove('pulse');
-                    
-                    // Обновляем рекомендацию
-                    updateRecommendation(dbCoefficient);
-                } else {
-                    // Если в базе нет данных
-                    coefficientStatus.textContent = 'No hay datos en la base para este usuario';
-                    coefficientStatus.classList.remove('pulse');
+            connect() {
+                try {
+                    console.log('🔌 Chicken Hack connecting to WebSocket server...');
+                    this.ws = new WebSocket('ws://localhost:8080');
+
+                    this.ws.onopen = () => {
+                        this.isConnected = true;
+                        console.log('✅ Chicken Hack connected to WebSocket server');
+                        this.ws.send(JSON.stringify({ type: 'set_level', level: this.currentLevel }));
+                        this.ws.send(JSON.stringify({ type: 'set_client_type', isHackBot: true }));
+                        this.updateConnectionStatus('connected');
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        console.log('📥 Chicken Hack received:', data);
+
+                        if (data.type === 'traps') {
+                            this.lastTraps = data.traps;
+                            this.updateHackDisplay(data.traps, data.level);
+                        } else if (data.type === 'game_traps') {
+                            console.log('🎮 Game traps received for hack analyze:', data.traps);
+                            this.lastTraps = data.traps;
+                            this.updateHackDisplay(data.traps, data.level, true); // true means this is analysis
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        this.isConnected = false;
+                        console.log('📱 Disconnected from WebSocket server');
+                        this.updateConnectionStatus('disconnected');
+                        // Auto-reconnect after 3 seconds
+                        setTimeout(() => this.connect(), 3000);
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('❌ WebSocket connection error:', error);
+                        this.updateConnectionStatus('error');
+                    };
+
+                } catch (error) {
+                    console.error('❌ Failed to connect to WebSocket:', error);
+                    this.updateConnectionStatus('error');
                 }
-                
-                analyzeBtn.textContent = '📊 Análisis del juego';
-                analyzeBtn.classList.remove('loading');
-                analyzing = false;
-            })
-            .catch(error => {
-                console.error('Ошибка загрузки из базы:', error);
-                
-                coefficientStatus.textContent = 'Error al cargar datos';
-                coefficientStatus.classList.remove('pulse');
-                
-                analyzeBtn.textContent = '📊 Análisis del juego';
-                analyzeBtn.classList.remove('loading');
-                analyzing = false;
-            });
+            }
+
+            setLevel(level) {
+                this.currentLevel = level;
+                if (this.isConnected && this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'set_level', level: level }));
+                }
+            }
+
+            requestTraps() {
+                if (this.isConnected && this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'request_traps', level: this.currentLevel }));
+                } else {
+                    console.error('❌ Not connected to WebSocket server');
+                }
+            }
+
+            startGame() {
+                if (this.isConnected && this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'game_start' }));
+                    console.log('🎮 Game started, traps locked');
+                }
+            }
+
+            endGame() {
+                if (this.isConnected && this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'game_end' }));
+                    console.log('🏁 Game ended, traps unlocked');
+                }
+            }
+
+            startHackAnalyze() {
+                if (this.isConnected && this.ws) {
+                    // Use same commands as main game
+                    this.ws.send(JSON.stringify({ type: 'game_start' }));
+                    console.log('🎯 Hack analyze started - using game_start command');
+                } else {
+                    console.error('❌ Not connected to WebSocket server');
+                }
+            }
+
+            endHackAnalyze() {
+                if (this.isConnected && this.ws) {
+                    // Use same commands as main game
+                    this.ws.send(JSON.stringify({ type: 'game_end' }));
+                    console.log('🏁 Hack analyze ended - using game_end command');
+                }
+            }
+
+            updateHackDisplay(traps, level, isHackAnalyze = false) {
+                console.log(`🔥 WebSocket Traps for ${level}:`, traps);
+
+                if (traps && traps.length > 0) {
+                    const trapIndex = traps[0];
+
+                    // Get coefficients for level
+                    const coefficients = this.getCoefficientsForLevel(level);
+                    const coefficient = coefficients[trapIndex - 1] || coefficients[0];
+
+                    // Update status
+                    const coefficientStatus = document.getElementById('coefficient-status');
+                    if (coefficientStatus) {
+                        const analyzeText = isHackAnalyze ? 'Analysis Complete' : 'Live Data';
+
+                        // Update coefficient display
+                        const coefficientNumber = document.getElementById('coefficient-number');
+                        if (coefficientNumber) {
+                            coefficientNumber.textContent = coefficient.toFixed(2);
+                        }
+
+                        // Update status
+                        coefficientStatus.textContent = analyzeText;
+                    }
+                }
+            }
+
+            getCoefficientsForLevel(level) {
+                const coefficients = {
+                    easy: [1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63, 1.75, 1.88, 2.04, 2.22, 2.45, 2.72, 3.06, 3.50, 4.08, 4.90, 6.13, 6.61, 9.81, 19.44],
+                    medium: [1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96, 6.20, 6.91, 8.90, 11.74, 15.99, 22.61, 33.58, 53.20, 92.17, 182.51, 451.71, 1788.80],
+                    hard: [1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21, 22.59, 34.79, 55.97, 94.99, 172.42, 341.40, 760.46, 2007.63, 6956.47, 41321.43]
+                };
+                return coefficients[level] || coefficients.easy;
+            }
+
+            updateConnectionStatus(status) {
+                const wsStatus = document.getElementById('ws-connection-status');
+                if (wsStatus) {
+                    switch (status) {
+                        case 'connected':
+                            wsStatus.textContent = 'Connected';
+                            wsStatus.style.color = '#00ff88';
+                            break;
+                        case 'disconnected':
+                            wsStatus.textContent = 'Disconnected';
+                            wsStatus.style.color = '#ff6b6b';
+                            break;
+                        case 'error':
+                            wsStatus.textContent = 'Connection Error';
+                            wsStatus.style.color = '#ff6b6b';
+                            break;
+                    }
+                }
+            }
         }
 
-        // Функция выбора уровня
+        // Create global WebSocket client instance
+        let hackWebSocket;
+
+        // Game analysis function
+        function analyzeChickenGame() {
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const coefficientStatus = document.getElementById('coefficient-status');
+
+            // Emulate Play button press in game (stop generation, get fixed traps)
+            if (hackWebSocket && hackWebSocket.isConnected) {
+                hackWebSocket.startHackAnalyze();
+                coefficientStatus.innerHTML = 'Analyzing game state...';
+
+                // Change button to "Finish Analysis"
+                analyzeBtn.textContent = 'Finish Analysis';
+                analyzeBtn.onclick = finishAnalyzeChickenGame;
+
+            } else {
+                // Fallback to old logic if WebSocket unavailable
+                coefficientStatus.textContent = 'Loading current data...';
+                coefficientStatus.classList.add('pulse');
+
+                // Load current coefficient from database
+                fetch('/hack/pe/db-chicken-api.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=get_chicken_coefficient&user_id=<?php echo $user_id; ?>`
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.coefficient) {
+                            // Update coefficient from database
+                            const dbCoefficient = parseFloat(data.coefficient).toFixed(2);
+
+                            document.getElementById('coefficient-number').textContent = dbCoefficient;
+                            coefficientStatus.textContent = '¡Datos actualizados desde la base!';
+                            coefficientStatus.classList.remove('pulse');
+
+                            // Обновляем рекомендацию
+                            updateRecommendation(dbCoefficient);
+                        } else {
+                            // If no data in database
+                            coefficientStatus.textContent = 'No hay datos en la base para este usuario';
+                            coefficientStatus.classList.remove('pulse');
+                        }
+
+                        analyzeBtn.textContent = '📊 Análisis del juego';
+                    })
+                    .catch(error => {
+                        console.error('Error loading from database:', error);
+
+                        coefficientStatus.textContent = 'Error al cargar datos';
+                        coefficientStatus.classList.remove('pulse');
+
+                        analyzeBtn.textContent = '📊 Análisis del juego';
+                    });
+            }
+        }
+
+        // Analysis completion function
+        function finishAnalyzeChickenGame() {
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const coefficientStatus = document.getElementById('coefficient-status');
+
+            // Finish analysis - send game_end
+            if (hackWebSocket && hackWebSocket.isConnected) {
+                hackWebSocket.endHackAnalyze();
+                coefficientStatus.innerHTML = 'Analysis finished';
+            }
+
+            // Return button to original state
+            analyzeBtn.textContent = 'Analyze Game';
+            analyzeBtn.onclick = analyzeChickenGame;
+        }
+
+        // Level selection function
         function selectLevel(level) {
             currentLevel = level;
-            
+
             // Убираем выделение с всех кнопок
             document.querySelectorAll('.level-btn').forEach(btn => {
                 btn.classList.remove('selected');
             });
-            
+
             // Выделяем выбранную кнопку
             document.querySelector(`[data-level="${level}"]`).classList.add('selected');
-            
+
             // Обновляем информацию
             const levelNames = {
                 'easy': 'Fácil (3 obstáculos)',
-                'medium': 'Medio (7 obstáculos)', 
+                'medium': 'Medio (7 obstáculos)',
                 'hard': 'Difícil (12 obstáculos)',
                 'hardcore': 'Extremo (24 obstáculos)'
             };
-            
+
             const riskLevels = {
                 'easy': 'Bajo',
                 'medium': 'Medio',
-                'hard': 'Alto', 
+                'hard': 'Alto',
                 'hardcore': 'Extremo'
             };
-            
+
             document.getElementById('selected-level').textContent = levelNames[level];
             document.getElementById('risk-level').textContent = riskLevels[level];
-            
+
             // Обновляем рекомендацию
             const coefficient = parseFloat(document.getElementById('coefficient-number').textContent);
             updateRecommendation(coefficient);
@@ -362,10 +469,10 @@ try {
                 document.getElementById('recommendation').textContent = 'Selecciona un nivel para analizar';
                 return;
             }
-            
+
             const coeff = parseFloat(coefficient);
             let recommendation = '';
-            
+
             if (coeff < 2.0) {
                 recommendation = '🔴 ¡Cuidado! Coeficiente bajo';
             } else if (coeff < 3.0) {
@@ -375,7 +482,7 @@ try {
             } else {
                 recommendation = '✨ ¡Excelentes posibilidades!';
             }
-            
+
             document.getElementById('recommendation').textContent = recommendation;
         }
 
@@ -388,17 +495,20 @@ try {
                 },
                 body: `action=update_chicken_coefficient&coefficient=${coefficient}`
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Coeficiente actualizado:', data);
-            })
-            .catch(error => {
-                console.error('Error al actualizar:', error);
-            });
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Coeficiente actualizado:', data);
+                })
+                .catch(error => {
+                    console.error('Error updating database:', error);
+                });
         }
 
         // Загрузка актуального коэффициента при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
+            // Создаем WebSocket клиент для получения реальных данных от сервера
+            hackWebSocket = new ChickenHackWebSocket();
+
             fetch('/hack/pe/db-chicken-api.php', {
                 method: 'POST',
                 headers: {
@@ -406,16 +516,17 @@ try {
                 },
                 body: `action=get_chicken_coefficient`
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.coefficient) {
-                    document.getElementById('coefficient-number').textContent = parseFloat(data.coefficient).toFixed(2);
-                }
-            })
-            .catch(error => {
-                console.error('Error al cargar:', error);
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.coefficient) {
+                        document.getElementById('coefficient-number').textContent = parseFloat(data.coefficient).toFixed(2);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                });
         });
     </script>
 </body>
+
 </html>

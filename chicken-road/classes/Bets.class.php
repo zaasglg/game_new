@@ -124,7 +124,7 @@
             $stp = isset( $d['stp'] ) ? (int)$d['stp'] : 0; 
             $cur_bet = $this->current(); 
             if( $cur_bet ){ 
-                $cfs = Cfs::GI()->load(['goup'=>$cur_bet['lvl']]); 
+                $cfs = Cfs::GI()->load(['group'=>$cur_bet['lvl']]); 
                 if( $cfs ){ 
                     if( $cur_bet['fire'] == $stp - 1 ){ 
                         $data = [

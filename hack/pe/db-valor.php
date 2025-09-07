@@ -2,13 +2,10 @@
 session_start();
 include 'overlaying.php';
 
-// Используем точно такие же настройки как в основном db.php
-$host = '127.0.0.1';
-$dbname = 'volurgame';
-$username = 'root';
-$password = 'root';
-$port = 8889;
-$socket = '/Applications/MAMP/tmp/mysql/mysql.sock';
+$dbname = 'dbvalor';
+$username = 'root2';
+$password = 'xE2tZ9qH5f';
+$host = '192.241.120.62';
 
 // Очистка буфера вывода
 if (ob_get_length()) ob_clean();
@@ -25,29 +22,13 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 try {
-    // Пробуем подключиться через TCP/IP (как в основном db.php)
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $options = [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_TIMEOUT => 3,
-    ];
-    
-    $conn = new PDO($dsn, $username, $password, $options);
-    
+    $db = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    // Пробуем через socket, если TCP не работает
-    try {
-        $dsn = "mysql:unix_socket=$socket;dbname=$dbname;charset=utf8mb4";
-        $conn = new PDO($dsn, $username, $password, $options);
-        
-    } catch (PDOException $e) {
-        // Выводим ошибку только если оба способа не сработали
-        die(json_encode([
-            "success" => false,
-            "error" => $e->getMessage(),
-            "solution" => "Database connection failed"
-        ], JSON_UNESCAPED_UNICODE));
-    }
+    die(json_encode([
+        'success' => false,
+        'message' => 'Database connection failed: ' . $e->getMessage()
+    ]));
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -56,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Используем user_id из сессии для безопасности
             $userId = $_SESSION['user_id'];
             
-            $query = $conn->prepare("SELECT positions_mine FROM users WHERE user_id = :user_id");
+            $query = $db->prepare("SELECT positions_mine FROM users WHERE user_id = :user_id");
             $query->bindParam(':user_id', $userId, PDO::PARAM_INT);
             $query->execute();
             

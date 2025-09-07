@@ -20,7 +20,7 @@
 	define('MAIN_DBPORT', "3306");
 	define('MAIN_DBUSER', "root"); //"valorgames_dbvalor"); 
 	define('MAIN_DBPASSWD', "p@ssword"); //"fO2~lJf=4]-H");
-	define('MAIN_DBNAME', "chicken_road");  
+	define('MAIN_DBNAME', "volurgame");  
 	//
 	// TABLES
 	// 

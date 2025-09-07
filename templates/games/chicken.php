@@ -1,104 +1,118 @@
-<?php if( IS_MOBILE ){ ?>
+<?php 
+require_once 'auth_check.php';
+require_once 'chicken-road/currency.php';
+
+// Конвертируем баланс в USD для отображения в игре
+$balance_usd = 0;
+if (defined('SYS_BALANCE') && SYS_BALANCE > 0 && defined('SYS_COUNTRY')) {
+    $balance_usd = convertToUSD(SYS_BALANCE, SYS_COUNTRY);
+} else {
+    $balance_usd = 0;
+}
+
+if (IS_MOBILE) { ?>
+	<style>
+		.casino {
+			display: block;
+		}
+
+		.casino__sidebar {
+			display: none;
+		}
+
+		#aviator_frame2 {
+			width: 100%;
+			height: 100vh;
+		}
+	</style>
+	<iframe
+		src="/chicken-road/?lang=es&user_id=&balance=<?= number_format($balance_usd, 2, '.', ''); ?>"
+		id="aviator_frame2"></iframe>
+	<div id="modeSelectionModal2" class="mode-selection-modal">
+		<div class="mode-selection-content" style="display:block;">
+			<h2>Selecciona un modo de juego</h2>
+			<button class="mode-two-btn" data-mode="demo">Modo demostración</button>
+			<button class="mode-two-btn" data-mode="real">El juego de siempre</button>
+		</div>
+	</div>
+	<script>
+		$('#modeSelectionModal2 .mode-two-btn').off().on('click', function () {
+			var $self = $(this);
+			var $mode = $self.attr('data-mode');
+			var $url = $('#aviator_frame2').attr('src');
+			if ($mode == 'demo') { 
+				$('#aviator_frame2').attr('src', '/chicken-road/?lang=es&user_id=demo&balance=500'); 
+			} else { 
+				$('#aviator_frame2').attr('src', '/chicken-road/?lang=es&user_id=<?= UID; ?>&balance=<?= number_format($balance_usd, 2, '.', ''); ?>'); 
+			}
+			$('#modeSelectionModal2').hide().remove();
+		});
+	</script>
+<?php } else { ?>
+	<div id="app">
 		<style>
-			.casino{ display:block; }
-			.casino__sidebar{ display:none; }
-			#aviator_frame2{ width:100%; height:100vh; }
+			#app {
+				width: 100%;
+			}
+
+			#aviator_frame {
+				width: 100%;
+				/*aspect-ratio:4/3;*/
+				height: calc(100vh - 65px);
+			}
 		</style>
-		<iframe src="/chicken-road/?lang=es&user_id=" id="aviator_frame2" ></iframe>
-		<div id="modeSelectionModal2" class="mode-selection-modal">
+		<iframe
+			src="/chicken-road/?lang=es&user_id=&balance=<?= number_format($balance_usd, 2, '.', ''); ?>"
+			id="aviator_frame"></iframe>
+		<!-- Debug: Original Balance = <?= defined('SYS_BALANCE') ? SYS_BALANCE : 'NOT_DEFINED'; ?>, USD Balance = <?= $balance_usd; ?> -->
+		<div id="modeSelectionModal" class="mode-selection-modal">
 			<div class="mode-selection-content" style="display:block;">
 				<h2>Selecciona un modo de juego</h2>
 				<button class="mode-two-btn" data-mode="demo">Modo demostración</button>
-				<button class="mode-two-btn" data-mode="real">El juego de siempre</button> 
+				<button class="mode-two-btn" data-mode="real">El juego de siempre</button>
+				<p style="display:none;"><?= json_encode($_SESSION); ?></p>
 			</div>
 		</div>
 		<script>
-			$('#modeSelectionModal2 .mode-two-btn').off().on('click', function(){
-				var $self=$(this); 
-				var $mode = $self.attr('data-mode'); 
-				var $url = $('#aviator_frame2').attr('src');
-				if( $mode == 'demo' ){ $('#aviator_frame2').attr('src', $url+'demo'); }
-				else { $('#aviator_frame2').attr('src', $url+'<?= UID; ?>'); } 
-				$('#modeSelectionModal2').hide().remove(); 
+			$('#modeSelectionModal .mode-two-btn').off().on('click', function () {
+				var $self = $(this);
+				var $mode = $self.attr('data-mode');
+				var $url = $('#aviator_frame').attr('src');
+				if ($mode == 'demo') { 
+					$('#aviator_frame').attr('src', '/chicken-road/?lang=es&user_id=demo&balance=500'); 
+				} else { 
+					$('#aviator_frame').attr('src', '/chicken-road/?lang=es&user_id=<?= UID; ?>&balance=<?= number_format($balance_usd, 2, '.', ''); ?>'); 
+				}
+				$('#modeSelectionModal').hide().remove();
 			});
+			setInterval(function () {
+				$.ajax({
+					url: "/chicken-road/get_balance.php",
+					dataType: "json",
+					method: "post",
+					data: {},
+					error: function (xhr, status, error) {
+						console.error('Balance update error:', {
+							status: xhr.status,
+							statusText: xhr.statusText,
+							responseText: xhr.responseText,
+							error: error
+						});
+					},
+					success: function ($r) {
+						console.log('Balance response:', $r);
+						if ($r && $r.deposit) {
+							// Обновляем баланс в iframe (уже в USD)
+							var iframe = document.getElementById('aviator_frame');
+							console.log('Iframe found:', iframe);
+							if (iframe && iframe.contentWindow) {
+								console.log('Sending USD balance to iframe:', $r.deposit);
+								iframe.contentWindow.postMessage({ type: 'updateBalance', balance: $r.deposit }, '*');
+							}
+						}
+					}
+				});
+			}, 5000);
 		</script>
-		<?php } else { ?>
-		<div id="app">
-		    <style>
-		      	#app{ width:100%; }
-		      	#aviator_frame{ width:100%; /*aspect-ratio:4/3;*/ height:calc( 100vh - 65px ); }
-		    </style>
-		    <iframe src="/chicken-road/?lang=es&user_id=" id="aviator_frame" ></iframe>
-		    <div id="modeSelectionModal" class="mode-selection-modal">
-		      	<div class="mode-selection-content" style="display:block;">
-					<h2>Selecciona un modo de juego</h2>
-					<button class="mode-two-btn" data-mode="demo">Modo demostración</button>
-					<button class="mode-two-btn" data-mode="real">El juego de siempre</button>
-					<p style="display:none;"><?= json_encode( $_SESSION ); ?></p>
-		      	</div>
-		    </div>
-		    <script>
-		      	$('#modeSelectionModal .mode-two-btn').off().on('click', function(){
-			        var $self=$(this); 
-			        var $mode = $self.attr('data-mode'); 
-			        var $url = $('#aviator_frame').attr('src');
-			        if( $mode == 'demo' ){ 
-			        	$('#aviator_frame').attr('src', $url+'demo'); 
-			        }
-			        else { 
-			        	$('#aviator_frame').attr('src', $url+'<?= UID; ?>'); 
-			        	
-			        	// Синхронизируем баланс с основной системой и конвертируем в USD
-			        	console.log('Starting balance synchronization for user:', <?= UID; ?>);
-			        	setTimeout(function(){
-			        		$.ajax({
-			        			url: '/get_user_data.php',
-			        			method: 'GET',
-			        			dataType: 'json',
-			        			success: function(response) {
-			        				console.log('User data received:', response);
-			        				if(response.success && response.data.is_auth) {
-			        					console.log('User authenticated, balance:', response.data.balance, response.data.currency);
-			        					// Обновляем баланс в игре с конвертацией в USD
-			        					$.ajax({
-			        						url: '/chicken-road/update_balance.php',
-			        						method: 'POST',
-			        						contentType: 'application/json',
-			        						data: JSON.stringify({
-			        							user_id: <?= UID; ?>,
-			        							balance: response.data.balance,
-			        							currency: response.data.currency || 'USD'
-			        						}),
-			        						success: function(updateResponse) {
-			        							console.log('=== CURRENCY CONVERSION RESULT ===');
-			        							console.log('Full response:', updateResponse);
-			        							if(updateResponse.success) {
-			        								console.log('✓ Original balance: ' + updateResponse.original_balance + ' ' + updateResponse.original_currency);
-			        								console.log('✓ Conversion rate: ' + updateResponse.conversion_rate);
-			        								console.log('✓ Converted to USD: $' + updateResponse.usd_balance);
-			        							} else {
-			        								console.error('❌ Update failed:', updateResponse.message);
-			        							}
-			        							console.log('=================================');
-			        						},
-			        						error: function(xhr, status, error) {
-			        							console.error('❌ Failed to update balance:', error);
-			        							console.error('Response text:', xhr.responseText);
-			        						}
-			        					});
-			        				} else {
-			        					console.warn('User not authenticated or request failed');
-			        				}
-			        			},
-			        			error: function(xhr, status, error) {
-			        				console.error('❌ Failed to get user data:', error);
-			        				console.error('Response text:', xhr.responseText);
-			        			}
-			        		});
-			        	}, 1000);
-			        } 
-			        $('#modeSelectionModal').hide().remove(); 
-		      	});
-		    </script>
-		</div>
+	</div>
 <?php } ?>

@@ -1,4 +1,19 @@
-#logo{ height:100%; width:auto; border:0; cursor:pointer; text-decoration:none; display:flex; flex-flow:row nowrap; justify-content:center; align-items:center; gap:0 flex-grow:0; flex-shrink:0; background:transparent; padding-left:20px; } 
+#logo{
+    height:100%;
+    width:auto;
+    border:0;
+    cursor:pointer;
+    text-decoration:none;
+    display:flex;
+    flex-flow:row nowrap;
+    justify-content:center;
+    align-items:center;
+    gap:0;
+    flex-grow: 0;
+    flex-shrink:0;
+    background:transparent;
+    padding-left:20px;
+} 
 #logo img{ height:60%; width:auto; } 
 #logo img:last-child{ display:none; }
 @media (max-width:760px){
@@ -69,7 +84,7 @@
 #battlefield .sector .coincontainer{ width:100%; height:auto; display:flex; flex-flow:row nowrap; justify-content:center; align-items:center; gap:0; position:relative; transform-origin:center; transition:transform 0.5s linear; perspective:1000px; }
 #battlefield .sector .coincontainer .coinwrapper{ width:75%; }
 #battlefield .sector .coincontainer .coin{ width:62%; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); } 
-#battlefield .sector .coincontainer .a{}
+#battlefield .sector .coincontainer .a{ opacity:1; }
 #battlefield .sector .coincontainer .b{ opacity:0; }
 #battlefield .sector .coincontainer .c{ opacity:0; }
 #battlefield .sector .coincontainer .d{ opacity:0; }
@@ -97,7 +112,7 @@
 #battlefield .sector.dead .coincontainer .c{ opacity:1; transition:opacity 0.001s steps(1) linear; transition-delay: 0.25s; } 
 #battlefield .sector.finish{ background:transparent; }
 
-#battlefield .sector .flame{ display:none; width:90%; aspect-ratio:100/137; position:absolute; bottom:50px; left:5%; background:transparent url('./res/img/mini_fire.png') left top no-repeat; background-size:400% 300%; animation:flame 1s steps(1) infinite; } 
+#battlefield .sector .flame{ display:none; width:90%; aspect-ratio:100/137; position:absolute; bottom:50px; left:5%; background:transparent url('../img/mini_fire.png') left top no-repeat; background-size:400% 300%; animation:flame 1s steps(1) infinite; } 
 #battlefield .sector.flame .flame{ display:block; }
 
 #battlefield .sector .cup{ width:50%; height:auto; position:absolute; bottom:50px; left:25%; }

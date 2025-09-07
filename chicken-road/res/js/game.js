@@ -1053,10 +1053,23 @@ class Game {
         this.stp = 0;
         this.create(); 
         this.alife = 0; 
-        this.balance = 500; 
+        // Получаем баланс из URL параметров (уже в USD)
+        var urlParams = new URLSearchParams(window.location.search);
+        var balanceParam = urlParams.get('balance');
+        var userIdParam = urlParams.get('user_id');
+        
+        // Если это демо режим, устанавливаем 500 USD
+        if (userIdParam === 'demo' || !userIdParam) {
+            this.balance = 500;
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
+        } else {
+            // Реальный режим - загружаем актуальный баланс из базы данных
+            this.balance = balanceParam ? parseFloat(balanceParam) : 0;
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
+            this.loadActualBalance(userIdParam);
+        } 
         this.current_bet = 0; 
-        this.currency = 'USD';  
-        $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
+        this.currency = 'USD'; 
         this.moving = 0; 
         this.moving_time = 0; 
         this.segment  = 0;
@@ -1146,6 +1159,9 @@ class Game {
             CHICKEN.alife = 1; 
             this.balance -= this.current_bet;
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
+            
+            // Сохраняем начало игры (списание ставки) в базе данных
+            this.saveBetStart();
         }
     }
     finish( $win ){ 
@@ -1153,9 +1169,11 @@ class Game {
         this.cur_status = "finish"; 
         this.alife = 0; 
         CHICKEN.alife = 0; 
+        
+        var $award = 0;
         if( $win ){ 
             this.win = 1;
-            var $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
+            $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
             $award = $award ? $award : 0; 
             //console.log("AWARD: "+ $award);
             this.balance += $award; 
@@ -1167,6 +1185,10 @@ class Game {
         else {
             if( SETTINGS.volume.active ){ SOUNDS.lose.play(); } 
         }
+        
+        // Сохраняем результат игры в базе данных (только для реального режима)
+        this.saveGameResult($win, $award);
+        
         //console.log("CREATE REBUILD");
         window.$rebuild = setTimeout(
             function(){ 
@@ -1176,6 +1198,102 @@ class Game {
                 GAME.create();  
             }, $win ? 5000 : 3000  
         ); 
+    }
+    saveGameResult($win, $award) {
+        // Получаем user_id из URL
+        var urlParams = new URLSearchParams(window.location.search);
+        var userId = urlParams.get('user_id');
+        
+        // Сохраняем только в реальном режиме (не демо)
+        if (userId && userId !== 'demo') {
+            var gameData = {
+                user_id: userId,
+                balance: this.balance,
+                bet_amount: this.current_bet,
+                win_amount: $win ? $award : 0,
+                game_result: $win ? 'win' : 'lose'
+            };
+            
+            // Отправляем данные на сервер
+            $.ajax({
+                url: '/api/users/save_game_result',
+                type: 'POST',
+                data: gameData,
+                dataType: 'json',
+                success: function(response) {
+                    console.log('Game result saved:', response);
+                    if (response.success) {
+                        // Обновляем баланс в интерфейсе
+                        $('[data-rel="menu-balance"] span').html(response.balance.toFixed(2));
+                        
+                        // Отправляем сообщение родительскому окну об обновлении баланса
+                        if (window.parent && window.parent !== window) {
+                            window.parent.postMessage({
+                                type: 'balanceUpdated',
+                                balance: response.balance,
+                                userId: userId
+                            }, '*');
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Failed to save game result:', error);
+                }
+            });
+        }
+    }
+    saveBetStart() {
+        // Получаем user_id из URL
+        var urlParams = new URLSearchParams(window.location.search);
+        var userId = urlParams.get('user_id');
+        
+        // Сохраняем только в реальном режиме (не демо)
+        if (userId && userId !== 'demo') {
+            var gameData = {
+                user_id: userId,
+                balance: this.balance,
+                bet_amount: this.current_bet,
+                win_amount: 0,
+                game_result: 'bet_started'
+            };
+            
+            // Отправляем данные на сервер
+            $.ajax({
+                url: '/api/users/save_game_result',
+                type: 'POST',
+                data: gameData,
+                dataType: 'json',
+                success: function(response) {
+                    console.log('Bet start saved:', response);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Failed to save bet start:', error);
+                }
+            });
+        }
+    }
+    loadActualBalance(userId) {
+        var self = this;
+        
+        // Загружаем актуальный баланс из базы данных
+        $.ajax({
+            url: '/api/users/get_user_balance',
+            type: 'POST',
+            data: { user_id: userId },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    self.balance = response.balance;
+                    $('[data-rel="menu-balance"] span').html(self.balance.toFixed(2));
+                    console.log('Actual balance loaded:', response.balance);
+                } else {
+                    console.error('Failed to load balance:', response.msg);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Failed to load actual balance:', error);
+            }
+        });
     }
     make_stp(){ 
         if( this.alife && !this.moving ){ 

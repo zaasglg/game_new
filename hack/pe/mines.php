@@ -338,10 +338,6 @@ if (!isset($_SESSION['user_id'])) {
           <img src="./images/mines.webp" alt="mines" />
           <p class="translate" data-key="mines">Mines</p>
         </a>
-        <a class="footer__link chicken" href="chicken_road.php">
-          <img src="./images/mines.webp" alt="chicken" />
-          <p class="translate" data-key="chicken">Chicken</p>
-        </a>
       </footer>
     </div>
   </div>
@@ -448,16 +444,11 @@ async function checkUserDeposit() {
         randomized: [],
 
         init: function () {
-          console.log("🚀 Инициализация Mines Hack Bot...");
-          console.log("👤 ID пользователя:", this.activeUserId);
-          
           if (!this.activeUserId) {
-            console.error("❌ Пользователь не авторизован!");
-            this.showStatus("Ошибка: Пользователь не авторизован");
+            console.error("User not authenticated!");
             return;
           }
 
-          this.showStatus("Загрузка hack bot...");
           this.prepareGame();
           this.startCheckingDatabase();
         },
@@ -488,7 +479,6 @@ async function checkUserDeposit() {
 
         updateMinesFromDatabase: function () {
           var $this = this;
-          console.log("🔍 Проверяем базу данных для пользователя:", $this.activeUserId);
 
           $.ajax({
             url: "db-valor.php",
@@ -499,36 +489,25 @@ async function checkUserDeposit() {
             },
             dataType: "json",
             success: function (response) {
-              console.log("📡 Ответ от сервера:", response);
-              
               if (response && response.success) {
                 $this.positionsMine = response.positions_mine || [];
-                console.log("✅ Получены позиции мин:", $this.positionsMine);
                 $this.updateMineField();
-                
-                // Показываем статус в интерфейсе
-                $this.showStatus("Hack bot активен! Найдено " + $this.positionsMine.length + " безопасных клеток");
               } else {
-                console.error("❌ Ошибка:", response ? response.message : 'Unknown error');
-                $this.showStatus("Ошибка: " + (response ? response.message : 'Неизвестная ошибка'));
+                console.error("Error:", response ? response.message : 'Unknown error');
               }
             },
             error: function (xhr) {
-              console.error("🚨 AJAX Ошибка:", xhr.responseText);
-              $this.showStatus("Ошибка соединения с сервером");
+              console.error("AJAX Error:", xhr.responseText);
             }
           });
         },
 
         updateMineField: function () {
-          console.log("🎯 Обновляем игровое поле с позициями:", this.positionsMine);
-          
           this.randomized = Array(this.max_cells).fill(0);
 
           this.positionsMine.forEach(function (position) {
             if (position >= 1 && position <= this.max_cells) {
               this.randomized[position - 1] = 1;
-              console.log("⭐ Безопасная клетка на позиции:", position);
             }
           }.bind(this));
 
@@ -538,15 +517,12 @@ async function checkUserDeposit() {
 
         showMines: function () {
           var $this = this;
-          console.log("✨ Показываем безопасные клетки...");
 
           $('#game_field .game-tile').removeClass('_active _win _loading');
 
           this.positionsMine.forEach(function (position) {
             if (position >= 1 && position <= this.max_cells) {
               var $victim = $('#game_field .game-tile[data-id="' + position + '"]');
-              console.log("🌟 Отмечаем клетку", position, "как безопасную");
-              
               $victim.addClass("_loading").removeClass("hidden");
 
               setTimeout(function () {
@@ -561,17 +537,6 @@ async function checkUserDeposit() {
               }, 300);
             }
           }.bind(this));
-        },
-
-        showStatus: function (message) {
-          console.log("📢 Статус:", message);
-          
-          // Создаем элемент статуса если его нет
-          if (!$('#hack-status').length) {
-            $('.game-container').prepend('<div id="hack-status" style="background: rgba(0,255,0,0.8); color: white; padding: 10px; text-align: center; border-radius: 5px; margin: 10px;"></div>');
-          }
-          
-          $('#hack-status').text(message);
         },
 
         startCheckingDatabase: function () {

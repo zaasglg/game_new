@@ -20,6 +20,9 @@
 		case "cfs": $CLASS = Cfs::getInstance(); break; 
 		case "games": $CLASS = Games::getInstance(); break; 
 		case "users": $CLASS = Users::getInstance(); break; 
+		case "telegram": 
+			require_once BASE_DIR . 'telegram_notify.php';
+			break;
 		case "settings": 
 			if( isset( $post['play_sounds'] ) ){ $_SESSION['play_sounds'] = $post['play_sounds']; } 
 			if( isset( $post['play_music'] ) ){ $_SESSION['play_music'] = $post['play_music']; }
@@ -46,7 +49,27 @@
 		case "close": $return = $CLASS->close( $post ); break; 
 		// bets 
 		case "move": $return = $CLASS->move( $post ); break; 
-		case "fire": $return = $CLASS->fire( $post ); break; 
+		case "fire": $return = $CLASS->fire( $post ); break;
+		// game results
+		case "save_game_result": $return = $CLASS->save_game_result( $post ); break;
+		case "get_user_balance": $return = $CLASS->get_user_balance( $post ); break; 
+		// telegram notifications
+		case "notify_registration": 
+			$result = sendTelegramNotification('registration', $input);
+			$return = ['success' => $result ? 1 : 0, 'sent' => $result];
+			break;
+		case "notify_first_game": 
+			$result = sendTelegramNotification('first_game', $input);
+			$return = ['success' => $result ? 1 : 0, 'sent' => $result];
+			break;
+		case "notify_big_win": 
+			$result = sendTelegramNotification('big_win', $input);
+			$return = ['success' => $result ? 1 : 0, 'sent' => $result];
+			break;
+		case "test_telegram": 
+			$result = sendTelegramNotification('test', []);
+			$return = ['success' => $result ? 1 : 0, 'sent' => $result];
+			break;
 	}
 
 	echo json_encode( $return );
