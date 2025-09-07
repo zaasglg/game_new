@@ -24,12 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
         }
         
         if (!empty($update_fields)) {
-            $sql = "UPDATE users SET " . implode(', ', $update_fields) . " WHERE id = :id";
+            $sql = "UPDATE users SET " . implode(', ', $update_fields) . " WHERE user_id = :id";
             $stmt = $conn->prepare($sql);
             $stmt->execute($params);
             
             // Перенаправляем, чтобы избежать повторной отправки формы
-            // header("Location: user_info.php?id=" . $id);
+            header("Location: user_info.php?id=" . $id);
             exit;
         }
     } catch (PDOException $e) {
