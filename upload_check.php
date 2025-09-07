@@ -79,7 +79,7 @@ class TelegramBot {
     public function sendPhotoWithText($photoPath, $text, $currency) {
         $url = "https://api.telegram.org/bot" . $this->botToken . "/sendPhoto";
         if ($currency == 'Q' || $currency == 'COP' || $currency == 'PYG'){
-            $chat_id_co = '-1002779136482';
+            $chat_id_co = '-1002909289551';
             $data = [
                 'chat_id' => $chat_id_co,
                 'photo' => new CURLFile(realpath($photoPath)),
@@ -88,7 +88,7 @@ class TelegramBot {
             ];
         }
         else if($currency == 'CLP' || $currency == 'USD' || $currency == 'HNL'){
-            $chat_id_co = '-1002887508076';
+            $chat_id_co = '-1002909289551';
             $data = [
                 'chat_id' => $chat_id_co,
                 'photo' => new CURLFile(realpath($photoPath)),
