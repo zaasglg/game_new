@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
             $stmt->execute($params);
             
             // Перенаправляем, чтобы избежать повторной отправки формы
-            header("Location: user_info.php?id=" . $id);
+            // header("Location: user_info.php?id=" . $id);
             exit;
         }
     } catch (PDOException $e) {
