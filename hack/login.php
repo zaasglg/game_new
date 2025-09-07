@@ -6,16 +6,16 @@ header("Content-Type: application/json");
 
 try {
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $account_id = trim($_POST['account_id']);
+        $user_id = isset($_POST['user_id']) ? trim($_POST['user_id']) : '';
 
-        if (empty($account_id)) {
+        if (empty($user_id)) {
             echo json_encode(["success" => false, "message" => "Fill in the account ID"]);
             exit();
         }
 
-        // Проверяем, существует ли пользователь с таким account_id
+        // Проверяем, существует ли пользователь
         $stmt = $conn->prepare("SELECT user_id FROM users WHERE user_id = :user_id");
-        $stmt->bindParam(':user_id', $account_id);
+        $stmt->bindParam(':user_id', $user_id);
         $stmt->execute();
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -32,4 +32,3 @@ try {
     error_log("Ошибка: " . $e->getMessage());
     echo json_encode(["success" => false, "message" => "Server error"]);
 }
-?>

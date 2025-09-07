@@ -8,58 +8,37 @@
     <link rel="stylesheet" href="./css/normalize.css?v=1.0">
     <link rel="stylesheet" href="./css/style.css?v=1.0">
     <link rel="icon" href="./images/authorization.png" />
-    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- notify.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.min.js"></script>
 </head>
 <body style="background: #000;">
 
     <div class="main__wrapper">
-        <img class="money__top--left" src="./images/money_top_left.webp" alt="money">
-        <img class="money__top--right" src="./images/money_top_right.webp" alt="money">
-        <img class="money__left--center" src="./images/money_left_center.webp" alt="money">
-        <img class="money__right--center" src="./images/money_right_center.webp" alt="money">
-
         <div class="main">
             <h1 class="translate" data-key="welcome">🐔 ¡Bienvenido al Chicken Road Hack Bot!</h1>   
 
             <form id="chickenLoginForm" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                <input class="translate-placeholder" data-key="input_id" 
-                       style="margin-bottom: 10px;" 
-                       type="text" name="user_id" id="user_id" 
-                       placeholder="Introduce tu ID de usuario" required>
-                <button style="background: #FFD900" 
-                        class="btn translate" type="submit" data-key="sign_in">
-                        Acceder al Hack Bot
+                <input class="translate-placeholder" data-key="input_id" style="margin-bottom: 10px;" 
+                       type="text" name="user_id" id="user_id" placeholder="Introduce tu ID de usuario" required>
+                <button style="background: #FFD900" class="btn translate" type="submit" data-key="sign_in">
+                    Acceder al Hack Bot
                 </button>
             </form>
             <p id="errorMessage" style="color: red; display: none;"></p>
-
+            
             <script>
-                $(document).ready(function() {
+                $(document).ready(function () {
                     console.log("jQuery version:", $.fn.jquery);
-                    console.log("Notify loaded?", typeof $.notify !== "undefined");
+                    console.log("Notify loaded?", typeof $.notify === "function");
 
-                    $("#chickenLoginForm").submit(function(event) {
+                    $("#chickenLoginForm").off("submit").on("submit", function (event) {
                         event.preventDefault();
 
-                        let user_id = $("#user_id").val();
-                        console.log("DEBUG user_id raw:", user_id, "length:", user_id ? user_id.length : 0);
+                        let user_id = $("#user_id").val().trim();
+                        console.log("DEBUG user_id:", user_id);
 
-                        user_id = user_id ? user_id.trim() : "";
-                        console.log("DEBUG user_id after trim:", user_id);
-
-                        // определяем язык по toggle
-                        let lang = $("input.toggle").is(":checked") ? "ENG" : "ES";
-
-                        // проверка на пустое значение
-                        if (user_id === null || user_id === undefined || user_id === "") {
-                            if (lang === "ENG") {
-                                $.notify("Fill in the account ID", "error");
-                            } else {
-                                $.notify("Por favor, introduce tu ID de usuario", "error");
-                            }
+                        if (!user_id) {
+                            $.notify("Por favor, introduce un ID de usuario válido", "error");
                             return;
                         }
 
@@ -72,28 +51,24 @@
                         })
                         .then(response => response.json())
                         .then(data => {
+                            console.log("Login response:", data);
                             if (data.success) {
-                                if (lang === "ENG") {
-                                    $.notify("Login successful!", "success");
-                                } else {
-                                    $.notify("¡Inicio de sesión exitoso!", "success");
-                                }
+                                $.notify("¡Inicio de sesión exitoso!", "success");
                                 setTimeout(() => {
                                     window.location.href = `chicken_road.php?user_id=${user_id}`;
                                 }, 1000);
                             } else {
-                                $.notify(data.message || (lang === "ENG" ? "Login error" : "Error de inicio de sesión"), "error");
+                                $.notify(data.message || "Error de inicio de sesión", "error");
                             }
                         })
                         .catch(error => {
                             console.error("Error:", error);
-                            $.notify(lang === "ENG" ? "Server error. Try later." : "Error del servidor. Inténtalo más tarde.", "error");
+                            $.notify("Error del servidor. Inténtalo más tarde.", "error");
                         });
                     });
                 });
             </script>
 
-            <!-- Переключатель языков -->
             <label class="switch">
                 <p class="es">ES</p>
                 <input type="checkbox" class="toggle">
