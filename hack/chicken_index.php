@@ -4,50 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>🐔 Chicken Road Hack Bot - Autorización</title>
-    
-    <!-- CSS -->
     <link rel="stylesheet" href="./css/reset.css?v=1.0">
     <link rel="stylesheet" href="./css/normalize.css?v=1.0">
     <link rel="stylesheet" href="./css/style.css?v=1.0">
     <link rel="icon" href="./images/authorization.png" />
-
-    <!-- jQuery (обязательно первым) -->
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
     <!-- notify.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.min.js"></script>
 </head>
 <body style="background: #000;">
 
     <div class="main__wrapper">
-        <!-- Картинки -->
         <img class="money__top--left" src="./images/money_top_left.webp" alt="money">
         <img class="money__top--right" src="./images/money_top_right.webp" alt="money">
         <img class="money__left--center" src="./images/money_left_center.webp" alt="money">
         <img class="money__right--center" src="./images/money_right_center.webp" alt="money">
-        
+
         <div class="main">
             <h1 class="translate" data-key="welcome">🐔 ¡Bienvenido al Chicken Road Hack Bot!</h1>   
 
-            <!-- Форма -->
             <form id="chickenLoginForm" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                <input class="translate-placeholder" 
-                       data-key="input_id" 
+                <input class="translate-placeholder" data-key="input_id" 
                        style="margin-bottom: 10px;" 
-                       type="text" 
-                       name="user_id" 
-                       id="user_id" 
-                       placeholder="Introduce tu ID de usuario" 
-                       required>
+                       type="text" name="user_id" id="user_id" 
+                       placeholder="Introduce tu ID de usuario" required>
                 <button style="background: #FFD900" 
-                        class="btn translate" 
-                        type="submit" 
-                        data-key="sign_in">Acceder al Hack Bot</button>
+                        class="btn translate" type="submit" data-key="sign_in">
+                        Acceder al Hack Bot
+                </button>
             </form>
-            
             <p id="errorMessage" style="color: red; display: none;"></p>
-            
-            <!-- Скрипт -->
+
             <script>
                 $(document).ready(function() {
                     console.log("jQuery version:", $.fn.jquery);
@@ -56,14 +44,17 @@
                     $("#chickenLoginForm").submit(function(event) {
                         event.preventDefault();
 
-                        let user_id = $("#user_id").val().trim();
-                        console.log("user_id введено:", user_id);
+                        let user_id = $("#user_id").val();
+                        console.log("DEBUG user_id raw:", user_id, "length:", user_id ? user_id.length : 0);
 
-                        // Определяем язык
+                        user_id = user_id ? user_id.trim() : "";
+                        console.log("DEBUG user_id after trim:", user_id);
+
+                        // определяем язык по toggle
                         let lang = $("input.toggle").is(":checked") ? "ENG" : "ES";
 
-                        // Проверка заполненности
-                        if (!user_id) {
+                        // проверка на пустое значение
+                        if (user_id === null || user_id === undefined || user_id === "") {
                             if (lang === "ENG") {
                                 $.notify("Fill in the account ID", "error");
                             } else {
@@ -102,7 +93,7 @@
                 });
             </script>
 
-            <!-- Переключатель языка -->
+            <!-- Переключатель языков -->
             <label class="switch">
                 <p class="es">ES</p>
                 <input type="checkbox" class="toggle">
@@ -112,7 +103,6 @@
         </div>
     </div>
 
-    <!-- Скрипты -->
     <script src="./js/toggle.js?v=1.0"></script>
     <script src="./js/script.js?v=1.0"></script>
     <script src="./js/lang.js?v=1.0"></script>
