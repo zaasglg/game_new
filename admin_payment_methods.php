@@ -89,7 +89,7 @@ if ($config === null) {
 }
 
 // Создаем папку для загрузки изображений, если ее нет
-$uploadDir = __DIR__ . '../images/payments/';
+$uploadDir = __DIR__ . '/images/payments/';
 if (!file_exists($uploadDir)) {
     if (!mkdir($uploadDir, 0777, true)) {
         die("Не удалось создать папку для изображений. Проверьте права доступа.");
