@@ -9,7 +9,7 @@ require 'db.php';
 
 // Обработка изменения данных пользователя
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
-    $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    $id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
     
     // DEBUG
     echo "<pre>POST: " . print_r($_POST, true) . "</pre>";
