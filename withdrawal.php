@@ -3,9 +3,9 @@
 session_start();
 
 // Проверка авторизации
-if (!isset($_SESSION['id'])) {
-  header("Location: index.php?error=Conéctese");
-  exit();
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.php?error=Conéctese");
+    exit();
 }
 
 require 'db.php';
