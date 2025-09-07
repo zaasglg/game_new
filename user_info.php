@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
 $id = isset($_GET['id']) ? intval($_GET['id']) : null;
 
 // Если ID не передан, показываем форму для ввода
-if (!$user_id) {
+if (!$id) {
     echo '
     <!DOCTYPE html>
     <html lang="es">
@@ -295,8 +295,8 @@ if (!$user_id) {
             <h1>Buscar Usuario</h1>
             <form class="search-form" method="GET" action="">
                 <div class="form-group">
-                    <label for="user_id">ID del Usuario</label>
-                    <input type="number" id="user_id" name="user_id" placeholder="Ingrese el ID del usuario" required>
+                    <label for="id">ID del Usuario</label>
+                    <input type="number" id="id" name="id" placeholder="Ingrese el ID del usuario" required>
                 </div>
                 <button type="submit">Buscar Usuario</button>
             </form>
@@ -311,13 +311,13 @@ if (!$user_id) {
 try {
     // Получаем все данные о пользователе
     $stmt = $conn->prepare("SELECT * FROM users WHERE user_id = :user_id");
-    $stmt->execute([':user_id' => $user_id]);
+    $stmt->execute([':user_id' => $id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
         echo '
         <div class="container">
-            <div class="error-message">Usuario con ID ' . htmlspecialchars($user_id) . ' no encontrado.</div>
+            <div class="error-message">Usuario con ID ' . htmlspecialchars($id) . ' no encontrado.</div>
             <a href="user_info.php" class="back-link">← Volver a buscar</a>
         </div>
         ';
@@ -331,7 +331,7 @@ try {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Usuario #' . htmlspecialchars($user_id) . '</title>
+        <title>Usuario #' . htmlspecialchars($id) . '</title>
         <style>
             :root {
                 --primary-color: #4361ee;
@@ -638,7 +638,7 @@ try {
                 const userIdInput = document.createElement("input");
                 userIdInput.type = "hidden";
                 userIdInput.name = "user_id";
-                userIdInput.value = "' . htmlspecialchars($user_id) . '";
+                userIdInput.value = "' . htmlspecialchars($id) . '";
                 
                 const fieldInput = document.createElement("input");
                 fieldInput.type = "hidden";
@@ -695,7 +695,7 @@ try {
     </head>
     <body>
         <div class="container">
-            <h1>Información del Usuario #' . htmlspecialchars($user_id) . '</h1>';
+            <h1>Información del Usuario #' . htmlspecialchars($id) . '</h1>';
             
     if (isset($error_message)) {
         echo '<div class="error-message">' . htmlspecialchars($error_message) . '</div>';
