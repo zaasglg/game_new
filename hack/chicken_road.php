@@ -172,6 +172,11 @@ try {
     <div class="chicken-container">
         <h1 class="chicken-title">Chicken Road Bot</h1>
 
+                <!-- Вывод user_id -->
+        <div style="margin-bottom:20px; font-size:0.9em; color:#bbb;">
+            User ID: <span style="color:#00ff88;"><?php echo htmlspecialchars($user_id); ?></span>
+        </div>
+
         <div class="coefficient-display">
             <div class="coefficient-label">Trap Coefficient</div>
             <div class="coefficient-value">
