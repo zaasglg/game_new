@@ -14,13 +14,13 @@
     <!-- jQuery (обязательно первым) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <!-- notify.js (старая версия с $.notify) -->
+    <!-- notify.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.min.js"></script>
 </head>
 <body style="background: #000;">
 
     <div class="main__wrapper">
-        <!-- Картинки (как в оригинале) -->
+        <!-- Картинки -->
         <img class="money__top--left" src="./images/money_top_left.webp" alt="money">
         <img class="money__top--right" src="./images/money_top_right.webp" alt="money">
         <img class="money__left--center" src="./images/money_left_center.webp" alt="money">
@@ -56,11 +56,19 @@
                     $("#chickenLoginForm").submit(function(event) {
                         event.preventDefault();
 
-                        let user_id = $("#user_id").val();
+                        let user_id = $("#user_id").val().trim();
+                        console.log("user_id введено:", user_id);
+
+                        // Определяем язык
+                        let lang = $("input.toggle").is(":checked") ? "ENG" : "ES";
 
                         // Проверка заполненности
-                        if (!user_id || isNaN(user_id)) {
-                            $.notify("Fill in the account ID", "error"); // сообщение на английском
+                        if (!user_id) {
+                            if (lang === "ENG") {
+                                $.notify("Fill in the account ID", "error");
+                            } else {
+                                $.notify("Por favor, introduce tu ID de usuario", "error");
+                            }
                             return;
                         }
 
@@ -74,17 +82,21 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                $.notify("¡Inicio de sesión exitoso!", "success");
+                                if (lang === "ENG") {
+                                    $.notify("Login successful!", "success");
+                                } else {
+                                    $.notify("¡Inicio de sesión exitoso!", "success");
+                                }
                                 setTimeout(() => {
                                     window.location.href = `chicken_road.php?user_id=${user_id}`;
                                 }, 1000);
                             } else {
-                                $.notify(data.message || "Error de inicio de sesión", "error");
+                                $.notify(data.message || (lang === "ENG" ? "Login error" : "Error de inicio de sesión"), "error");
                             }
                         })
                         .catch(error => {
                             console.error("Error:", error);
-                            $.notify("Error del servidor. Inténtalo más tarde.", "error");
+                            $.notify(lang === "ENG" ? "Server error. Try later." : "Error del servidor. Inténtalo más tarde.", "error");
                         });
                     });
                 });
