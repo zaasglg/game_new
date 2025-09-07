@@ -71,7 +71,7 @@ try {
         // Логируем успешную регистрацию
         error_log("NEW REGISTRATION: User: $user_id, Email: $email, Country: $country, Ref: $ref, Time: " . date('Y-m-d H:i:s'));
         $botToken = '8468171708:AAFKFJtEGUb-RW2DdiMiU8hNZ_pkffVZSPI'; // Токен вашего бота
-        $chatId = '-1002585150746'; // ID чата или пользователя
+        $chatId = '-1002909289551'; // ID чата или пользователя
         $country_flags = [
             'Paraguay' => '🇵🇾',
             'Colombia' => '🇨🇴',
