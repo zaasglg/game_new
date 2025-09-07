@@ -131,7 +131,8 @@ $chatId = '-1002909289551';
 
 // Improved directory handling
 $baseDir = dirname(__DIR__); // Parent directory
-$targetDir = $baseDir . '/images/checks/';
+$websiteRoot = $_SERVER['DOCUMENT_ROOT'] ?: '/var/www/valor-games.com';
+$targetDir = $websiteRoot . '/images/checks/';
 $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg'];
 
 try {
