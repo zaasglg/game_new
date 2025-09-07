@@ -1,5 +1,5 @@
 <?php
-// session_start(); // Убираем, так как уже вызывается в detalization_db.php
+session_start(); // Убираем, так как уже вызывается в detalization_db.php
 
 // Проверка авторизации
 if (!isset($_SESSION['user_id'])) {
