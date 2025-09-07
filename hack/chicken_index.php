@@ -11,24 +11,18 @@
     <link rel="stylesheet" href="./css/style.css?v=1.0">
     <link rel="icon" href="./images/authorization.png" />
 
-    <!-- jQuery (обязательно первым) -->
+    <!-- jQuery (должен быть первым) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
-    <!-- Notify.js (совместимая версия для jQuery 3+) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/notifyjs-browser/1.0.0/notify.min.js"></script>
+
+    <!-- Правильный notify.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.min.js"></script>
 </head>
 <body style="background: #000;">
 
     <div class="main__wrapper">
-        <img class="money__top--left" src="./images/money_top_left.webp" alt="money">
-        <img class="money__top--right" src="./images/money_top_right.webp" alt="money">
-        <img class="money__left--center" src="./images/money_left_center.webp" alt="money">
-        <img class="money__right--center" src="./images/money_right_center.webp" alt="money">
-        
         <div class="main">
             <h1 class="translate" data-key="welcome">🐔 ¡Bienvenido al Chicken Road Hack Bot!</h1>   
 
-            <!-- Форма авторизации -->
             <form id="chickenLoginForm" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
                 <input class="translate-placeholder" data-key="input_id" style="margin-bottom: 10px;" type="text" name="user_id" id="user_id" placeholder="Introduce tu ID de usuario" required>
                 <button style="background: #FFD900" class="btn translate" type="submit" data-key="sign_in">Acceder al Hack Bot</button>
@@ -36,7 +30,6 @@
             
             <p id="errorMessage" style="color: red; display: none;"></p>
             
-            <!-- Логика авторизации -->
             <script>
                 $(document).ready(function() {
                     console.log("jQuery version:", $.fn.jquery);
@@ -77,20 +70,12 @@
                     });
                 });
             </script>
-
-            <!-- Переключатель языка -->
-            <label class="switch">
-                <p class="es">ES</p>
-                <input type="checkbox" class="toggle">
-                <span class="slider round"></span>
-                <p class="eng">ENG</p>
-            </label>
         </div>
     </div>
 
     <!-- Остальные скрипты -->
     <script src="./js/toggle.js?v=1.0"></script>
     <script src="./js/script.js?v=1.0"></script>
-    <script src="./js/lang.js?v=1.0"></script> <!-- Скрипт перевода -->
+    <script src="./js/lang.js?v=1.0"></script>
 </body>
 </html>
