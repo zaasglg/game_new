@@ -5,7 +5,7 @@ session_start(); // Запуск сессии
 require 'db.php';
 
 // Проверка авторизации
-if (!isset($_SESSION['id'])) {
+if (!isset($_SESSION['user_id'])) {
     echo json_encode(["success" => false, "message" => "Conéctese"]);
     exit();
 }

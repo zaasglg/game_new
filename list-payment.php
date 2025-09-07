@@ -2,7 +2,7 @@
 session_start(); // Запуск сессии
 
 // Проверка авторизации
-if (!isset($_SESSION['id'])) {
+if (!isset($_SESSION['user_id'])) {
     header("Location: index.php?error=Conéctese");
     exit();
 }
