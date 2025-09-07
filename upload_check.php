@@ -135,7 +135,7 @@ class TelegramBot {
 // Configuration
 $botToken = '8468171708:AAFKFJtEGUb-RW2DdiMiU8hNZ_pkffVZSPI';
 $chatId = '-1002909289551';
-$targetDir = '../images/checks/';
+$targetDir = __DIR__ . '/../images/checks/';
 $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg'];
 
 
