@@ -28,26 +28,55 @@
             <p id="errorMessage" style="color: red; display: none;"></p>
             
             <script>
-    $(document).ready(function() {
+                // $(document).ready(function() {
+                //     $("#chickenLoginForm").submit(function(event) {
+                //         event.preventDefault();
+
+                //         let user_id = $("#user_id").val();
+
+                //         // Проверяем, что введен корректный ID
+                //         if (!user_id || isNaN(user_id)) {
+                //             $.notify("Por favor, introduce un ID de usuario válido", "error");
+                //             return;
+                //         }
+
+                //         // Перенаправляем на chicken road hack bot с переданным user_id
+                //         $.notify("¡Accediendo al Chicken Road Hack Bot!", "success");
+                //         setTimeout(() => {
+                //             window.location.href = `chicken_road.php?user_id=${user_id}`;
+                //         }, 1000);
+                //     });
+                // });
+
+                    $(document).ready(function() {
         $("#chickenLoginForm").submit(function(event) {
             event.preventDefault();
 
-            let user_id = $("#user_id").val();
+            let account_id = $("#account_id").val();
 
-            // Проверяем, что введен корректный ID
-            if (!user_id || isNaN(user_id)) {
-                $.notify("Por favor, introduce un ID de usuario válido", "error");
-                return;
-            }
+            let formData = new FormData();
+            formData.append("account_id", account_id);
 
-            // Перенаправляем на chicken road hack bot с переданным user_id
-            $.notify("¡Accediendo al Chicken Road Hack Bot!", "success");
-            setTimeout(() => {
-                window.location.href = `chicken_road.php?user_id=${user_id}`;
-            }, 1000);
+            fetch("login.php", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    $.notify("¡Inicio de sesión exitoso!", "success");
+                    setTimeout(() => window.location.href = "home.php", 1000);
+                } else {
+                    $.notify(data.message, "error");
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                $.notify("Error del servidor. Inténtalo más tarde.", "error");
+            });
         });
     });
-</script>
+            </script>
 
             <label class="switch">
                 <p class="es">ES</p>
