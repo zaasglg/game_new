@@ -11,10 +11,6 @@ require 'db.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
     $id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
     
-    // DEBUG
-    echo "<pre>POST: " . print_r($_POST, true) . "</pre>";
-    echo "<p>ID: $id</p>";
-    
     try {
         // Подготовка данных для обновления
         $update_fields = [];
@@ -27,26 +23,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
             }
         }
         
-        echo "<p>Fields: " . implode(', ', $update_fields) . "</p>";
-        
         if (!empty($update_fields)) {
             $sql = "UPDATE users SET " . implode(', ', $update_fields) . " WHERE user_id = :id";
-            echo "<p>SQL: $sql</p>";
-            
             $stmt = $conn->prepare($sql);
-            $result = $stmt->execute($params);
+            $stmt->execute($params);
             
-            echo "<p>Rows affected: " . $stmt->rowCount() . "</p>";
-            
-            if ($stmt->rowCount() > 0) {
-                echo "<p style='color: green;'>✅ Actualizado</p>";
-            } else {
-                echo "<p style='color: red;'>❌ No actualizado</p>";
-            }
+            header("Location: user_info.php?id=" . $id);
+            exit;
         }
     } catch (PDOException $e) {
-        $error_message = "Error: " . $e->getMessage();
-        echo "<p style='color: red;'>$error_message</p>";
+        $error_message = "Error al actualizar los datos del usuario: " . $e->getMessage();
     }
 }
 
