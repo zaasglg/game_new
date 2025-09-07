@@ -140,7 +140,7 @@ try {
         throw new Exception('No file uploaded');
     }
 
-    // Получаем данные из POST
+    // Получаем данные из POSTs
     $monto = floatval($_POST['amount'] ?? 0);
     $userId = $_POST['user_id'] ?? 'anonimo';
     
