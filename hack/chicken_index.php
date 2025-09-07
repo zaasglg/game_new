@@ -42,9 +42,9 @@
 
                 //         // Перенаправляем на chicken road hack bot с переданным user_id
                 //         $.notify("¡Accediendo al Chicken Road Hack Bot!", "success");
-                //         setTimeout(() => {
-                //             window.location.href = `chicken_road.php?user_id=${user_id}`;
-                //         }, 1000);
+                        // setTimeout(() => {
+                        //     window.location.href = `chicken_road.php?user_id=${user_id}`;
+                        // }, 1000);
                 //     });
                 // });
 
@@ -65,7 +65,10 @@
             .then(data => {
                 if (data.success) {
                     $.notify("¡Inicio de sesión exitoso!", "success");
-                    setTimeout(() => window.location.href = "home.php", 1000);
+                    // setTimeout(() => window.location.href = "home.php", 1000);
+                                           setTimeout(() => {
+                            window.location.href = `chicken_road.php?user_id=${user_id}`;
+                        }, 1000);
                 } else {
                     $.notify(data.message, "error");
                 }
