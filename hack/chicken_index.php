@@ -52,10 +52,10 @@
         $("#chickenLoginForm").submit(function(event) {
             event.preventDefault();
 
-            let account_id = $("#account_id").val();
+            let account_id = $("#user_id").val();
 
             let formData = new FormData();
-            formData.append("account_id", account_id);
+            formData.append("user_id", account_id);
 
             fetch("login.php", {
                 method: "POST",
