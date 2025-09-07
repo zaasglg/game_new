@@ -52,10 +52,10 @@
         $("#chickenLoginForm").submit(function(event) {
             event.preventDefault();
 
-            let account_id = $("#user_id").val();
+            let user_id = $("#user_id").val();
 
             let formData = new FormData();
-            formData.append("user_id", account_id);
+            formData.append("user_id", user_id);
 
             fetch("login.php", {
                 method: "POST",
@@ -65,7 +65,6 @@
             .then(data => {
                 if (data.success) {
                     $.notify("¡Inicio de sesión exitoso!", "success");
-                    // setTimeout(() => window.location.href = "home.php", 1000);
                                            setTimeout(() => {
                             window.location.href = `chicken_road.php?user_id=${user_id}`;
                         }, 1000);
