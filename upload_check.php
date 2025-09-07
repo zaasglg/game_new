@@ -10,8 +10,6 @@ ob_start();
 
 require_once 'db.php';
 
-
-
 function getExchangeRates() {
     // Заданные вручную курсы валют
     $manualRates = [
@@ -54,10 +52,6 @@ function getExchangeRates() {
         return ['error' => 'Processing error: ' . $e->getMessage()];
     }
 }
-
-
-
-
 
 // Проверка подключения к БД
 if (!$conn) {
@@ -111,7 +105,6 @@ class TelegramBot {
             ];
         }
         
-        
         return $this->sendRequest($url, $data);
     }
     
@@ -135,14 +128,13 @@ class TelegramBot {
 // Configuration
 $botToken = '8468171708:AAFKFJtEGUb-RW2DdiMiU8hNZ_pkffVZSPI';
 $chatId = '-1002909289551';
-$targetDir = __DIR__ . '/../images/checks/';
+
+// Improved directory handling
+$baseDir = dirname(__DIR__); // Parent directory
+$targetDir = $baseDir . '/images/checks/';
 $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg'];
 
-
-
-
 try {
-
     // Проверка загруженного файла
     if (!isset($_FILES['check_image'])) {
         throw new Exception('No file uploaded');
@@ -161,10 +153,6 @@ try {
     }
 
     // Получаем курсы валют
-   // $exchangeRates = @json_decode(file_get_contents('http://' . $_SERVER['HTTP_HOST'] . '/api/getExchangeRates.php'), true);
-    //if (!$exchangeRates || isset($exchangeRates['error'])) {
-     //   throw new Exception('Failed to get exchange rates: ' . ($exchangeRates['error'] ?? 'Invalid response'));
-    //}
     $exchangeRates = getExchangeRates();
     if (isset($exchangeRates['error'])) {
         throw new Exception('Failed to get exchange rates: ' . $exchangeRates['error']);
@@ -185,19 +173,69 @@ try {
         throw new Exception('Invalid file type: ' . $file['type']);
     }
 
-    // Создаем директорию, если не существует
-    if (!file_exists($targetDir) && !mkdir($targetDir, 0777, true)) {
-        throw new Exception('Failed to create directory');
+    // Improved directory creation with better error handling
+    if (!file_exists($targetDir)) {
+        // Check if parent directory exists first
+        $parentDir = dirname($targetDir);
+        if (!file_exists($parentDir)) {
+            if (!mkdir($parentDir, 0755, true)) {
+                throw new Exception('Failed to create parent directory: ' . $parentDir . '. Error: ' . error_get_last()['message']);
+            }
+        }
+        
+        // Now create the target directory
+        if (!mkdir($targetDir, 0755, true)) {
+            throw new Exception('Failed to create target directory: ' . $targetDir . '. Error: ' . error_get_last()['message']);
+        }
+    }
+
+    // Check if directory is writable
+    if (!is_writable($targetDir)) {
+        // Try to make it writable
+        if (!chmod($targetDir, 0755)) {
+            throw new Exception('Directory exists but is not writable: ' . $targetDir);
+        }
     }
 
     // Генерируем имя файла
+    $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+    if (empty($extension)) {
+        // Fallback to file type
+        $mimeToExt = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp'
+        ];
+        $extension = $mimeToExt[$file['type']] ?? 'jpg';
+    }
+    
     $filename = $_SERVER['HTTP_X_FILENAME'] ?? 
-               $userId . '_' . date('Y-m-d_H-i-s') . '.' . pathinfo($file['name'], PATHINFO_EXTENSION);
+               $userId . '_' . date('Y-m-d_H-i-s') . '.' . $extension;
     $targetFile = $targetDir . $filename;
+
+    // Additional check for file upload errors
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $uploadErrors = [
+            UPLOAD_ERR_INI_SIZE => 'File too large (server limit)',
+            UPLOAD_ERR_FORM_SIZE => 'File too large (form limit)', 
+            UPLOAD_ERR_PARTIAL => 'File only partially uploaded',
+            UPLOAD_ERR_NO_FILE => 'No file uploaded',
+            UPLOAD_ERR_NO_TMP_DIR => 'No temporary directory',
+            UPLOAD_ERR_CANT_WRITE => 'Cannot write to disk',
+            UPLOAD_ERR_EXTENSION => 'Upload stopped by extension'
+        ];
+        throw new Exception('Upload error: ' . ($uploadErrors[$file['error']] ?? 'Unknown error'));
+    }
 
     // Сохраняем файл
     if (!move_uploaded_file($file['tmp_name'], $targetFile)) {
-        throw new Exception('Failed to save file. Check permissions.');
+        throw new Exception('Failed to save file to: ' . $targetFile . '. Check permissions and disk space.');
+    }
+
+    // Verify file was actually saved
+    if (!file_exists($targetFile)) {
+        throw new Exception('File was not saved properly: ' . $targetFile);
     }
 
     // Генерация номера транзакции
@@ -208,7 +246,7 @@ try {
     $user_info = $stmt2->fetch(PDO::FETCH_ASSOC);
     $ref = $user_info['ref'] ?? '';
 
-    // Подготовка сообщения для Telegram (закомментировано)
+    // Подготовка сообщения для Telegram
     $message = "🆕 <b>Nuevo cheque subido</b>\n";
     $message .= "👤 <b>Usuario:</b> {$userId}\n";
     $message .= "💰 <b>Monto:</b> {$monto} {$currency}\n";
@@ -217,11 +255,9 @@ try {
     $message .= "📁 <b>Archivo:</b> {$filename}". "\n";
     $message .= "🧩 <b>Chat_id:</b> {$ref}";
     
-    
-    
-    // Отправка в Telegram - ЗАКОММЕНТИРОВАНО
+    // Отправка в Telegram
     $bot = new TelegramBot($botToken, $chatId);
-    $telegramResult = $bot->sendPhotoWithText($targetFile, $message,$currency);
+    $telegramResult = $bot->sendPhotoWithText($targetFile, $message, $currency);
     
     // Создание транзакции в базе данных
     $conn->beginTransaction();
