@@ -735,7 +735,7 @@ function updateBalanceOnServer(balance) {
         return;
     }
     
-    fetch('./api/users/update_balance', {
+    fetch('./api.php?controller=users&action=update_balance', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -745,9 +745,19 @@ function updateBalanceOnServer(balance) {
             balance: balance
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Balance updated on server:', data);
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.text();
+    })
+    .then(text => {
+        try {
+            const data = JSON.parse(text);
+            console.log('Balance updated on server:', data);
+        } catch (e) {
+            console.error('Invalid JSON response:', text);
+        }
     })
     .catch(error => {
         console.error('Failed to update balance on server:', error);
@@ -760,7 +770,7 @@ function saveGameResult(result, bet, award, balance) {
         return;
     }
     
-    fetch('./api/users/save_game_result', {
+    fetch('./api.php?controller=users&action=save_game_result', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -773,18 +783,28 @@ function saveGameResult(result, bet, award, balance) {
             game_result: result
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Game result saved:', data);
-        if (data.success && data.balance_national) {
-            // Отправляем баланс в национальной валюте родительскому окну
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage({
-                    type: 'balanceUpdated',
-                    balance: parseFloat(data.balance_national).toFixed(2),
-                    userId: window.GAME_CONFIG.user_id
-                }, '*');
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.text();
+    })
+    .then(text => {
+        try {
+            const data = JSON.parse(text);
+            console.log('Game result saved:', data);
+            if (data.success && data.balance_national) {
+                // Отправляем баланс в национальной валюте родительскому окну
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'balanceUpdated',
+                        balance: parseFloat(data.balance_national).toFixed(2),
+                        userId: window.GAME_CONFIG.user_id
+                    }, '*');
+                }
             }
+        } catch (e) {
+            console.error('Invalid JSON response:', text);
         }
     })
     .catch(error => {
