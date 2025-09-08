@@ -196,100 +196,6 @@ EOD;
         Recomendar
       </button>
     </div>
-  </header>
-
-  <div class="container">
-    <h1>Historial de Transacciones</h1>
-    <div id="transaction-list" class="transaction-list">
-      <div class="text-center">Cargando transacciones...</div>
-    </div>
-  </div>
-
-  <style>
-    .transaction-list { margin: 20px 0; }
-    .transaction-item { 
-      background: #fff; 
-      border: 1px solid #ddd; 
-      margin: 10px 0; 
-      padding: 15px; 
-      border-radius: 5px; 
-    }
-    .transaction-header { font-weight: bold; margin-bottom: 10px; }
-    .transaction-details { display: flex; justify-content: space-between; }
-    .status-esperando { color: #ff9800; }
-    .status-completed { color: #4caf50; }
-    .status-rejected { color: #f44336; }
-  </style>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      loadTransactions();
-    });
-
-    function loadTransactions() {
-      fetch('detalization_db.php', {
-        method: 'GET',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          displayTransactions(data.transactions);
-        } else {
-          document.getElementById('transaction-list').innerHTML = 
-            '<div class="alert alert-danger">Error al cargar las transacciones</div>';
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('transaction-list').innerHTML = 
-          '<div class="alert alert-danger">Error de conexión</div>';
-      });
-    }
-
-    function displayTransactions(transactions) {
-      const container = document.getElementById('transaction-list');
-      
-      if (!transactions || transactions.length === 0) {
-        container.innerHTML = '<div class="alert alert-info">No hay transacciones disponibles</div>';
-        return;
-      }
-
-      let html = '';
-      transactions.forEach(transaction => {
-        const statusClass = `status-${transaction.estado}`;
-        html += `
-          <div class="transaction-item">
-            <div class="transaction-header">
-              Transacción #${transaction['transacción_number']}
-            </div>
-            <div class="transaction-details">
-              <div>
-                <strong>Fecha:</strong> ${transaction.transacciones_data}<br>
-                <strong>Monto:</strong> ${transaction.transacciones_monto} <?php echo $currency; ?><br>
-                <strong>Método:</strong> ${transaction['método_de_pago']}
-              </div>
-              <div>
-                <span class="badge ${statusClass}">${transaction.estado}</span>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-      
-      container.innerHTML = html;
-    }
-  </script>
-</body>
-</html>0.1565 25.6873C20.1565 28.2014 22.7506 30.2395 25.9505 30.2395C29.1505 30.2395 31.7445 28.2014 31.7445 25.6873ZM23.1499 26.1069H22.2166V25.1935H23.0859C23.1133 24.5687 23.2779 23.9631 23.4792 23.6089L24.5503 23.8885C24.3398 24.2802 24.1474 24.83 24.1474 25.4356C24.1474 25.9671 24.3489 26.3302 24.715 26.3302C25.0627 26.3302 25.2825 26.0323 25.5112 25.3427C25.8406 24.3454 26.2982 23.6647 27.1861 23.6647C27.9913 23.6647 28.6229 24.2426 28.815 25.24H29.6845V26.1534H28.879C28.8518 26.7778 28.7235 27.1971 28.5773 27.5049L27.5429 27.2347C27.6435 26.9921 27.8541 26.5634 27.8541 25.8921C27.8541 25.2865 27.5979 25.0908 27.3416 25.0908C27.0396 25.0908 26.8475 25.4173 26.5545 26.2092C26.1701 27.3186 25.6667 27.7657 24.843 27.7657C24.0284 27.7657 23.333 27.1784 23.1499 26.1069Z"
-          fill="#FDA700"></path>
-      </svg><button type="button" data-translate="header.recommend"
-        class="_button_1qy1r_1 _button_color_white_1qy1r_45 _button_border-radius_medium_1qy1r_23 _button_border_1qy1r_20 _button_flex_1qy1r_14 _button_j8fbr_25">
-        Recomendar
-      </button>
-    </div>
 
     <div class="_balance_1seji_1">
       <div class="_info_1seji_18">
@@ -872,10 +778,11 @@ EOD;
         // Форматирование даты транзакции
         function formatTransactionDate(dateString) {
           const dateObj = new Date(dateString);
-          const date = `${(dateObj.getMonth() + 1).toString().padStart(2, '0')}.${dateObj.getDate().toString().padStart(2, '0')}.${dateObj.getFullYear()}`;
+          const date = `${dateObj.getDate().toString().padStart(2, '0')}.${(dateObj.getMonth() + 1).toString().padStart(2, '0')}.${dateObj.getFullYear()}`;
           const time = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
           return [date, time];
         }
+
 
         function getStatusClass(status) {
           const statusLower = status.toLowerCase();
