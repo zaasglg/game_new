@@ -7,13 +7,22 @@
 	} 
 	$body =  $link ? $link : array(""); 
 
-	if( $body[0] == "api" ){ 
+	$api_index = array_search('api', $body);
+	if( $api_index !== false ){ 
 		define('ISAPI', true );
-		define('CONTROLLER', isset( $body[1] ) ? $body[1] : "" );
-		define('ACTION', isset( $body[2] ) ? $body[2] : "" ); 
-		define('ITEM_ID',  isset( $body[3] ) ? App::uid( $body[3] ) : ( isset( $body[2] ) ? App::uid($body[2]) : "" ) );
-		define('ITEM_PARAM', isset( $body[4] ) ? App::uid( $body[4] ) : ( isset( $body[3] ) ? App::uid( $body[3] ) : ( isset( $body[2] ) ? App::uid($body[2]) : "" ) ) );
-		define('ITEM_ADD', isset( $body[4] ) ? App::uid( $body[4] ) : ( isset( $body[3] ) ? App::uid( $body[3] ) : ( isset( $body[2] ) ? App::uid($body[2]) : "" ) ) );
+		define('CONTROLLER', isset( $body[$api_index+1] ) ? $body[$api_index+1] : "" );
+		define('ACTION', isset( $body[$api_index+2] ) ? $body[$api_index+2] : "" ); 
+		define('ITEM_ID',  isset( $body[$api_index+3] ) ? App::uid( $body[$api_index+3] ) : ( isset( $body[$api_index+2] ) ? App::uid($body[$api_index+2]) : "" ) );
+		define('ITEM_PARAM', isset( $body[$api_index+4] ) ? App::uid( $body[$api_index+4] ) : ( isset( $body[$api_index+3] ) ? App::uid( $body[$api_index+3] ) : ( isset( $body[$api_index+2] ) ? App::uid($body[$api_index+2]) : "" ) ) );
+		define('ITEM_ADD', isset( $body[$api_index+4] ) ? App::uid( $body[$api_index+4] ) : ( isset( $body[$api_index+3] ) ? App::uid( $body[$api_index+3] ) : ( isset( $body[$api_index+2] ) ? App::uid($body[$api_index+2]) : "" ) ) );
+	}
+	elseif( in_array('api.php', $body) ){
+		define('ISAPI', true );
+		define('CONTROLLER', isset( $_REQUEST['controller'] ) ? $_REQUEST['controller'] : "" );
+		define('ACTION', isset( $_REQUEST['action'] ) ? $_REQUEST['action'] : "" ); 
+		define('ITEM_ID', isset( $_REQUEST['id'] ) ? App::uid( $_REQUEST['id'] ) : "" );
+		define('ITEM_PARAM', isset( $_REQUEST['param'] ) ? App::uid( $_REQUEST['param'] ) : "" );
+		define('ITEM_ADD', isset( $_REQUEST['add'] ) ? App::uid( $_REQUEST['add'] ) : "" );
 	}
 	else {
 		define('ISAPI', false);

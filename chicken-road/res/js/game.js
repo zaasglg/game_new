@@ -1159,9 +1159,6 @@ class Game {
             CHICKEN.alife = 1; 
             this.balance -= this.current_bet;
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
-            
-            // Сохраняем начало игры (списание ставки) в базе данных
-            this.saveBetStart();
         }
     }
     finish( $win ){ 
@@ -1186,7 +1183,7 @@ class Game {
             if( SETTINGS.volume.active ){ SOUNDS.lose.play(); } 
         }
         
-        // Сохраняем результат игры в базе данных (только для реального режима)
+        // Сохраняем результат игры в базе данных
         this.saveGameResult($win, $award);
         
         //console.log("CREATE REBUILD");
@@ -1203,6 +1200,7 @@ class Game {
         // Получаем user_id из URL
         var urlParams = new URLSearchParams(window.location.search);
         var userId = urlParams.get('user_id');
+        var self = this;
         
         // Сохраняем только в реальном режиме (не демо)
         if (userId && userId !== 'demo') {
@@ -1216,14 +1214,15 @@ class Game {
             
             // Отправляем данные на сервер
             $.ajax({
-                url: '/api/users/save_game_result',
+                url: '/chicken-road/api/users/save_game_result',
                 type: 'POST',
                 data: gameData,
                 dataType: 'json',
                 success: function(response) {
                     console.log('Game result saved:', response);
                     if (response.success) {
-                        // Обновляем баланс в интерфейсе
+                        // Обновляем баланс в игре и интерфейсе
+                        self.balance = response.balance;
                         $('[data-rel="menu-balance"] span').html(response.balance.toFixed(2));
                         
                         // Отправляем сообщение родительскому окну об обновлении баланса
@@ -1234,42 +1233,64 @@ class Game {
                                 userId: userId
                             }, '*');
                         }
+                    } else {
+                        console.error('Failed to save game result:', response.msg);
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('Failed to save game result:', error);
                 }
             });
+        } else {
+            // В демо режиме просто обновляем баланс в интерфейсе
+            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
         }
     }
-    saveBetStart() {
+    updateBalance() {
         // Получаем user_id из URL
         var urlParams = new URLSearchParams(window.location.search);
         var userId = urlParams.get('user_id');
+        var self = this;
         
-        // Сохраняем только в реальном режиме (не демо)
+        // Обновляем только в реальном режиме (не демо)
         if (userId && userId !== 'demo') {
-            var gameData = {
+            var balanceData = {
                 user_id: userId,
-                balance: this.balance,
-                bet_amount: this.current_bet,
-                win_amount: 0,
-                game_result: 'bet_started'
+                balance: this.balance
             };
             
             // Отправляем данные на сервер
             $.ajax({
-                url: '/api/users/save_game_result',
+                url: '/chicken-road/api/users/update_balance',
                 type: 'POST',
-                data: gameData,
+                data: balanceData,
                 dataType: 'json',
                 success: function(response) {
-                    console.log('Bet start saved:', response);
+                    console.log('Balance updated:', response);
+                    if (response.success) {
+                        // Обновляем баланс в игре и интерфейсе
+                        self.balance = response.balance;
+                        $('[data-rel="menu-balance"] span').html(response.balance.toFixed(2));
+                        
+                        // Отправляем сообщение родительскому окну об обновлении баланса
+                        if (window.parent && window.parent !== window) {
+                            window.parent.postMessage({
+                                type: 'balanceUpdated',
+                                balance: response.balance,
+                                userId: userId
+                            }, '*');
+                        }
+                    } else {
+                        console.error('Failed to update balance:', response.msg);
+                    }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Failed to save bet start:', error);
+                    console.error('Failed to update balance:', error);
                 }
             });
+        } else {
+            // В демо режиме просто обновляем баланс в интерфейсе
+            $('[data-rel="menu-balance"] span').html(this.balance.toFixed(2));
         }
     }
     loadActualBalance(userId) {
@@ -1277,7 +1298,7 @@ class Game {
         
         // Загружаем актуальный баланс из базы данных
         $.ajax({
-            url: '/api/users/get_user_balance',
+            url: '/chicken-road/api/users/get_user_balance',
             type: 'POST',
             data: { user_id: userId },
             dataType: 'json',
@@ -1478,7 +1499,7 @@ $(document).ready(function(){
         }
         $('body').attr('data-sound', SETTINGS.volume.active);
         $.ajax({
-            url:"/api/settings", type:"json", method:"post", data:{ play_sounds: SETTINGS.volume.active }
+            url:"/chicken-road/api/settings", type:"json", method:"post", data:{ play_sounds: SETTINGS.volume.active }
         });
     });
     // установка ставки в инпуте

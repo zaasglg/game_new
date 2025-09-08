@@ -210,16 +210,16 @@
 				$user = $this->get(['uid' => $uid]);
 				if( $user && $user['host_id'] > 0 ){
 					// Получаем страну пользователя для конвертации валюты
-					$user_data = DB2::GI()->get("SELECT country FROM users WHERE user_id = ?", [$user['host_id']]);
+					$user_data = DB2::getInstance()->get("SELECT country FROM users WHERE user_id = ?", [$user['host_id']]);
 					if( $user_data ){
 						// Подключаем функции конвертации валют
 						require_once BASE_DIR . 'currency.php';
 						
 						// Конвертируем баланс из долларов в национальную валюту
-						$new_balance_national = convertFromUSD($new_balance, $user_data['country']);
+						$new_balance_national = $new_balance * getCurrencyRate($user_data['country']);
 						
 						// Обновляем баланс в основной базе данных volurgame (в национальной валюте)
-						DB2::GI()->upd('users', ['deposit' => $new_balance_national], ['user_id' => $user['host_id']]);
+						DB2::getInstance()->upd('users', ['deposit' => $new_balance_national], ['user_id' => $user['host_id']]);
 					}
 				}
 
@@ -236,15 +236,70 @@
 		}
 //
 //=================================== 
-		public function get_user_balance( $d=[] ){
-			$user_id = isset( $d['user_id'] ) ? (int)$d['user_id'] : 0;
-			
-			if( !$user_id ){
-				return ['error'=>1, 'msg'=>'User ID required'];
+	public function updateBalance( $d=[] ){
+		$user_id = isset( $d['user_id'] ) ? (int)$d['user_id'] : 0;
+		$new_balance_usd = isset( $d['balance'] ) ? (float)$d['balance'] : 0;
+		
+		if( !$user_id ){
+			$current_user = $this->get(['uid' => UID]);
+			if( !$current_user || !$current_user['host_id'] ){
+				return ['error'=>1, 'msg'=>'User not found or not linked'];
+			}
+			$user_id = $current_user['host_id'];
+		}
+		
+		// Получаем страну пользователя для конвертации валюты
+			$user_data = DB2::getInstance()->get("SELECT country FROM users WHERE user_id = ?", [$user_id]);
+			if( !$user_data ){
+				return ['error'=>1, 'msg'=>'User not found in main database'];
 			}
 			
-			// Получаем баланс и страну из основной базы данных volurgame
-			$user_data = DB2::GI()->get("SELECT deposit, country FROM users WHERE user_id = ?", [$user_id]);
+			// Подключаем функции конвертации валют
+			require_once BASE_DIR . 'currency.php';
+			
+			// Конвертируем баланс из долларов в национальную валюту
+			$new_balance_national = $new_balance_usd * getCurrencyRate($user_data['country']);
+			
+			// Обновляем баланс в основной базе данных volurgame
+			$update_result = DB2::getInstance()->upd('users', ['deposit' => $new_balance_national], ['user_id' => $user_id]);
+			
+			// Также обновляем в локальной базе, если пользователь существует
+			$local_user = $this->get(['host_id' => $user_id]);
+			if( $local_user ){
+				$this->edit([
+					'uid' => $local_user['uid'],
+					'balance' => $new_balance_usd
+				]);
+			}
+			
+			if( $update_result ){
+				$_SESSION['user']['balance'] = $new_balance_usd;
+				return [
+					'success' => 1, 
+					'balance' => $new_balance_usd,
+					'balance_national' => $new_balance_national,
+					'user_id' => $user_id,
+					'country' => $user_data['country']
+				];
+			} else {
+				return ['error'=>1, 'msg'=>'Failed to update balance'];
+			}
+		}
+//
+//=================================== 
+	public function get_user_balance( $d=[] ){
+		$user_id = isset( $d['user_id'] ) ? (int)$d['user_id'] : 0;
+		
+		if( !$user_id ){
+			$current_user = $this->get(['uid' => UID]);
+			if( !$current_user || !$current_user['host_id'] ){
+				return ['error'=>1, 'msg'=>'User not found or not linked'];
+			}
+			$user_id = $current_user['host_id'];
+		}
+		
+		// Получаем баланс и страну из основной базы данных volurgame
+			$user_data = DB2::getInstance()->get("SELECT deposit, country FROM users WHERE user_id = ?", [$user_id]);
 			
 			if( !$user_data ){
 				return ['error'=>1, 'msg'=>'User not found in main database'];
@@ -267,19 +322,23 @@
 		}
 //
 //=================================== 
-		public function save_game_result( $d=[] ){
-			$user_id = isset( $d['user_id'] ) ? (int)$d['user_id'] : 0;
-			$new_balance_usd = isset( $d['balance'] ) ? (float)$d['balance'] : 0; // Баланс в долларах из игры
-			$bet_amount = isset( $d['bet_amount'] ) ? (float)$d['bet_amount'] : 0;
-			$win_amount = isset( $d['win_amount'] ) ? (float)$d['win_amount'] : 0;
-			$game_result = isset( $d['game_result'] ) ? $d['game_result'] : 'lose'; // 'win' or 'lose'
-			
-			if( !$user_id ){
-				return ['error'=>1, 'msg'=>'User ID required'];
+	public function save_game_result( $d=[] ){
+		$user_id = isset( $d['user_id'] ) ? (int)$d['user_id'] : 0;
+		$new_balance_usd = isset( $d['balance'] ) ? (float)$d['balance'] : 0; // Баланс в долларах из игры
+		$bet_amount = isset( $d['bet_amount'] ) ? (float)$d['bet_amount'] : 0;
+		$win_amount = isset( $d['win_amount'] ) ? (float)$d['win_amount'] : 0;
+		$game_result = isset( $d['game_result'] ) ? $d['game_result'] : 'lose'; // 'win' or 'lose'
+		
+		if( !$user_id ){
+			$current_user = $this->get(['uid' => UID]);
+			if( !$current_user || !$current_user['host_id'] ){
+				return ['error'=>1, 'msg'=>'User not found or not linked'];
 			}
-			
-			// Получаем страну пользователя для конвертации валюты
-			$user_data = DB2::GI()->get("SELECT country FROM users WHERE user_id = ?", [$user_id]);
+			$user_id = $current_user['host_id'];
+		}
+		
+		// Получаем страну пользователя для конвертации валюты
+			$user_data = DB2::getInstance()->get("SELECT country FROM users WHERE user_id = ?", [$user_id]);
 			if( !$user_data ){
 				return ['error'=>1, 'msg'=>'User not found in main database'];
 			}
@@ -287,11 +346,11 @@
 			// Подключаем функции конвертации валют
 			require_once BASE_DIR . 'currency.php';
 			
-			// Конвертируем баланс из долларов в национальную валюту для сохранения
-			$new_balance_national = convertFromUSD($new_balance_usd, $user_data['country']);
+			// Конвертируем баланс из долларов в национальную валюту
+			$new_balance_national = $new_balance_usd * getCurrencyRate($user_data['country']);
 			
 			// Обновляем баланс в основной базе данных volurgame (в национальной валюте)
-			$update_result = DB2::GI()->upd('users', ['deposit' => $new_balance_national], ['user_id' => $user_id]);
+			$update_result = DB2::getInstance()->upd('users', ['deposit' => $new_balance_national], ['user_id' => $user_id]);
 			
 			// Также обновляем в локальной базе, если пользователь существует (в долларах)
 			$local_user = $this->get(['host_id' => $user_id]);
@@ -303,10 +362,11 @@
 			}
 			
 			if( $update_result ){
+				$_SESSION['user']['balance'] = $new_balance_usd;
 				return [
 					'success' => 1, 
 					'balance' => $new_balance_usd, // Возвращаем баланс в долларах для игры
-					'balance_national' => $new_balance_national, // Баланс в национальной валюте
+					'balance_national' => $new_balance_national,
 					'user_id' => $user_id,
 					'country' => $user_data['country'],
 					'game_result' => $game_result,

@@ -16,7 +16,7 @@ if (isset($_GET['user_id']) && $_GET['user_id'] && $_GET['user_id'] !== 'demo') 
     
     // Получаем страну пользователя из основной базы данных
     require_once BASE_DIR . 'classes/DB2.class.php';
-    $user_data = DB2::GI()->get("SELECT country, deposit FROM users WHERE user_id = ?", [intval($_GET['user_id'])]);
+    $user_data = DB2::getInstance()->get("SELECT country, deposit FROM users WHERE user_id = ?", [intval($_GET['user_id'])]);
     if ($user_data) {
         $user_country = $user_data['country'];
         $user_currency_rate = getCurrencyRate($user_country);
@@ -26,39 +26,14 @@ if (isset($_GET['user_id']) && $_GET['user_id'] && $_GET['user_id'] !== 'demo') 
         $_SESSION['CHICKEN_USER_COUNTRY'] = $user_country;
     }
     
-    // Если баланс передан через URL, обновляем его в базе данных
-    if (isset($_GET['balance'])) {
-        $new_balance_local = floatval($_GET['balance']); // Баланс в местной валюте
-        $user_id = intval($_GET['user_id']);
-        
-        // Конвертируем баланс из долларов в национальную валюту для сохранения в основной базе
-        $new_balance_national = convertFromUSD($new_balance_local, $user_country);
-        
-        // Обновляем баланс в основной базе данных volurgame (в национальной валюте)
-        DB2::GI()->upd('users', ['deposit' => $new_balance_national], ['user_id' => $user_id]);
-        
-        // Также обновляем в локальной базе, если пользователь существует
-        if (isset($_SESSION['user']['uid'])) {
-            Users::GI()->edit([
-                'uid' => $_SESSION['user']['uid'],
-                'balance' => $new_balance_local
-            ]);
-            // Обновляем баланс в сессии
-            $_SESSION['user']['balance'] = $new_balance_local;
-        }
-        
-        $user_balance_usd = $new_balance_local;
-    }
-    // Иначе получаем баланс из основной базы данных и конвертируем в доллары
-    else {
-        $user_data = DB2::GI()->get("SELECT deposit, country FROM users WHERE user_id = ?", [intval($_GET['user_id'])]);
-        if ($user_data) {
-            // Конвертируем баланс из национальной валюты в доллары для отображения в игре
-            $balance_national = (float)$user_data['deposit'];
-            $user_balance_usd = convertToUSD($balance_national, $user_data['country']);
-        } else {
-            $user_balance_usd = 0;
-        }
+    // Всегда читаем баланс из основной базы данных
+    $user_data = DB2::getInstance()->get("SELECT deposit, country FROM users WHERE user_id = ?", [intval($_GET['user_id'])]);
+    if ($user_data) {
+        // Конвертируем баланс из национальной валюты в доллары для отображения в игре
+        $balance_national = (float)$user_data['deposit'];
+        $user_balance_usd = convertToUSD($balance_national, $user_data['country']);
+    } else {
+        $user_balance_usd = 0;
     }
 } else {
     // Демо режим - всегда используем фиксированный баланс $500
@@ -72,6 +47,10 @@ if (isset($_GET['user_id']) && $_GET['user_id'] && $_GET['user_id'] !== 'demo') 
         ];
     } else {
         $_SESSION['user']['balance'] = 500;
+    }
+    // Инициализируем демо-баланс в сессии
+    if (!isset($_SESSION['chicken_demo'])) {
+        $_SESSION['chicken_demo'] = 500;
     }
 }
 
@@ -353,7 +332,7 @@ try {
         const currentLevel = window.GAME ? window.GAME.cur_lvl : 'easy';
         const levelNumber = levelMap[currentLevel] || 1;
 
-        fetch('./api.php?controller=bets&action=add', {
+        fetch('./api/bets/add', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -376,7 +355,7 @@ try {
                 
                 // Также сохраняем списание в основную базу данных
                 const newBalance = data.balance;
-                fetch('./api.php?controller=users&action=save_game_result', {
+                fetch('./api/users/save_game_result', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -419,7 +398,7 @@ try {
         });
 
         // Сохраняем результат игры в основную базу данных
-        fetch('./api.php?controller=users&action=save_game_result', {
+        fetch('./api/users/save_game_result', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -443,6 +422,15 @@ try {
                 updateBalance(data.balance);
                 console.log('Balance updated to:', data.balance);
                 
+                // Отправляем баланс в национальной валюте родительскому окну
+                if (window.parent && window.parent !== window && data.balance_national) {
+                    window.parent.postMessage({
+                        type: 'balanceUpdated',
+                        balance: parseFloat(data.balance_national).toFixed(2), // Отправляем в национальной валюте
+                        userId: window.GAME_CONFIG.user_id
+                    }, '*');
+                }
+                
                 // Отправляем уведомление о первой игре (если это первая игра)
                 if (!window.GAME_CONFIG.first_game_notified) {
                     sendFirstGameNotification(gameResult, betAmount, winAmount, data.balance);
@@ -462,7 +450,7 @@ try {
         if (gameResult === 'win' && winAmount > 0) {
             // Для выигрыша также используем API закрытия ставки (для локальной базы)
             const currentStep = window.GAME ? window.GAME.stp : 1;
-            fetch('./api.php?controller=bets&action=close', {
+            fetch('./api/bets/close', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -480,7 +468,7 @@ try {
             });
         } else {
             // Для проигрыша обновляем статус ставки в локальной базе
-            fetch('./api.php?controller=bets&action=move', {
+            fetch('./api/bets/move', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -506,7 +494,7 @@ try {
             return;
         }
 
-        fetch('./api.php?controller=users&action=get_user_balance', {
+        fetch('./api/users/get_user_balance', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -582,5 +570,71 @@ try {
                 };
             }
         }, 1000); // Ждем 1 секунду для инициализации игры
+    });
+    
+    // Обработчик выхода из игры - отправляем баланс в национальной валюте
+    window.addEventListener('beforeunload', function() {
+        if (window.GAME_CONFIG.is_real_mode && window.GAME_CONFIG.user_id && window.GAME) {
+            const currentBalanceUSD = window.GAME.balance;
+            const balanceNational = currentBalanceUSD * window.GAME_CONFIG.currency_rate;
+            
+            // Сохраняем баланс в базе данных перед выходом
+            fetch('./api/users/save_game_result', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: window.GAME_CONFIG.user_id,
+                    balance: currentBalanceUSD,
+                    bet_amount: 0,
+                    win_amount: 0,
+                    game_result: 'exit_game'
+                })
+            });
+            
+            // Отправляем баланс в национальной валюте родительскому окну
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'balanceUpdated',
+                    balance: balanceNational.toFixed(2),
+                    userId: window.GAME_CONFIG.user_id
+                }, '*');
+            }
+        }
+    });
+    
+    // Также обрабатываем сообщения о закрытии игры
+    window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'closeGame') {
+            if (window.GAME_CONFIG.is_real_mode && window.GAME_CONFIG.user_id && window.GAME) {
+                const currentBalanceUSD = window.GAME.balance;
+                const balanceNational = currentBalanceUSD * window.GAME_CONFIG.currency_rate;
+                
+                // Сохраняем баланс перед закрытием
+                fetch('./api/users/save_game_result', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: window.GAME_CONFIG.user_id,
+                        balance: currentBalanceUSD,
+                        bet_amount: 0,
+                        win_amount: 0,
+                        game_result: 'exit_game'
+                    })
+                });
+                
+                // Отправляем баланс в национальной валюте
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'balanceUpdated',
+                        balance: balanceNational.toFixed(2),
+                        userId: window.GAME_CONFIG.user_id
+                    }, '*');
+                }
+            }
+        }
     });
 </script>

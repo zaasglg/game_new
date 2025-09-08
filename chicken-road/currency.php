@@ -23,7 +23,26 @@ $currency_rates = [
 
 // Функция для получения курса валюты
 function getCurrencyRate($country) {
-    global $currency_rates;
+    $currency_rates = [
+        'Argentina' => 1400,
+        'Colombia' => 4500,
+        'Ecuador' => 25000,
+        'Bolivia' => 7,
+        'Brazil' => 5,
+        'Chile' => 900,
+        'Costa Rica' => 500,
+        'Cuba' => 25,
+        'Dominican Republic' => 60,
+        'Guatemala' => 8,
+        'Haiti' => 150,
+        'Honduras' => 25,
+        'Mexico' => 18,
+        'Nicaragua' => 37,
+        'Paraguay' => 7500,
+        'Peru' => 4,
+        'Uruguay' => 40,
+        'Venezuela' => 36
+    ];
     return isset($currency_rates[$country]) ? $currency_rates[$country] : 1;
 }
 

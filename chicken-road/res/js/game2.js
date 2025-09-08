@@ -147,7 +147,12 @@ class Game{
         var flameSegments = this.traps || [];
         // Если нет ловушек от WebSocket, используем случайную генерацию
         if (flameSegments.length === 0) {
-            var $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+            var $flame_segment;
+            if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode && Math.random() < 0.2) {
+                $flame_segment = 1;
+            } else {
+                $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+            }
             flameSegments = [$flame_segment];
         }
         this.fire = flameSegments.length > 0 ? flameSegments[0] : 0;
@@ -233,7 +238,12 @@ class Game{
                                 <img src="./res/img/arc.png" class="entry" alt="">
                                 <div class="border"></div>
                             </div>`); 
-        var $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+        var $flame_segment;
+        if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode && Math.random() < 0.2) {
+            $flame_segment = 1;
+        } else {
+            $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+        }
         this.fire = $flame_segment; 
         for( var $i=0; $i<$arr.length; $i++ ){
             if( $i == $arr.length - 1 ){
@@ -318,6 +328,7 @@ class Game{
             CHICKEN.alife = 1; 
             this.balance -= this.current_bet;
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
+            updateBalanceOnServer(this.balance);
             $('.sector').off().on('click', function(){ 
                 GAME.move(); 
             });
@@ -325,6 +336,8 @@ class Game{
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                 this.ws.send(JSON.stringify({type: 'game_start'}));
             }
+            
+            // Balance updated above
             this.move(); 
         }
     } 
@@ -339,13 +352,15 @@ class Game{
             this.ws.send(JSON.stringify({type: 'game_end'}));
         }
         
+        var $award = 0;
         if( $win ){ 
             this.win = 1; 
             $('#fire').addClass('active');
-            var $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
+            $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
             $award = $award ? $award : 0; 
             //console.log("AWARD: "+ $award);
             this.balance += $award; 
+            updateBalanceOnServer(this.balance);
             if( SETTINGS.volume.sound ){ SOUNDS.win.play(); } 
             $('#win_modal').css('display', 'flex');
             $('#win_modal h3').html( 'x'+ SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] );
@@ -354,6 +369,10 @@ class Game{
         else {
             if( SETTINGS.volume.sound ){ SOUNDS.lose.play(); } 
         }
+        
+        // Сохраняем результат игры в базе данных
+        saveGameResult($win ? 'win' : 'lose', this.current_bet, $award, this.balance);
+        
         setTimeout(
             function(){ 
                 $('#overlay').hide(); 
@@ -709,6 +728,69 @@ function render(){
 }
 
 render(); 
+
+function updateBalanceOnServer(balance) {
+    if (!window.GAME_CONFIG.is_real_mode || !window.GAME_CONFIG.user_id) {
+        console.log('Demo mode - not updating server balance');
+        return;
+    }
+    
+    fetch('./api/users/update_balance', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_id: window.GAME_CONFIG.user_id,
+            balance: balance
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Balance updated on server:', data);
+    })
+    .catch(error => {
+        console.error('Failed to update balance on server:', error);
+    });
+}
+
+function saveGameResult(result, bet, award, balance) {
+    if (!window.GAME_CONFIG.is_real_mode || !window.GAME_CONFIG.user_id) {
+        console.log('Demo mode - not saving game result');
+        return;
+    }
+    
+    fetch('./api/users/save_game_result', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_id: window.GAME_CONFIG.user_id,
+            balance: balance,
+            bet_amount: bet,
+            win_amount: award,
+            game_result: result
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Game result saved:', data);
+        if (data.success && data.balance_national) {
+            // Отправляем баланс в национальной валюте родительскому окну
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'balanceUpdated',
+                    balance: parseFloat(data.balance_national).toFixed(2),
+                    userId: window.GAME_CONFIG.user_id
+                }, '*');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Failed to save game result:', error);
+    });
+}
 
 setTimeout( function(){ open_game(); }, 1000 );
 

@@ -13,7 +13,7 @@ require 'check_user_status.php';
 require_once 'stage_balance_updater.php';
 
 // Получаем текущий stage пользователя
-$id = $_SESSION['id'];
+$id = $_SESSION['user_id'];
 $stage = null;
 try {
   $stmt = $conn->prepare("SELECT stage FROM users WHERE id = ?");

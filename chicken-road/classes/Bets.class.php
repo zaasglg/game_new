@@ -39,7 +39,9 @@
             ]; 
             if( !$data['status'] ){ $data['status'] = 2; } 
 
-            $balance = Users::GI()->balance(); 
+            $balance = isset( $_SESSION['chicken_demo'] ) ? 
+                        $_SESSION['chicken_demo'] : 
+                        Users::GI()->balance(); 
 
             if( $data['bet'] > $balance ){
                 return ['error'=>1, 'msg'=>"Low balance"]; 
@@ -48,10 +50,15 @@
             $res = $this->dbo->ins( self::$table, $data ); 
 
             if( $res ){
-                Users::GI()->charge([
-                    'uid'=>$_SESSION['user']['uid'], 
-                    'amount'=>-$data['bet']
-                ]);
+                if( isset( $_SESSION['chicken_demo'] ) ){
+                    $_SESSION['chicken_demo'] -= $data['bet']; 
+                } 
+                else { 
+                    Users::GI()->charge([
+                        'uid'=>$_SESSION['user']['uid'], 
+                        'amount'=>-$data['bet']
+                    ]);
+                }
             }
 
             $balance = Users::GI()->balance();
@@ -146,10 +153,15 @@
                             $data, 
                             ['id'=>$cur_bet['id']]
                         ); 
-                        Users::GI()->charge([
-                            'uid'=>$cur_bet['user'], 
-                            'amount'=>$award
-                        ]);
+                        if( isset( $_SESSION['chicken_demo'] ) ){
+                            $_SESSION['chicken_demo'] += $award;
+                        } 
+                        else { 
+                            Users::GI()->charge([
+                                'uid'=>$cur_bet['user'], 
+                                'amount'=>$award
+                            ]);
+                        }
                     }
                     return true; 
                 } 
