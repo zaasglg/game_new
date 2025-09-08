@@ -55,7 +55,7 @@ class StageBalanceUpdater {
             $txStmt = $this->conn->prepare("
                 SELECT id, amount_usd 
                 FROM historial 
-                WHERE id = ? 
+                WHERE user_id = ? 
                 AND estado = 'completed' 
                 AND created_at >= ?
                 AND amount_usd > 0
