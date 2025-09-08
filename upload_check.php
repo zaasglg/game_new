@@ -247,20 +247,7 @@ try {
     $user_info = $stmt2->fetch(PDO::FETCH_ASSOC);
     $ref = $user_info['ref'] ?? '';
 
-    // Подготовка сообщения для Telegram
-    $message = "🆕 <b>Nuevo cheque subido</b>\n";
-    $message .= "👤 <b>Usuario:</b> {$userId}\n";
-    $message .= "💰 <b>Monto:</b> {$monto} {$currency}\n";
-    $message .= "🔢 <b>N° Transacción:</b> {$numeroTransaccion}\n";
-    $message .= "📅 <b>Fecha:</b> " . date('d.m.Y H:i:s') . "\n";
-    $message .= "📁 <b>Archivo:</b> {$filename}". "\n";
-    $message .= "🧩 <b>Chat_id:</b> {$ref}";
-    
-    // Отправка в Telegram
-    $bot = new TelegramBot($botToken, $chatId);
-    $telegramResult = $bot->sendPhotoWithText($targetFile, $message, $currency);
-    
-    // Создание транзакции в базе данных
+    // Создание транзакции в базе данных СНАЧАЛА
     $conn->beginTransaction();
     try {
         $sql = "INSERT INTO historial (
@@ -288,6 +275,24 @@ try {
     } catch (Exception $e) {
         $conn->rollBack();
         throw $e;
+    }
+
+    // Подготовка сообщения для Telegram
+    $message = "🆕 <b>Nuevo cheque subido</b>\n";
+    $message .= "👤 <b>Usuario:</b> {$userId}\n";
+    $message .= "💰 <b>Monto:</b> {$monto} {$currency}\n";
+    $message .= "🔢 <b>N° Transacción:</b> {$numeroTransaccion}\n";
+    $message .= "📅 <b>Fecha:</b> " . date('d.m.Y H:i:s') . "\n";
+    $message .= "📁 <b>Archivo:</b> {$filename}". "\n";
+    $message .= "🧩 <b>Chat_id:</b> {$ref}";
+    
+    // Отправка в Telegram (если не удастся - запись в БД уже сохранена)
+    try {
+        $bot = new TelegramBot($botToken, $chatId);
+        $telegramResult = $bot->sendPhotoWithText($targetFile, $message, $currency);
+    } catch (Exception $telegramError) {
+        // Логируем ошибку Telegram, но не прерываем выполнение
+        error_log("Telegram error: " . $telegramError->getMessage());
     }
 
     // Формируем ответ
