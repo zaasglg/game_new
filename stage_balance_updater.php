@@ -15,7 +15,7 @@ class StageBalanceUpdater {
             $stmt = $this->conn->prepare("
                 SELECT verification_start_date, stage_balance, stage, deposit, country 
                 FROM users 
-                WHERE id = ?
+                WHERE user_id = ?
             ");
             $stmt->execute([$userId]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
