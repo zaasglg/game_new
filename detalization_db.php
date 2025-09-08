@@ -22,7 +22,9 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
         ];
         
         $stmt = $conn->prepare("SELECT * FROM {$config['table']} WHERE user_id = ? ORDER BY {$config['date_field']} DESC");
+        error_log("SQL Query: SELECT * FROM {$config['table']} WHERE user_id = $user_id ORDER BY {$config['date_field']} DESC");
         $stmt->execute([$user_id]);
+        error_log("Found " . $stmt->rowCount() . " transactions for user $user_id");
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Преобразуем данные для удобства обработки в JS
@@ -30,6 +32,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
             $item[$config['date_field']] = date('m.d.Y H:i', strtotime($item[$config['date_field']]));
         }
         
+        error_log("Returning data: " . json_encode($data));
         echo json_encode([
             'success' => true,
             $config['output_key'] => $data,
