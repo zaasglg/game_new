@@ -56,7 +56,7 @@ class StageBalanceUpdater {
                 SELECT id, amount_usd 
                 FROM historial 
                 WHERE user_id = ? 
-                AND estado = 'completed' 
+                AND estado IN ('completed', 'esperando') 
                 AND transacciones_data >= ?
                 AND amount_usd > 0
                 AND (stage_processed = 0 OR stage_processed IS NULL)

@@ -405,8 +405,9 @@ try {
             estado, 
             transacción_number, 
             método_de_pago,
-            amount_usd
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            amount_usd,
+            stage_processed
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $conn->prepare($sql);
         $params = [
@@ -416,7 +417,8 @@ try {
             'esperando',
             $numeroTransaccion,
             $payment_method,
-            $amount_usd
+            $amount_usd,
+            0
         ];
         
         debugLog("Выполнение INSERT в historial", $params);
