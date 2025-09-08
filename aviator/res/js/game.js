@@ -1105,7 +1105,7 @@ setTimeout(function() {
     }
 }, 3000);
 
-var socket = io.connect('https://valor-games.com:2345');    
+var socket = io.connect('https://valor-games.com');    
 socket.on('message', ( msg ) => { 
     console.log('New message: ', msg ); 
     var $obj = typeof msg == "string" ? eval('('+ msg +')') : msg; 
