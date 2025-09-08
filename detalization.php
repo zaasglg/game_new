@@ -777,7 +777,22 @@ EOD;
 
         // Форматирование даты транзакции
         function formatTransactionDate(dateString) {
+          if (!dateString || dateString === 'N/A') {
+            return ['N/A', 'N/A'];
+          }
+          
+          // Если дата уже отформатирована (dd.mm.yyyy hh:mm)
+          if (dateString.includes('.') && dateString.includes(':')) {
+            const parts = dateString.split(' ');
+            return [parts[0] || 'N/A', parts[1] || 'N/A'];
+          }
+          
+          // Парсим дату из базы данных
           const dateObj = new Date(dateString);
+          if (isNaN(dateObj.getTime())) {
+            return ['N/A', 'N/A'];
+          }
+          
           const date = `${dateObj.getDate().toString().padStart(2, '0')}.${(dateObj.getMonth() + 1).toString().padStart(2, '0')}.${dateObj.getFullYear()}`;
           const time = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
           return [date, time];
