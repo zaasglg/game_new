@@ -57,12 +57,14 @@ class StageBalanceUpdater {
                 FROM historial 
                 WHERE user_id = ? 
                 AND estado = 'completed' 
-                AND created_at >= ?
+                AND transacciones_data >= ?
                 AND amount_usd > 0
-                AND stage_processed = 0
-                ORDER BY created_at ASC
+                AND (stage_processed = 0 OR stage_processed IS NULL)
+                ORDER BY transacciones_data ASC
             ");
             $txStmt->execute([$userId, $user['verification_start_date']]);
+            error_log("Query executed for user $userId with date {$user['verification_start_date']}");
+            error_log("Found " . $txStmt->rowCount() . " transactions");
             $transactions = $txStmt->fetchAll(PDO::FETCH_ASSOC);
             
             $remainingBalance = $user['stage_balance'];
