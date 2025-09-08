@@ -34,7 +34,11 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
         
         // Преобразуем данные для удобства обработки в JS
         foreach ($data as &$item) {
-            $item[$config['date_field']] = date('m.d.Y H:i', strtotime($item[$config['date_field']]));
+            if ($item[$config['date_field']]) {
+                $item[$config['date_field']] = date('d.m.Y H:i', strtotime($item[$config['date_field']]));
+            } else {
+                $item[$config['date_field']] = 'N/A';
+            }
         }
         
         error_log("Returning data: " . json_encode($data));
