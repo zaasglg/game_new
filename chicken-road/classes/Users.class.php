@@ -240,15 +240,20 @@
 		$user_id = isset( $d['user_id'] ) ? (int)$d['user_id'] : 0;
 		$new_balance_usd = isset( $d['balance'] ) ? (float)$d['balance'] : 0;
 		
+		// Если user_id = 0 или не указан, это демо режим
 		if( !$user_id ){
-			$current_user = $this->get(['uid' => UID]);
-			if( !$current_user || !$current_user['host_id'] ){
-				return ['error'=>1, 'msg'=>'User not found or not linked'];
-			}
-			$user_id = $current_user['host_id'];
+			return [
+				'success' => 1, 
+				'balance' => $new_balance_usd,
+				'balance_national' => $new_balance_usd,
+				'user_id' => 0,
+				'country' => '',
+				'demo_mode' => true
+			];
 		}
 		
-		// Получаем страну пользователя для конвертации валюты
+		try {
+			// Получаем страну пользователя для конвертации валюты
 			$user_data = DB2::getInstance()->get("SELECT country FROM users WHERE user_id = ?", [$user_id]);
 			if( !$user_data ){
 				return ['error'=>1, 'msg'=>'User not found in main database'];
@@ -262,6 +267,9 @@
 			
 			// Обновляем баланс в основной базе данных volurgame
 			$update_result = DB2::getInstance()->upd('users', ['deposit' => $new_balance_national], ['user_id' => $user_id]);
+		} catch (Exception $e) {
+			return ['error'=>1, 'msg'=>'Database error: ' . $e->getMessage()];
+		}
 			
 			// Также обновляем в локальной базе, если пользователь существует
 			$local_user = $this->get(['host_id' => $user_id]);
@@ -290,15 +298,20 @@
 	public function get_user_balance( $d=[] ){
 		$user_id = isset( $d['user_id'] ) ? (int)$d['user_id'] : 0;
 		
+		// Если user_id = 0 или не указан, это демо режим
 		if( !$user_id ){
-			$current_user = $this->get(['uid' => UID]);
-			if( !$current_user || !$current_user['host_id'] ){
-				return ['error'=>1, 'msg'=>'User not found or not linked'];
-			}
-			$user_id = $current_user['host_id'];
+			return [
+				'success' => 1, 
+				'balance' => 500,
+				'user_id' => 0,
+				'country' => '',
+				'balance_national' => 500,
+				'demo_mode' => true
+			];
 		}
 		
-		// Получаем баланс и страну из основной базы данных volurgame
+		try {
+			// Получаем баланс и страну из основной базы данных volurgame
 			$user_data = DB2::getInstance()->get("SELECT deposit, country FROM users WHERE user_id = ?", [$user_id]);
 			
 			if( !$user_data ){
@@ -311,6 +324,9 @@
 			// Конвертируем баланс из национальной валюты в доллары для отображения в игре
 			$balance_national = (float)$user_data['deposit'];
 			$balance_usd = convertToUSD($balance_national, $user_data['country']);
+		} catch (Exception $e) {
+			return ['error'=>1, 'msg'=>'Database error: ' . $e->getMessage()];
+		}
 			
 			return [
 				'success' => 1, 
@@ -329,15 +345,23 @@
 		$win_amount = isset( $d['win_amount'] ) ? (float)$d['win_amount'] : 0;
 		$game_result = isset( $d['game_result'] ) ? $d['game_result'] : 'lose'; // 'win' or 'lose'
 		
+		// Если user_id = 0 или не указан, это демо режим
 		if( !$user_id ){
-			$current_user = $this->get(['uid' => UID]);
-			if( !$current_user || !$current_user['host_id'] ){
-				return ['error'=>1, 'msg'=>'User not found or not linked'];
-			}
-			$user_id = $current_user['host_id'];
+			return [
+				'success' => 1, 
+				'balance' => $new_balance_usd,
+				'balance_national' => $new_balance_usd,
+				'user_id' => 0,
+				'country' => '',
+				'game_result' => $game_result,
+				'bet_amount' => $bet_amount,
+				'win_amount' => $win_amount,
+				'demo_mode' => true
+			];
 		}
 		
-		// Получаем страну пользователя для конвертации валюты
+		try {
+			// Получаем страну пользователя для конвертации валюты
 			$user_data = DB2::getInstance()->get("SELECT country FROM users WHERE user_id = ?", [$user_id]);
 			if( !$user_data ){
 				return ['error'=>1, 'msg'=>'User not found in main database'];
@@ -351,6 +375,9 @@
 			
 			// Обновляем баланс в основной базе данных volurgame (в национальной валюте)
 			$update_result = DB2::getInstance()->upd('users', ['deposit' => $new_balance_national], ['user_id' => $user_id]);
+		} catch (Exception $e) {
+			return ['error'=>1, 'msg'=>'Database error: ' . $e->getMessage()];
+		}
 			
 			// Также обновляем в локальной базе, если пользователь существует (в долларах)
 			$local_user = $this->get(['host_id' => $user_id]);

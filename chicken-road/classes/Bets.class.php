@@ -61,7 +61,13 @@
                 }
             }
 
-            $balance = Users::GI()->balance();
+            try {
+                $balance = isset( $_SESSION['chicken_demo'] ) ? 
+                            $_SESSION['chicken_demo'] : 
+                            Users::GI()->balance();
+            } catch (Exception $e) {
+                $balance = 0;
+            }
 
             return $res ? 
                 ['success'=>$res, 'data'=>$data, 'balance'=>$balance] : 

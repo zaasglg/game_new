@@ -1,8 +1,12 @@
 <?php 
+	error_reporting(0);
+	ini_set('display_errors', 0);
 	ob_start();
 	require_once 'init.php';
 	ob_end_clean();
 	header('Content-Type: application/json');
+	header('Cache-Control: no-cache, must-revalidate');
+	header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
 	
 	// Определяем константы для роутинга
 	$uri = $_SERVER['REQUEST_URI'];
@@ -20,6 +24,18 @@
 	$return = array('error'=>1, 'msg'=>"UNAUTHORIZED"); 
 
 	$data = array_merge( $post, $input ? $input : [] );
+	
+	// Проверяем, что пользователь существует в сессии для операций с базой данных
+	if (!isset($_SESSION['user']) && in_array(ACTION, ['add', 'move', 'close', 'fire', 'save_game_result', 'update_balance', 'get_user_balance'])) {
+		// Создаем временного пользователя для демо режима
+		if (!isset($_SESSION['user'])) {
+			$_SESSION['user'] = [
+				'uid' => 'demo_' . uniqid(),
+				'balance' => 500,
+				'host_id' => 0
+			];
+		}
+	}
 
 	$fields = isset( $data['fields'] ) ? $data['fields'] : false; 
 	$cond = isset( $data['cond'] ) ? $data['cond'] : false; 
@@ -94,5 +110,8 @@
 	} catch (Exception $e) {
 		$return = ['error' => 1, 'msg' => $e->getMessage()];
 	}
+	
+	// Очищаем любой возможный вывод перед JSON
+	ob_clean();
 	echo json_encode( $return );
 	exit();
