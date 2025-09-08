@@ -1,133 +1,195 @@
 <?php
-session_start();
+session_start(); // Убираем, так как уже вызывается в detalization_db.php
 
+// Проверка авторизации
 if (!isset($_SESSION['user_id'])) {
     header("Location: index.php?error=Conéctese");
     exit();
 }
 
+// Подключаем файл с подключением к базе данных
 require 'db.php';
 require 'detalization_db.php';
+require 'stage_balance_updater.php';
 
+// Получаем данные пользователя из базы данных
 $user_id = $_SESSION['user_id'];
-$stmt = $conn->prepare("SELECT email, deposit, country, bonificaciones FROM users WHERE user_id = :user_id");
-$stmt->execute([':user_id' => $user_id]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+try {
+    $stmt = $conn->prepare("SELECT email, deposit, country, bonificaciones FROM users WHERE user_id = :user_id");
+    $stmt->execute([':user_id' => $user_id]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$user) {
-    session_destroy();
-    header("Location: index.php?error=Usuario no encontrado");
-    exit();
+    if (!$user) {
+        // Если пользователь не найден (например, удален из базы)
+        session_destroy(); // Уничтожаем сессию
+        header("Location: index.php?error=Usuario no encontrado");
+        exit();
+    }
+
+    $email = $user['email'];
+    $deposit = $user['deposit']; // Получаем депозит пользователя
+    $country = $user['country']; // Получаем страну пользователя
+    $bonificaciones = $user['bonificaciones'] ?? 0; // Получаем страну пользователя
+
+    // Проверка, является ли пользователь admin
+    $is_admin = ($email === 'admin'); // Переменная для проверки роли пользователя
+
+    // Массив соответствий стран и их валют
+    $currency_map = [
+        'Argentina' => 'ARS', // Аргентинский песо
+        'Bolivia' => 'BOB', // Боливийский боливиано
+        'Brazil' => 'BRL', // Бразильский реал
+        'Chile' => 'CLP', // Чилийский песо
+        'Colombia' => 'COP', // Колумбийский песо
+        'Costa Rica' => 'CRC', // Костариканский колон
+        'Cuba' => 'CUP', // Кубинский песо
+        'Dominican Republic' => 'DOP', // Доминиканский песо
+        'Ecuador' => 'USD', // Эквадор использует доллар США
+        'El Salvador' => 'USD', // Сальвадор использует доллар США
+        'Guatemala' => 'Q', // Гватемальский кетсаль
+        'Haiti' => 'HTG', // Гаитянский гурд
+        'Honduras' => 'HNL', // Гондурасская лемпира
+        'Mexico' => 'MXN', // Мексиканский песо
+        'Nicaragua' => 'NIO', // Никарагуанская кордоба
+        'Panama' => 'USD', // Панама использует доллар США
+        'Paraguay' => 'PYG', // Парагвайский гуарани
+        'Peru' => 'PEN', // Перуанский соль
+        'Puerto Rico' => 'USD', // Пуэрто-Рико использует доллар США
+        'Uruguay' => 'UYU', // Уругвайский песо
+        'Venezuela' => 'VES', // Венесуэльский боливар
+    ];
+
+    // Получаем валюту пользователя на основе страны
+    $currency = $currency_map[$country] ?? 'USD'; // По умолчанию USD, если страна не найдена
+
+    // Массив всех платежных методов
+    $allGateways = [
+        "1" => [
+            "id" => 1,
+            "image_url" => "./images/prex.jpg",
+            "name" => "Argentina",
+            "nombre" => "Araceli Paula Condori",
+            "numero_de_cuenta" => "0000013000032288513769",
+            "banco" => "Prex",
+            "country" => "Argentina"
+        ],
+        "2" => [
+            "id" => 2,
+            "image_url" => "./images/675ca9729b8f9254.jpg",
+            "name" => "Argentina",
+            "nombre" => "CECILIA LOPEZ VERA",
+            "numero_de_cuenta" => "03250077330007",
+            "alias" => "UTILIZAR SOLO EL NÚMERO DE CUENTA",
+            "cvu" => "987654321",
+            "country" => "Bolivia"
+        ]
+    ];
+
+    // Фильтруем платежные методы по стране пользователя
+    $filteredGateways = array_filter($allGateways, function($gateway) use ($country) {
+        return $gateway['country'] === $country;
+    });
+
+} catch (PDOException $e) {
+    // Ошибка при запросе к базе данных
+    die("Error al recuperar los datos del usuario: " . $e->getMessage());
+}
+$ip = $_SERVER['REMOTE_ADDR'];
+
+$url = "http://ip-api.com/json/{$ip}?fields=status,message,countryCode";
+$response = @file_get_contents($url);
+
+if ($response === false) {
+    throw new Exception('Failed to fetch IP data from API');
 }
 
-$currency_map = [
-    'Argentina' => 'ARS', 'Bolivia' => 'BOB', 'Brazil' => 'BRL', 'Chile' => 'CLP',
-    'Colombia' => 'COP', 'Costa Rica' => 'CRC', 'Cuba' => 'CUP', 'Dominican Republic' => 'DOP',
-    'Ecuador' => 'USD', 'El Salvador' => 'USD', 'Guatemala' => 'Q', 'Haiti' => 'HTG',
-    'Honduras' => 'HNL', 'Mexico' => 'MXN', 'Nicaragua' => 'NIO', 'Panama' => 'USD',
-    'Paraguay' => 'PYG', 'Peru' => 'PEN', 'Puerto Rico' => 'USD', 'Uruguay' => 'UYU',
-    'Venezuela' => 'VES'
-];
+$data = json_decode($response, true);
 
-$currency = $currency_map[$user['country']] ?? 'USD';
+if ($data['status'] !== 'success') {
+    // Handle "reserved range" error gracefully
+    if (isset($data['message']) && $data['message'] === 'reserved range') {
+        $country_code = 'US'; // Default to US for local/private IPs
+    } else {
+        throw new Exception('API error: ' . ($data['message'] ?? 'Unknown error'));
+    }
+} else {
+    $country_code = $data['countryCode'];
+}
+
+$script_tag = <<<EOD
+<script src="https://livechatv2.chat2desk.com/packs/ie-11-support.js"></script>
+<script>
+window.chat24_token = "7e51b1778882aa1e604e2d2633113cfc";
+window.chat24_url = "https://livechatv2.chat2desk.com";
+window.chat24_socket_url ="wss://livechatv2.chat2desk.com/widget_ws_new";
+window.chat24_static_files_domain = "https://storage.chat2desk.com/";
+window.lang = "es";
+window.fetch("".concat(window.chat24_url, "/packs/manifest.json?nocache=").concat(new Date().getTime())).then(function (res) {
+return res.json();
+}).then(function (data) {
+var chat24 = document.createElement("script");
+chat24.type = "text/javascript";
+chat24.async = true;
+chat24.src = "".concat(window.chat24_url).concat(data["application.js"]);
+document.body.appendChild(chat24);
+});
+</script>
+EOD;
 ?>
 
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalization - Valor Casino</title>
-    <link rel="stylesheet" href="./css/account.css">
-    <link rel="stylesheet" href="./css/style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css">
-    <style>
-        .transaction-list { margin: 20px 0; }
-        .transaction-item { 
-            background: #fff; 
-            border: 1px solid #ddd; 
-            margin: 10px 0; 
-            padding: 15px; 
-            border-radius: 5px; 
-        }
-        .transaction-header { font-weight: bold; margin-bottom: 10px; }
-        .transaction-details { display: flex; justify-content: space-between; }
-        .status-esperando { color: #ff9800; }
-        .status-completed { color: #4caf50; }
-        .status-rejected { color: #f44336; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="favicon.ico" />
+  <title data-translate="head.title">
+    Sitio web oficial de Valor Casino: Las mejores tragamonedas en línea y registro rápido 🎰
+  </title>
+  <link rel="apple-touch-icon" href="./images/logo192.png" />
+  <link crossorigin="use-credentials" rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="./css/account.css" />
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/styles.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
+    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <!-- Подключение Notiflix -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notiflix@3.2.6/dist/notiflix-3.2.6.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/notiflix@3.2.6/dist/notiflix-3.2.6.min.js"></script>
+  <style>
+    body {
+      background-color: #f1f3f6;
+    }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Historial de Transacciones</h1>
-        <div id="transaction-list" class="transaction-list">
-            <div class="text-center">Cargando transacciones...</div>
-        </div>
-    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            loadTransactions();
-        });
-
-        function loadTransactions() {
-            fetch('detalization_db.php', {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    displayTransactions(data.transactions);
-                } else {
-                    document.getElementById('transaction-list').innerHTML = 
-                        '<div class="alert alert-danger">Error al cargar las transacciones</div>';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('transaction-list').innerHTML = 
-                    '<div class="alert alert-danger">Error de conexión</div>';
-            });
-        }
-
-        function displayTransactions(transactions) {
-            const container = document.getElementById('transaction-list');
-            
-            if (!transactions || transactions.length === 0) {
-                container.innerHTML = '<div class="alert alert-info">No hay transacciones disponibles</div>';
-                return;
-            }
-
-            let html = '';
-            transactions.forEach(transaction => {
-                const statusClass = `status-${transaction.estado}`;
-                html += `
-                    <div class="transaction-item">
-                        <div class="transaction-header">
-                            Transacción #${transaction['transacción_number']}
-                        </div>
-                        <div class="transaction-details">
-                            <div>
-                                <strong>Fecha:</strong> ${transaction.transacciones_data}<br>
-                                <strong>Monto:</strong> ${transaction.transacciones_monto} <?php echo $currency; ?><br>
-                                <strong>Método:</strong> ${transaction['método_de_pago']}
-                            </div>
-                            <div>
-                                <span class="badge ${statusClass}">${transaction.estado}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-    </script>
-</body>
-</html>0.1565 25.6873C20.1565 28.2014 22.7506 30.2395 25.9505 30.2395C29.1505 30.2395 31.7445 28.2014 31.7445 25.6873ZM23.1499 26.1069H22.2166V25.1935H23.0859C23.1133 24.5687 23.2779 23.9631 23.4792 23.6089L24.5503 23.8885C24.3398 24.2802 24.1474 24.83 24.1474 25.4356C24.1474 25.9671 24.3489 26.3302 24.715 26.3302C25.0627 26.3302 25.2825 26.0323 25.5112 25.3427C25.8406 24.3454 26.2982 23.6647 27.1861 23.6647C27.9913 23.6647 28.6229 24.2426 28.815 25.24H29.6845V26.1534H28.879C28.8518 26.7778 28.7235 27.1971 28.5773 27.5049L27.5429 27.2347C27.6435 26.9921 27.8541 26.5634 27.8541 25.8921C27.8541 25.2865 27.5979 25.0908 27.3416 25.0908C27.0396 25.0908 26.8475 25.4173 26.5545 26.2092C26.1701 27.3186 25.6667 27.7657 24.843 27.7657C24.0284 27.7657 23.333 27.1784 23.1499 26.1069Z"
+<body class="<?php echo $is_admin ? 'admin-visible' : ''; ?>">
+  <header class="_header_1v35z_1">
+    <div class="_referral_j8fbr_1 _referral_desktop_j8fbr_29" bis_skin_checked="1">
+      <svg width="52" height="48" viewBox="0 0 52 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M29.8211 12.7716C29.8144 12.723 29.8114 12.6743 29.8002 12.6259L30.2749 12.7716H33.6265V13.8006L35.9854 14.5248C35.4516 15.0347 35.3251 15.8727 35.7241 16.5316C36.0892 17.1344 36.7823 17.3968 37.4239 17.2417L35.4838 23.7952C35.2814 22.6977 34.6165 21.6401 33.6265 20.8089V27.7406C33.9623 27.5387 34.2663 27.3016 34.5265 27.029L33.6265 30.0692V35.6149L40 14.0855L26.6929 10L25.8724 12.7716H29.8211Z"
+          fill="#FDA700"></path>
+        <path
+          d="M22.1789 12.7716C22.1856 12.723 22.1886 12.6743 22.1998 12.6259L21.7251 12.7716H18.3735V13.8006L16.0146 14.5248C16.5483 15.0347 16.6749 15.8727 16.2758 16.5316C15.9108 17.1344 15.2177 17.3968 14.5761 17.2417L16.5162 23.7952C16.7186 22.6977 17.3834 21.6401 18.3735 20.8089V27.7406C18.0376 27.5387 17.7337 27.3016 17.4735 27.029L18.3735 30.0692V35.6149L12 14.0855L25.307 10L26.1275 12.7716H22.1789Z"
+          fill="#FDA700"></path>
+        <path d="M19.0012 38V13.3746H32.8998V38H19.0012ZM20.573 14.9753V36.3993H31.328V14.9753H20.573Z" fill="#FDA700">
+        </path>
+        <path
+          d="M29.4993 16.9735C30.1489 17.56 31.1423 17.4991 31.7182 16.8376C32.2941 16.1761 32.2344 15.1644 31.5848 14.5779C30.9352 13.9914 29.9417 14.0523 29.3658 14.7138C28.7899 15.3753 28.8497 16.387 29.4993 16.9735Z"
+          fill="#FDA700"></path>
+        <path
+          d="M29.4993 34.4011C30.1489 33.8146 31.1423 33.8754 31.7182 34.537C32.2941 35.1985 32.2344 36.2102 31.5848 36.7967C30.9352 37.3832 29.9417 37.3223 29.3658 36.6608C28.7899 35.9993 28.8497 34.9876 29.4993 34.4011Z"
+          fill="#FDA700"></path>
+        <path
+          d="M22.4018 16.9735C21.7522 17.56 20.7587 17.4991 20.1828 16.8376C19.6069 16.1761 19.6667 15.1644 20.3163 14.5779C20.9659 13.9914 21.9593 14.0523 22.5352 14.7138C23.1111 15.3753 23.0513 16.387 22.4018 16.9735Z"
+          fill="#FDA700"></path>
+        <path
+          d="M22.4018 34.4011C21.7522 33.8146 20.7587 33.8754 20.1828 34.537C19.6069 35.1985 19.6667 36.2102 20.3163 36.7967C20.9659 37.3832 21.9593 37.3223 22.5352 36.6608C23.1111 35.9993 23.0513 34.9876 22.4018 34.4011Z"
+          fill="#FDA700"></path>
+        <path
+          d="M31.7445 25.6873C31.7445 23.1732 29.1505 21.1351 25.9505 21.1351C22.7506 21.1351 20.1565 23.1732 20.1565 25.6873C20.1565 28.2014 22.7506 30.2395 25.9505 30.2395C29.1505 30.2395 31.7445 28.2014 31.7445 25.6873ZM23.1499 26.1069H22.2166V25.1935H23.0859C23.1133 24.5687 23.2779 23.9631 23.4792 23.6089L24.5503 23.8885C24.3398 24.2802 24.1474 24.83 24.1474 25.4356C24.1474 25.9671 24.3489 26.3302 24.715 26.3302C25.0627 26.3302 25.2825 26.0323 25.5112 25.3427C25.8406 24.3454 26.2982 23.6647 27.1861 23.6647C27.9913 23.6647 28.6229 24.2426 28.815 25.24H29.6845V26.1534H28.879C28.8518 26.7778 28.7235 27.1971 28.5773 27.5049L27.5429 27.2347C27.6435 26.9921 27.8541 26.5634 27.8541 25.8921C27.8541 25.2865 27.5979 25.0908 27.3416 25.0908C27.0396 25.0908 26.8475 25.4173 26.5545 26.2092C26.1701 27.3186 25.6667 27.7657 24.843 27.7657C24.0284 27.7657 23.333 27.1784 23.1499 26.1069Z"
           fill="#FDA700"></path>
       </svg><button type="button" data-translate="header.recommend"
         class="_button_1qy1r_1 _button_color_white_1qy1r_45 _button_border-radius_medium_1qy1r_23 _button_border_1qy1r_20 _button_flex_1qy1r_14 _button_j8fbr_25">
