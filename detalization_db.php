@@ -1,5 +1,5 @@
 <?php
-// session_start();
+session_start();
 require_once 'db.php';
 
 // Проверяем, что запрос пришел через AJAX
@@ -9,6 +9,11 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
     try {
         $user_id = $_SESSION['user_id'] ?? 0;
         $user_id = (int)$user_id;
+        
+        if ($user_id === 0) {
+            echo json_encode(['success' => false, 'message' => 'User not logged in']);
+            exit;
+        }
         
         // Конфигурация для таблицы historial
         $config = [
