@@ -1,5 +1,19 @@
 <?php 
+	ob_start();
 	require_once 'init.php';
+	ob_end_clean();
+	header('Content-Type: application/json');
+	
+	// Определяем константы для роутинга
+	$uri = $_SERVER['REQUEST_URI'];
+	if (preg_match('#/api/([^/]+)/([^/?]+)#', $uri, $matches)) {
+		define('CONTROLLER', $matches[1]);
+		define('ACTION', $matches[2]);
+	} else {
+		define('CONTROLLER', isset($_GET['controller']) ? $_GET['controller'] : '');
+		define('ACTION', isset($_GET['action']) ? $_GET['action'] : '');
+	}
+	
 	try {
 	$post = $_REQUEST; 
 	$input = json_decode( file_get_contents('php://input'), 1, 1024 ); 
