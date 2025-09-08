@@ -122,7 +122,8 @@ class StageBalanceUpdater {
                         'deducted_from_stage' => $totalDeducted,
                         'added_to_deposit' => $totalAddedToDeposit,
                         'processed_count' => count($processedIds),
-                        'stage_updated' => ($remainingBalance <= 0 && ($user['stage'] === 'verif' || $user['stage'] === 'verif2')) // Изменено здесь
+                        'stage_updated' => ($remainingBalance <= 0 && ($user['stage'] === 'verif' || $user['stage'] === 'verif2')),
+                        'message' => "Обработано транзакций: " . count($processedIds) . ", списано со stage: $totalDeducted, добавлено к депозиту: $totalAddedToDeposit"
                     ];
                     
                 } catch (Exception $e) {
