@@ -534,8 +534,8 @@ class Game {
                         }
                     } 
                     // Оптимизированное обновление кнопок
-                    if (!this.lastButtonUpdate || (now - this.lastButtonUpdate) > 100) {
-                        this.lastButtonUpdate = now;
+                    if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > 100) {
+                        this.lastButtonUpdate = $timer;
                         $('#actions_wrapper .make_bet.warning').each(function(){ 
                             var $self=$(this); 
                             var $bet_id = parseInt( $self.attr('data-id') ); 
@@ -1080,15 +1080,6 @@ var $plane;
 var $game = new Game({}); 
 
 function render( obj ){
-    // Ограничиваем FPS до 30 для лучшей производительности
-    if (!render.lastTime) render.lastTime = 0;
-    var now = Date.now();
-    if (now - render.lastTime < 33) { // ~30 FPS
-        requestAnimationFrame( render );
-        return;
-    }
-    render.lastTime = now;
-    
     $ctx.clearRect( 0, 0, SETTINGS.w, SETTINGS.h );
     
     // Оптимизированный фон
