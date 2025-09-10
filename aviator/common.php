@@ -3,11 +3,10 @@
 	// GAME DATA
 	//
 	define('HOST_ID', ( isset( $_REQUEST['user_id'] ) ? $_REQUEST['user_id'] : 'demo' )); 
-    $rates = [
-        'Argentina'=> 1400, 
-        'Colombia'=> 4500, 
-        'Ecuador'=> 25000 
-    ];
+    
+    // Подключаем функции конвертации валют
+    require_once BASE_DIR . 'currency.php';
+    
     //if( !isset( $_SESSION['user']['uid'] ) ){ 
     	if( HOST_ID != 'demo' ){ 
     		$Q = "SELECT * 
@@ -15,19 +14,24 @@
     			WHERE `user_id`='". HOST_ID ."'";
     		$main_user = DB2::GI()->get($Q); 
     		if( isset( $main_user['user_id'] ) && $main_user['user_id'] ){ 
-    			$_SESSION['USER_RATE'] = isset( $rates[ $main_user['country'] ] ) ? $rates[ $main_user['country'] ] : 1; 
+    			// Используем новую систему конвертации валют
+    			$_SESSION['USER_RATE'] = getCurrencyRate($main_user['country']); 
     			$ex = Users::GI()->get(['host_id'=>(int)HOST_ID]); 
     			if( $ex ){ 
-    				Users::GI()->edit(['uid'=>$ex['uid'], 'balance'=>($main_user['deposit'] / $_SESSION['USER_RATE'])]);
+    				// Конвертируем баланс из национальной валюты в USD для игры
+    				$balance_usd = convertToUSD($main_user['deposit'], $main_user['country']);
+    				Users::GI()->edit(['uid'=>$ex['uid'], 'balance'=>$balance_usd]);
     				$_SESSION['user'] = Users::GI()->get(['uid'=>$ex['uid']]); 
     				$_SESSION['user']['real_name'] = $main_user['email']; 
     			}
     			else {
+    				// Конвертируем баланс из национальной валюты в USD для игры
+    				$balance_usd = convertToUSD($main_user['deposit'], $main_user['country']);
     				$new_user = [
 			    		'name'=> substr( $main_user['email'], 0, 1 ) .'...'. substr( $main_user['email'], ( strlen( $main_user['email'] )-1 ), 1 ), 
 			    		'real_name'=> substr( $main_user['email'], 0, 8 ),  
 			    		'host_id'=> HOST_ID, 
-			    		'balance'=> $main_user['deposit'] / $_SESSION['USER_RATE']  
+			    		'balance'=> $balance_usd  
 			    	];
 			    	$_SESSION['user'] = Users::GI()->add( $new_user ); 
 			    	$_SESSION['user'] = isset( $_SESSION['user']['data'] ) ? $_SESSION['user']['data'] : [];

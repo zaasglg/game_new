@@ -43,6 +43,10 @@
 		case "search": $return = $CLASS->search( $post ); break; 
 		case "history": $return = $CLASS->history( $post ); break; 
 		case "close": $return = $CLASS->close( $post ); break; 
+		// currency conversion methods
+		case "save_game_result": $return = $CLASS->save_game_result( $post ); break;
+		case "get_user_balance": $return = $CLASS->get_user_balance( $post ); break;
+		case "update_balance": $return = $CLASS->updateBalance( $post ); break; 
 
 	}
 

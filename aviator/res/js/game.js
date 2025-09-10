@@ -871,6 +871,15 @@ class Game {
                 if( $obj.balance ){
                     var $balance = parseFloat( $obj.balance ); 
                     $('[data-rel="balance"]').val( $balance ).html( $balance );
+                    
+                    // Сохраняем результат игры с конвертацией валют
+                    $game.save_game_result({
+                        user_id: window.$user.host_id || 0,
+                        balance: $balance,
+                        bet_amount: $data.bet || 0,
+                        win_amount: $data.cf ? ($data.bet * $data.cf) : 0,
+                        game_result: 'win'
+                    });
                 }
                 $game.get_bets({ user:$user.uid, sort:'id', dir:'desc' });
             }
@@ -1051,6 +1060,62 @@ class Game {
             }
         }); 
     }
+    // Функция для сохранения результата игры с конвертацией валют
+    save_game_result( $data ){
+        $.ajax({
+            url: "index.php?route=api/users/save_game_result",
+            type: "json",
+            method: "post",
+            data: $data,
+            error: function($e){ console.error($e); },
+            success: function($r){
+                if( $r && $r.success ){
+                    var $balance = parseFloat( $r.balance );
+                    if( $balance ){
+                        $('[data-rel="balance"]').val( $balance ).html( $balance );
+                    }
+                    
+                    // Отправляем баланс в национальной валюте родительскому окну
+                    if( window.parent && window.parent !== window && $r.balance_national ){
+                        window.parent.postMessage({
+                            type: 'balanceUpdated',
+                            balance: parseFloat($r.balance_national).toFixed(2), // Отправляем в национальной валюте
+                            userId: window.$user.host_id
+                        }, '*');
+                    }
+                }
+            }
+        });
+    }
+    
+    // Функция для обновления баланса с конвертацией валют
+    update_balance( $data ){
+        $.ajax({
+            url: "index.php?route=api/users/update_balance",
+            type: "json",
+            method: "post",
+            data: $data,
+            error: function($e){ console.error($e); },
+            success: function($r){
+                if( $r && $r.success ){
+                    var $balance = parseFloat( $r.balance );
+                    if( $balance ){
+                        $('[data-rel="balance"]').val( $balance ).html( $balance );
+                    }
+                    
+                    // Отправляем баланс в национальной валюте родительскому окну
+                    if( window.parent && window.parent !== window && $r.balance_national ){
+                        window.parent.postMessage({
+                            type: 'balanceUpdated',
+                            balance: parseFloat($r.balance_national).toFixed(2), // Отправляем в национальной валюте
+                            userId: window.$user.host_id
+                        }, '*');
+                    }
+                }
+            }
+        });
+    }
+    
     modal( $data ){
         var $wrap = $('#modal_wrapper'); 
         var $cf = $data.cf ? ( parseFloat( $data.cf ) ).toFixed(2) : 0; 
