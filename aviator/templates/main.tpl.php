@@ -5,8 +5,24 @@
 <script src="https://cdn.socket.io/4.8.0/socket.io.min.js"></script>
 <script>
     var UID = "<?= isset($_SESSION['user']['uid']) ? $_SESSION['user']['uid'] : ''; ?>"; 
-    window.$user = eval('(<?= json_encode( $_SESSION['user'] ); ?>)');
-    window.$users = eval('(<?= json_encode( Users::GI()->active() ); ?>)');
+    <?php 
+    // Убеждаемся, что пользователь и баланс установлены
+    if( !isset($_SESSION['user']) || !$_SESSION['user'] ){
+        $_SESSION['user'] = [
+            'uid' => UID,
+            'name' => 'Demo Player',
+            'real_name' => 'Demo Player',
+            'balance' => 500,
+            'host_id' => 0
+        ];
+    }
+    if( !isset($_SESSION['user']['balance']) || $_SESSION['user']['balance'] === null ){
+        $_SESSION['user']['balance'] = isset($_SESSION['aviator_demo']) ? $_SESSION['aviator_demo'] : 500;
+    }
+    ?>
+    window.$user = <?= json_encode( $_SESSION['user'] ); ?>;
+    window.$users = <?= json_encode( Users::GI()->active() ); ?>;
+    console.log("User data loaded:", window.$user);
 </script>
 <div id="main_wrapper"> 
     <header id="header">

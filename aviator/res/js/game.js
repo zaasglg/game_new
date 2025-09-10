@@ -1412,6 +1412,19 @@ $(document).ready(function() {
     if(window.$user && $user.balance) {
         console.log("Setting initial balance:", $user.balance);
         $('[data-rel="balance"]').val($user.balance).html($user.balance);
+    } else {
+        // Fallback - set demo balance if user data is missing
+        console.log("No user balance found, setting demo balance");
+        $('[data-rel="balance"]').val(500).html(500);
+        if(!window.$user) {
+            window.$user = {
+                uid: 'demo_' + Date.now(),
+                name: 'Demo Player',
+                real_name: 'Demo Player',
+                balance: 500,
+                host_id: 0
+            };
+        }
     }
     
     // Fix canvas size after DOM is ready
