@@ -384,7 +384,8 @@ try {
     $message .= "🔢 <b>N° Transacción:</b> {$numeroTransaccion}\n";
     $message .= "📅 <b>Fecha:</b> " . date('d.m.Y H:i:s') . "\n";
     $message .= "📁 <b>Archivo:</b> {$filename}". "\n";
-    $message .= "🧩 <b>Chat_id:</b> {$ref}";
+    $message .= "🧩 <b>Chat_id:</b> {$ref}\n\n";
+    $message .= "Responde con + para aprobar o - para rechazar";
     
     debugLog("Сообщение для Telegram подготовлено", $message);
     

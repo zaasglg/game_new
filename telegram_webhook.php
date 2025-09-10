@@ -5,6 +5,9 @@ require_once 'stage_balance_updater.php';
 $input = file_get_contents('php://input');
 $update = json_decode($input, true);
 
+// Простое логирование
+file_put_contents(__DIR__ . '/webhook.log', date('Y-m-d H:i:s') . " Received: " . $input . "\n", FILE_APPEND);
+
 if (!$update || !isset($update['message'])) {
     exit;
 }
@@ -24,36 +27,35 @@ if ($text === '+' || $text === '-') {
             $newStatus = ($text === '+') ? 'completed' : 'declined';
             
             try {
-                // Получаем данные транзакции для пополнения баланса
+                // Получаем данные транзакции
                 $txStmt = $conn->prepare("SELECT user_id, amount_usd FROM historial WHERE transacción_number = ?");
                 $txStmt->execute([$transactionNumber]);
                 $transaction = $txStmt->fetch(PDO::FETCH_ASSOC);
                 
+                // Обновляем статус
                 $stmt = $conn->prepare("UPDATE historial SET estado = ? WHERE transacción_number = ?");
                 $result = $stmt->execute([$newStatus, $transactionNumber]);
                 
-                if ($result) {
+                if ($result && $stmt->rowCount() > 0) {
                     $confirmText = ($text === '+') ? "✅ Транзакция $transactionNumber одобрена" : "❌ Транзакция $transactionNumber отклонена";
                     
-                    // Если транзакция одобрена, пополняем баланс пользователя
+                    // Если одобрено и транзакция найдена
                     if ($text === '+' && $transaction) {
                         $userId = $transaction['user_id'];
                         $amount = $transaction['amount_usd'];
                         
-                        // Пополняем deposit пользователя
+                        // Пополняем баланс
                         $balanceStmt = $conn->prepare("UPDATE users SET deposit = deposit + ? WHERE user_id = ?");
                         $balanceUpdated = $balanceStmt->execute([$amount, $userId]);
                         
-                        if ($balanceUpdated) {
+                        if ($balanceUpdated && $balanceStmt->rowCount() > 0) {
                             $confirmText .= "\n💰 Баланс пользователя $userId пополнен на $$amount";
-                            
-                            // Запускаем обновление stage balance
-                            $updater = new StageBalanceUpdater($conn);
-                            $updater->updateForUser($userId);
                         }
                     }
                     
                     sendTelegramMessage($chatId, $confirmText);
+                } else {
+                    sendTelegramMessage($chatId, "Транзакция $transactionNumber не найдена");
                 }
             } catch (Exception $e) {
                 sendTelegramMessage($chatId, "Ошибка: " . $e->getMessage());
