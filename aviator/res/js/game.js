@@ -1408,6 +1408,12 @@ socket.on('message', ( msg ) => {
 $(document).ready(function() {
     console.log("Game initialization started");
     
+    // Initialize balance display
+    if(window.$user && $user.balance) {
+        console.log("Setting initial balance:", $user.balance);
+        $('[data-rel="balance"]').val($user.balance).html($user.balance);
+    }
+    
     // Fix canvas size after DOM is ready
     SETTINGS.w = document.querySelector('#game_field').offsetWidth;
     SETTINGS.h = document.querySelector('#game_field').offsetHeight;
@@ -1446,6 +1452,9 @@ $(document).ready(function() {
     console.log("Calling $game.bind()");
     $game.bind();
     console.log("$game.bind() completed");
+    
+    // Load initial balance
+    $game.balance();
     
     // Show the initial splash screen only once
     open_game();

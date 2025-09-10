@@ -51,18 +51,30 @@
     } 
     else {
         // Демо режим или пользователь не авторизован
-        if( !isset( $_SESSION['user']['uid'] ) ){ 
-            $_SESSION['USER_RATE'] = 1; 
-            $_SESSION['aviator_demo'] = 500; // Демо баланс
-            $_SESSION['user'] = [
-                'uid' => UID,
-                'name' => 'Demo Player',
-                'real_name' => 'Demo Player',
-                'balance' => 500,
-                'host_id' => 0
-            ];
+        error_log("Demo mode activated");
+        $_SESSION['USER_RATE'] = 1; 
+        $_SESSION['aviator_demo'] = 500; // Демо баланс
+        $_SESSION['user'] = [
+            'uid' => UID,
+            'name' => 'Demo Player',
+            'real_name' => 'Demo Player',
+            'balance' => 500,
+            'host_id' => 0
+        ];
+        error_log("Demo user created: " . json_encode($_SESSION['user']));
+    }
+    
+    // Убеждаемся, что баланс всегда установлен
+    if( !isset($_SESSION['user']['balance']) || $_SESSION['user']['balance'] === null ){
+        if( isset($_SESSION['aviator_demo']) ){
+            $_SESSION['user']['balance'] = $_SESSION['aviator_demo'];
+        } else {
+            $_SESSION['user']['balance'] = Users::GI()->balance();
         }
-    } 
+        error_log("Balance fixed: " . $_SESSION['user']['balance']);
+    }
+    
+    error_log("Final user session: " . json_encode($_SESSION['user'])); 
 
 
 
