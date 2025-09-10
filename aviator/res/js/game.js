@@ -877,62 +877,102 @@ class Game {
         });
     }
     bet_generic( $data ){
-        // Ограничиваем частоту генерации ставок
-        if (!this.lastBetGeneration || (Date.now() - this.lastBetGeneration) > 2000) {
-            this.lastBetGeneration = Date.now();
+        // Генерируем фейковые ставки чаще и больше в начале игры
+        var currentTime = Date.now();
+        var timeSinceLastGeneration = this.lastBetGeneration ? (currentTime - this.lastBetGeneration) : 0;
+        var shouldGenerate = false;
+        
+        // В начале игры (loading) генерируем чаще
+        if (this.status === "loading") {
+            shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 500; // Каждые 0.5 секунды
+        } else {
+            shouldGenerate = !this.lastBetGeneration || timeSinceLastGeneration > 2000; // Каждые 2 секунды
+        }
+        
+        if (shouldGenerate && this.current_bets.length < 35) {
+            this.lastBetGeneration = currentTime;
             
-            if( $users && $users.length && this.current_bets.length < 20 ){ 
-                var $bets = [0.5, 2, 5, 10, 50];
-                var betsToAdd = [];
+            // Создаем массив фейковых пользователей если его нет
+            if (!window.$users || !$users.length) {
+                window.$users = this.generateFakeUsers();
+            }
+            
+            var $bets = [0.5, 1, 2, 3, 5, 7, 10, 15, 20, 25, 50, 75, 100];
+            var betsToAdd = [];
+            var maxBetsToAdd = this.status === "loading" ? 8 : 3; // Больше ставок в начале
+            
+            for (var i = 0; i < $users.length && betsToAdd.length < maxBetsToAdd; i++) {
+                var $u = $users[i];
+                var chance = this.status === "loading" ? 15 : this.generic_chanse; // Выше шанс в начале
                 
-                for( var $u of $users ){
-                    if( ( Math.random() * 100 >= this.generic_chanse ) && $u.name ){ 
-                        var $add = true; 
-                        for( var $v of this.current_bets ){ 
-                            if( $v.uid == $u.uid ){ 
-                                $add = false; 
-                                break; 
-                            }
-                        }
-                        if( $add && betsToAdd.length < 3 ){ 
-                            var $amount = $bets[ Math.round( Math.random()*($bets.length-1) ) ];
-                            var $cf = parseFloat( ( Math.random() * 1000 / 100 ).toFixed(2) ); 
-                            $cf = $cf < 1 ? $cf+1 : $cf; 
-                            
-                            betsToAdd.push({
-                                uid: $u.uid,
-                                name: $u.name,
-                                amount: $amount,
-                                cf: $cf,
-                                img: $u.img,
-                                win: false
-                            });
+                if ((Math.random() * 100 >= chance) && $u.name) {
+                    var $add = true;
+                    for (var $v of this.current_bets) {
+                        if ($v.uid == $u.uid) {
+                            $add = false;
+                            break;
                         }
                     }
-                }
-                
-                // Добавляем все ставки одним блоком
-                if (betsToAdd.length > 0) {
-                    var htmlToAdd = '';
-                    for (var bet of betsToAdd) {
-                        htmlToAdd += `<li data-uid="${ bet.uid }"> 
-                                        <div class="user"><img src="res/img/users/av-${ bet.img }.png" alt=""><span>${ bet.name }</span></div> 
-                                        <div class="bet">${ bet.amount }</div> 
-                                        <div class="betx"></div> 
-                                        <div class="win"></div> 
-                                    </li>`;
-                        this.current_bets.push(bet);
-                    }
-                    $('#current_bets_list ul').append(htmlToAdd);
                     
-                    // Обновляем счетчики одним разом
-                    var totalBets = this.current_bets.length * this.factor;
-                    $('#game_bets .label').html(totalBets); 
-                    $('#bets_wrapper .info_window [data-rel="bets"] .cur').html(totalBets);
-                    $('#bets_wrapper .info_window [data-rel="bets"] .total').html(totalBets);
+                    if ($add) {
+                        var $amount = $bets[Math.round(Math.random() * ($bets.length - 1))];
+                        var $cf = parseFloat((Math.random() * 1500 / 100).toFixed(2));
+                        $cf = $cf < 1.1 ? $cf + 1.1 : $cf;
+                        
+                        betsToAdd.push({
+                            uid: $u.uid,
+                            name: $u.name,
+                            amount: $amount,
+                            cf: $cf,
+                            img: $u.img,
+                            win: false
+                        });
+                    }
                 }
             }
+            
+            // Добавляем все ставки одним блоком
+            if (betsToAdd.length > 0) {
+                var htmlToAdd = '';
+                for (var bet of betsToAdd) {
+                    htmlToAdd += `<li data-uid="${ bet.uid }"> 
+                                    <div class="user"><img src="res/img/users/av-${ bet.img }.png" alt=""><span>${ bet.name }</span></div> 
+                                    <div class="bet">${ bet.amount }</div> 
+                                    <div class="betx"></div> 
+                                    <div class="win"></div> 
+                                </li>`;
+                    this.current_bets.push(bet);
+                }
+                $('#current_bets_list ul').append(htmlToAdd);
+                
+                // Обновляем счетчики одним разом
+                var totalBets = this.current_bets.length * this.factor;
+                $('#game_bets .label').html(totalBets); 
+                $('#bets_wrapper .info_window [data-rel="bets"] .cur').html(totalBets);
+                $('#bets_wrapper .info_window [data-rel="bets"] .total').html(totalBets);
+            }
         }
+    }
+    
+    // Генерируем фейковых пользователей
+    generateFakeUsers() {
+        var fakeNames = [
+            "Alex", "Maria", "John", "Anna", "Mike", "Lisa", "David", "Sarah", "Tom", "Emma",
+            "Chris", "Kate", "Paul", "Nina", "Mark", "Olga", "Steve", "Vera", "Nick", "Lena",
+            "Max", "Ira", "Dan", "Mila", "Sam", "Anya", "Ben", "Tina", "Leo", "Eva",
+            "Jake", "Zoe", "Ryan", "Amy", "Luke", "Joy", "Adam", "Sue", "Carl", "Ivy",
+            "Ivan", "Dima", "Oleg", "Igor", "Vlad", "Roma", "Petr", "Serg", "Yura", "Gleb"
+        ];
+        
+        var users = [];
+        for (var i = 0; i < fakeNames.length; i++) {
+            users.push({
+                uid: 1000 + i,
+                name: fakeNames[i],
+                img: Math.floor(Math.random() * 20) + 1
+            });
+        }
+        return users;
     }
     get_history( $data ){ 
         $.ajax({
@@ -1128,10 +1168,65 @@ class Game {
                 $btn.attr('data-id', 0); 
             }
         }); 
+        
+        // Добавляем много фейковых ставок сразу в начале
+        this.addInitialFakeBets();
+        
         //
         this.balance(); 
         this.get_bets({ user:$user.uid, sort:'id', dir:'desc' });
         this.get_history({});
+    }
+    
+    // Добавляем много фейковых ставок в начале игры
+    addInitialFakeBets() {
+        if (!window.$users || !$users.length) {
+            window.$users = this.generateFakeUsers();
+        }
+        
+        var $bets = [0.5, 1, 2, 3, 5, 7, 10, 15, 20, 25, 50, 75, 100];
+        var betsToAdd = [];
+        var initialBetsCount = Math.floor(Math.random() * 15) + 10; // От 10 до 25 ставок
+        
+        // Перемешиваем пользователей для случайности
+        var shuffledUsers = [...$users].sort(() => Math.random() - 0.5);
+        
+        for (var i = 0; i < Math.min(initialBetsCount, shuffledUsers.length); i++) {
+            var $u = shuffledUsers[i];
+            var $amount = $bets[Math.round(Math.random() * ($bets.length - 1))];
+            var $cf = parseFloat((Math.random() * 1500 / 100).toFixed(2));
+            $cf = $cf < 1.1 ? $cf + 1.1 : $cf;
+            
+            betsToAdd.push({
+                uid: $u.uid,
+                name: $u.name,
+                amount: $amount,
+                cf: $cf,
+                img: $u.img,
+                win: false
+            });
+        }
+        
+        // Добавляем все ставки одним блоком
+        if (betsToAdd.length > 0) {
+            var htmlToAdd = '';
+            for (var bet of betsToAdd) {
+                htmlToAdd += `<li data-uid="${ bet.uid }"> 
+                                <div class="user"><img src="res/img/users/av-${ bet.img }.png" alt=""><span>${ bet.name }</span></div> 
+                                <div class="bet">${ bet.amount }</div> 
+                                <div class="betx"></div> 
+                                <div class="win"></div> 
+                            </li>`;
+                this.current_bets.push(bet);
+            }
+            $('#current_bets_list ul').html(htmlToAdd);
+            
+            // Обновляем счетчики
+            var totalBets = this.current_bets.length * this.factor;
+            $('#game_bets .label').html(totalBets); 
+            $('#bets_wrapper .info_window [data-rel="bets"] .cur').html(totalBets);
+            $('#bets_wrapper .info_window [data-rel="bets"] .total').html(totalBets);
+        }
     }
 }
 
