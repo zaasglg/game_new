@@ -245,7 +245,7 @@ class Game {
         this.timers = SETTINGS.timers; 
         this.status = "loading"; 
         this.cur_cf = 1.0; 
-        this.win_cf = 2.56; 
+        this.win_cf = 10.0; // Увеличиваем максимальный коэффициент 
         this.new_delta = 0; 
         var $vics = document.querySelectorAll('[data-rel="currency"]'); 
         if( $vics && $vics.length ){
@@ -507,18 +507,15 @@ class Game {
                 }
                 break;
             case "flight":
-                if( this.cur_cf >= this.win_cf ){ 
-                    this.flying_to_finish({ cf:this.win_cf, delta:SETTINGS.timers.flight }); 
-                    // BUTTONS - remove this global update that affects all buttons
-                    // $('.make_bet span').html(LOCALIZATION.make_bet_generic_cancel); 
-                    // $('.make_bet h3').css('display','flex'); 
-                    // $('.make_bet h2').hide(); 
-                    // $('.make_bet').addClass('danger').removeClass('warning').attr('data-id', 0); 
+                // Линейный рост коэффициента
+                var timeInSeconds = $delta / 1000;
+                this.cur_cf = 1 + (timeInSeconds * 0.1); // Плавный рост 0.1x в секунду
+                
+                // Проверяем завершение только по таймеру, а не по коэффициенту
+                if( $change ){ 
+                    this.flying_to_finish({ cf:this.cur_cf, delta:SETTINGS.timers.finish }); 
                 } 
-                else { 
-                    // Линейный рост коэффициента вместо экспоненциального
-                    var timeInSeconds = $delta / 1000;
-                    this.cur_cf = 1 + (timeInSeconds * 0.1); // Плавный рост 0.1x в секунду
+                else {
                     if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
                     if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
                     $('#process_level .current').html( this.cur_cf.toFixed(2)+"x"); 
