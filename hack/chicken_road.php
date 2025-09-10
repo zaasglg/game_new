@@ -165,6 +165,22 @@ try {
         #ws-connection-status {
             transition: color 0.3s ease;
         }
+
+        /* Level buttons */
+        .level-btn {
+            transition: all 0.2s ease;
+        }
+
+        .level-btn:hover {
+            border-color: #00ff88 !important;
+            background: #444 !important;
+        }
+
+        .level-btn.selected {
+            border-color: #00ff88 !important;
+            background: #00ff88 !important;
+            color: #000 !important;
+        }
     </style>
 </head>
 
@@ -175,6 +191,16 @@ try {
                 <!-- Вывод user_id -->
         <div style="margin-bottom:20px; font-size:0.9em; color:#bbb;">
             User ID: <span style="color:#00ff88;"><?php echo htmlspecialchars($user_id); ?></span>
+        </div>
+
+        <!-- Level Selection -->
+        <div class="level-selection" style="margin-bottom: 20px;">
+            <div style="font-size: 0.9em; color: #888; margin-bottom: 10px;">Select Level:</div>
+            <div class="level-buttons" style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                <button class="level-btn selected" data-level="easy" onclick="selectLevel('easy')" style="background: #333; color: #fff; border: 1px solid #00ff88; border-radius: 4px; padding: 8px 12px; font-size: 0.8em; cursor: pointer;">Easy</button>
+                <button class="level-btn" data-level="medium" onclick="selectLevel('medium')" style="background: #333; color: #fff; border: 1px solid #666; border-radius: 4px; padding: 8px 12px; font-size: 0.8em; cursor: pointer;">Medium</button>
+                <button class="level-btn" data-level="hard" onclick="selectLevel('hard')" style="background: #333; color: #fff; border: 1px solid #666; border-radius: 4px; padding: 8px 12px; font-size: 0.8em; cursor: pointer;">Hard</button>
+            </div>
         </div>
 
         <div class="coefficient-display">
@@ -193,7 +219,7 @@ try {
 
     <script>
         const userId = <?php echo $user_id; ?>;
-        let currentLevel = null;
+        let currentLevel = 'easy';
 
         // WebSocket client for hack bot
         class ChickenHackWebSocket {
@@ -437,58 +463,54 @@ try {
         function selectLevel(level) {
             currentLevel = level;
 
-            // Убираем выделение с всех кнопок
-            document.querySelectorAll('.level-btn').forEach(btn => {
-                btn.classList.remove('selected');
-            });
-
-            // Выделяем выбранную кнопку
-            document.querySelector(`[data-level="${level}"]`).classList.add('selected');
-
-            // Обновляем информацию
-            const levelNames = {
-                'easy': 'Fácil (3 obstáculos)',
-                'medium': 'Medio (7 obstáculos)',
-                'hard': 'Difícil (12 obstáculos)',
-                'hardcore': 'Extremo (24 obstáculos)'
-            };
-
-            const riskLevels = {
-                'easy': 'Bajo',
-                'medium': 'Medio',
-                'hard': 'Alto',
-                'hardcore': 'Extremo'
-            };
-
-            document.getElementById('selected-level').textContent = levelNames[level];
-            document.getElementById('risk-level').textContent = riskLevels[level];
-
-            // Обновляем рекомендацию
-            const coefficient = parseFloat(document.getElementById('coefficient-number').textContent);
-            updateRecommendation(coefficient);
-        }
-
-        // Обновление рекомендации
-        function updateRecommendation(coefficient) {
-            if (!currentLevel) {
-                document.getElementById('recommendation').textContent = 'Selecciona un nivel para analizar';
-                return;
+            // Update WebSocket level
+            if (hackWebSocket) {
+                hackWebSocket.setLevel(level);
             }
 
+            // Remove selection from all buttons
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.style.borderColor = '#666';
+                btn.style.background = '#333';
+                btn.style.color = '#fff';
+            });
+
+            // Highlight selected button
+            const selectedBtn = document.querySelector(`[data-level="${level}"]`);
+            if (selectedBtn) {
+                selectedBtn.classList.add('selected');
+                selectedBtn.style.borderColor = '#00ff88';
+                selectedBtn.style.background = '#00ff88';
+                selectedBtn.style.color = '#000';
+            }
+
+            // Update status
+            const coefficientStatus = document.getElementById('coefficient-status');
+            if (coefficientStatus) {
+                coefficientStatus.textContent = `Level: ${level.charAt(0).toUpperCase() + level.slice(1)}`;
+            }
+        }
+
+        // Update recommendation
+        function updateRecommendation(coefficient) {
             const coeff = parseFloat(coefficient);
             let recommendation = '';
 
             if (coeff < 2.0) {
-                recommendation = '🔴 ¡Cuidado! Coeficiente bajo';
+                recommendation = '🔴 Low coefficient';
             } else if (coeff < 3.0) {
-                recommendation = '🟡 Riesgo moderado';
+                recommendation = '🟡 Moderate risk';
             } else if (coeff < 5.0) {
-                recommendation = '🟢 Buenas posibilidades';
+                recommendation = '🟢 Good chances';
             } else {
-                recommendation = '✨ ¡Excelentes posibilidades!';
+                recommendation = '✨ Excellent chances!';
             }
 
-            document.getElementById('recommendation').textContent = recommendation;
+            const coefficientStatus = document.getElementById('coefficient-status');
+            if (coefficientStatus && coeff > 0) {
+                coefficientStatus.textContent = `${recommendation} (${currentLevel})`;
+            }
         }
 
         // Обновление коэффициента в базе данных
