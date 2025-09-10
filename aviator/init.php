@@ -133,41 +133,9 @@
 	if (AUTH) {
 		// Создаем уникальный UID для игры на основе user_id
 		$game_uid = 'u' . AUTH; // Префикс 'u' + user_id
-		
-		// Проверяем, существует ли пользователь в игровой базе данных
-		try {
-			include_once BASE_DIR . "classes/Users.class.php";
-			$users_class = Users::getInstance();
-			$game_user = $users_class->get(['uid' => $game_uid]);
-			
-			if (!$game_user) {
-				// Создаем пользователя в игровой базе данных
-				$main_balance = 0;
-				try {
-					include_once BASE_DIR . "../db.php";
-					$stmt = $conn->prepare("SELECT deposit FROM users WHERE user_id = :user_id");
-					$stmt->execute([':user_id' => AUTH]);
-					$main_user = $stmt->fetch(PDO::FETCH_ASSOC);
-					if ($main_user) {
-						$main_balance = $main_user['deposit'];
-					}
-				} catch (Exception $e) {
-					$main_balance = 0;
-				}
-				
-				// Конвертируем баланс в игровую валюту (USD)
-				$game_balance = $main_balance / $user_rate;
-				
-				$users_class->add([
-					'uid' => $game_uid,
-					'host_id' => AUTH,
-					'balance' => $game_balance,
-					'name' => 'Player' . AUTH
-				]);
-			}
-		} catch (Exception $e) {
-			// В случае ошибки продолжаем работу
-		}
+	} else {
+		// Для демо режима создаем временный UID
+		$game_uid = 'demo_' . uniqid();
 	}
 	
 	define('UID', $game_uid);  

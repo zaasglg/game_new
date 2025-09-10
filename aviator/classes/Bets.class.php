@@ -25,6 +25,10 @@
 //
 //===================================================== 
         public function add( $d=[] ){
+            // Логирование для отладки
+            error_log("Bets::add called with data: " . json_encode($d));
+            error_log("UID: " . UID . ", AUTH: " . AUTH);
+            
             $data=[
                 'user'=> UID, 
                 'sid'=> UID, 
@@ -36,6 +40,9 @@
                 'src'=> isset( $d['src'] ) ? (int)$d['src'] : 1, 
                 'status'=> isset( $d['status'] ) ? (int)$d['status'] : 2 
             ]; 
+            
+            error_log("Prepared bet data: " . json_encode($data));
+            
             if( !$data['status'] ){ $data['status'] = 2; } 
             if( !$data['game'] ){ 
                 $game = Games::GI()->search([]); 
@@ -47,29 +54,20 @@
 
             if( isset( $_SESSION['aviator_demo'] ) ){
                 $balance = $_SESSION['aviator_demo'];
+                error_log("Demo mode balance: " . $balance);
             } else {
-                // Получаем баланс из основной базы данных и конвертируем в игровую валюту (USD)
-                if( AUTH ){
-                    try {
-                        $main_balance = DB2::GI()->getField('deposit', 'users', ['user_id' => AUTH]);
-                        $user_rate = isset($_SESSION['USER_RATE']) ? $_SESSION['USER_RATE'] : 1;
-                        $balance = $main_balance / $user_rate; // Конвертируем в USD для игры
-                        
-                        // Обновляем баланс в игровой базе данных
-                        Users::GI()->edit(['uid' => UID, 'balance' => $balance]);
-                    } catch (Exception $e) {
-                        $balance = Users::GI()->balance();
-                    }
-                } else {
-                    $balance = Users::GI()->balance();
-                }
+                // Используем обновленную систему получения баланса
+                $balance = Users::GI()->balance();
+                error_log("User balance: " . $balance);
             } 
 
             if( $data['bet'] > $balance ){
+                error_log("Bet rejected: insufficient balance. Bet: " . $data['bet'] . ", Balance: " . $balance);
                 return ['error'=>1, 'msg'=>"Low balance"]; 
             }
 
             $res = $this->dbo->ins( self::$table, $data ); 
+            error_log("Database insert result: " . ($res ? $res : 'false'));
 
             if( $res ){
                 if( isset( $_SESSION['aviator_demo'] ) ){
@@ -81,6 +79,7 @@
             }
 
             $balance = Users::GI()->balance();
+            error_log("Final balance: " . $balance);
 
             return $res ? ['success'=>$res, 'data'=>$data, 'balance'=>$balance] : ['error'=>1, 'msg'=>"Unable to create new bet"];
         } 

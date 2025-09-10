@@ -7,6 +7,8 @@
     // Подключаем функции конвертации валют
     require_once BASE_DIR . 'currency.php';
     
+    error_log("Common.php - HOST_ID: " . HOST_ID . ", AUTH: " . AUTH . ", UID: " . UID);
+    
     // Создаем или получаем пользователя для игры
     if( HOST_ID != 'demo' && AUTH ){ 
         // Получаем пользователя из основной базы данных
@@ -19,25 +21,29 @@
             
             // Проверяем, есть ли пользователь в игровой базе данных
             $ex = Users::GI()->get(['host_id'=>(int)AUTH]); 
+            error_log("Looking for user with host_id: " . AUTH . ", found: " . json_encode($ex));
+            
             if( $ex ){ 
                 // Конвертируем баланс из национальной валюты в USD для игры
                 $balance_usd = convertToUSD($main_user['deposit'], $main_user['country']);
                 Users::GI()->edit(['uid'=>$ex['uid'], 'balance'=>$balance_usd]);
                 $_SESSION['user'] = Users::GI()->get(['uid'=>$ex['uid']]); 
                 $_SESSION['user']['real_name'] = $main_user['email']; 
+                error_log("Updated existing user: " . json_encode($_SESSION['user']));
             }
             else {
                 // Создаем пользователя в игровой базе данных
                 // Конвертируем баланс из национальной валюты в USD для игры
                 $balance_usd = convertToUSD($main_user['deposit'], $main_user['country']);
                 $new_user_data = [
-                    'uid'=> UID,
                     'name'=> substr( $main_user['email'], 0, 1 ) .'...'. substr( $main_user['email'], ( strlen( $main_user['email'] )-1 ), 1 ), 
                     'real_name'=> substr( $main_user['email'], 0, 8 ),  
-                    'host_id'=> AUTH, 
+                    'host_id'=> (int)AUTH, 
                     'balance'=> $balance_usd  
                 ];
+                error_log("Creating new user with data: " . json_encode($new_user_data));
                 $result = Users::GI()->add( $new_user_data ); 
+                error_log("User creation result: " . json_encode($result));
                 $_SESSION['user'] = isset( $result['data'] ) ? $result['data'] : $new_user_data;
                 $_SESSION['user']['real_name'] = $main_user['email']; 
             }

@@ -426,7 +426,8 @@ class Game {
             var $src = parseInt( $self.attr('data-src') ); 
             var $wrap = $self.parent().parent(); 
             var $bet = parseFloat( $('input:text', $wrap).val() );
-            console.log("Button clicked - ID:", $id, "SRC:", $src, "BET:", $bet, "Status:", $game.status); 
+            var $current_balance = parseFloat( $('[data-rel="balance"]').text() || $('[data-rel="balance"]').val() || 0 );
+            console.log("Button clicked - ID:", $id, "SRC:", $src, "BET:", $bet, "Status:", $game.status, "Current Balance:", $current_balance); 
             switch( $game.status ){
                 case "flight": 
                     if( $id ){ 
