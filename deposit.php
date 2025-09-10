@@ -2093,9 +2093,9 @@ try {
               checkAndUpdateStageBalance(userId);
 
               // Переадресация через 3 секунды
-              // setTimeout(() => {
-              //   window.location.href = '/detalization.php';
-              // }, 3000);
+              setTimeout(() => {
+                window.location.href = '/detalization.php';
+              }, 3000);
 
             } else {
               // Уведомление об ошибке
