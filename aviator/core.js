@@ -129,16 +129,22 @@ async function next_cf(){
 
 async function create_game(){ 
 	var $next_cf = await next_cf(); 
-	if( $next_cf ){ 
+	if( $next_cf && $next_cf.amount && $next_cf.amount > 1 ){ 
 		CURRENT_CF = $next_cf.amount; 
+		console.log("[create_game] NEXT_CF from DB:", CURRENT_CF);
+	} else {
+		// Если коэффициент не найден или равен 1, используем тестовый коэффициент
+		CURRENT_CF = +(Math.random() * 1 + 1.5).toFixed(2); // от 1.5 до 2.5
+		console.log("[create_game] NEXT_CF fallback (random):", CURRENT_CF);
+	}
+	if( $next_cf && $next_cf.id ){
 		var $Q = "INSERT INTO `games` (`cf`,`status`) VALUES('"+ $next_cf.id +"',1)"; 
 		var $new_game = await connection.execute( $Q ); 
 		console.log("New game: ", $new_game[0].insertId); 
 		CURRENT_GAME = $new_game[0].insertId
-	} 
-	else { 
+	} else {
 		console.log("Get next cf failed"); 
-	} 
+	}
 }
 
 async function start_game(){
