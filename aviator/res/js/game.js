@@ -957,10 +957,15 @@ class Game {
         this.timer = new Date().getTime(); 
         this.win_cf = $data.cf; 
         this.cur_cf = 1; 
-        $plane.status = "move"; 
-        $plane.pos = 0;  
-        $plane.x = SETTINGS.start.x; 
-        $plane.y = SETTINGS.start.y; 
+        
+        // Убеждаемся что самолет инициализирован
+        if ($plane) {
+            $plane.status = "move"; 
+            $plane.pos = 0;  
+            $plane.x = SETTINGS.start.x; 
+            $plane.y = SETTINGS.start.y;
+            $plane.trace = true;
+        } 
         $('.make_bet').each(function(){
             var $self = $(this);  
             var $src = $self.attr('data-src');
@@ -1040,11 +1045,15 @@ class Game {
         SETTINGS.timers.loading = $data.delta; 
         this.win_cf = $data.cf; 
         this.cur_cf = 1; 
-        $plane.status = "idle"; 
-        $plane.pos = 0; 
-        $plane.trace = true; 
-        $plane.x = SETTINGS.start.x; 
-        $plane.y = SETTINGS.start.y; 
+        
+        // Убеждаемся что самолет инициализирован
+        if ($plane) {
+            $plane.status = "move"; // Изменено с "idle" на "move" для анимации в loading
+            $plane.pos = 0; 
+            $plane.trace = true; 
+            $plane.x = SETTINGS.start.x; 
+            $plane.y = SETTINGS.start.y;
+        } 
         $('#loading_level').css('display','flex'); 
         $('#process_level').css('display', 'none');
         $('#complete_level').css('display', 'none');
@@ -1190,7 +1199,11 @@ $(document).ready(function() {
         })
     });
     
-    console.log("Plane created at:", $plane.x, $plane.y);
+    // Принудительно запускаем самолет в режим движения для первого раунда
+    $plane.status = "move";
+    $plane.pos = 0;
+    
+    console.log("Plane created at:", $plane.x, $plane.y, "Status:", $plane.status);
     
     // Start the render loop
     render();
