@@ -203,8 +203,7 @@ class Plane {
     update( obj ){ 
         if( this.status == "move" ){
             if( HELPERS.distance( { x:this.x, y:this.y }, { x:this.route[ this.pos ].x, y:this.route[ this.pos ].y } ) > 5 ){
-                // Постоянная скорость для всех сегментов
-                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, this.vel);
+                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, ( !this.pos ? this.vel : ( this.pos > 4 ? this.vel*3 : 0.8 ) ) );  // Reduced multiplier from 10 to 3, and slow speed from 1 to 0.8
             }  
             else {
                 this.pos += 1; 
@@ -245,7 +244,7 @@ class Game {
         this.timers = SETTINGS.timers; 
         this.status = "loading"; 
         this.cur_cf = 1.0; 
-        this.win_cf = 10.0; 
+        this.win_cf = 2.56; 
         this.new_delta = 0; 
         var $vics = document.querySelectorAll('[data-rel="currency"]'); 
         if( $vics && $vics.length ){
@@ -507,57 +506,60 @@ class Game {
                 }
                 break;
             case "flight":
-                // Локальная генерация коэффициентов до финального значения
-                var timeInSeconds = $delta / 1000;
-                var localCf = 1 + (timeInSeconds * 0.1);
-                if (localCf <= this.win_cf) {
-                    this.cur_cf = localCf;
-                }
-                
-                if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
-                if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
-                $('#process_level .current').html( this.cur_cf.toFixed(2)+"x");
-                
-                this.autocheck(); 
-                var $total_wins = 0; 
-                for( var $u of this.current_bets ){
-                    if( this.cur_cf >= $u.cf ){ 
-                        $u.win = true; 
-                        var $line = $('#current_bets_list ul li[data-uid="'+ $u.uid +'"]'); 
-                        if( !$line.hasClass('active') ){
-                            $line.addClass('active'); 
-                            $('.betx', $line).html( ( +$u.cf ).toFixed(2) ).addClass( +$u.cf > 6 ? 'high' : ( +$u.cf > 2 ? 'mid' : '' ) );
-                            $('.win', $line).html( ( +$u.cf * +$u.amount ).toFixed(2) ); 
-                        }
-                        $total_wins += parseFloat( +$u.cf * +$u.amount ); 
-                    }
+                if( this.cur_cf >= this.win_cf ){ 
+                    this.flying_to_finish({ cf:this.win_cf, delta:SETTINGS.timers.flight }); 
+                    // BUTTONS - remove this global update that affects all buttons
+                    // $('.make_bet span').html(LOCALIZATION.make_bet_generic_cancel); 
+                    // $('.make_bet h3').css('display','flex'); 
+                    // $('.make_bet h2').hide(); 
+                    // $('.make_bet').addClass('danger').removeClass('warning').attr('data-id', 0); 
                 } 
-                // Оптимизированное обновление кнопок
-                if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > 100) {
-                    this.lastButtonUpdate = $timer;
-                    $('#actions_wrapper .make_bet.warning').each(function(){ 
-                        var $self=$(this); 
-                        var $bet_id = parseInt( $self.attr('data-id') ); 
-                        if( $bet_id ){
-                            var $src = parseInt( $self.attr('data-src') );
-                            var $wrap=$self.parent().parent().parent().parent(); 
-                            var $bet = parseFloat( $('input[type="text"]', $wrap).val() ); 
-                            var $cf = parseFloat( $game.cur_cf ); 
-                            var $result = ( $bet * $cf ).toFixed(2); 
-                            var $cash_out = parseFloat( $('[name="cashout_value"]', $wrap).val() );
-                            $('h2 [data-rel="current_bet"]', $self).html( $result ); 
-                            if( $('[name="cashout_switcher"]', $wrap).is(':checked') ){ 
-                                if( $cash_out <= $cf ){ $self.click(); }
-                            } 
+                else { 
+                    this.cur_cf = 1 + 0.5 * ( Math.exp( ( $delta / 1000 )  / 5 ) - 1 );
+                    if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
+                    if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
+                    $('#process_level .current').html( this.cur_cf.toFixed(2)+"x"); 
+                    this.autocheck(); 
+                    var $total_wins = 0; 
+                    for( var $u of this.current_bets ){
+                        if( this.cur_cf >= $u.cf ){ 
+                            $u.win = true; 
+                            var $line = $('#current_bets_list ul li[data-uid="'+ $u.uid +'"]'); 
+                            if( !$line.hasClass('active') ){
+                                $line.addClass('active'); 
+                                $('.betx', $line).html( ( +$u.cf ).toFixed(2) ).addClass( +$u.cf > 6 ? 'high' : ( +$u.cf > 2 ? 'mid' : '' ) );
+                                $('.win', $line).html( ( +$u.cf * +$u.amount ).toFixed(2) ); 
+                            }
+                            $total_wins += parseFloat( +$u.cf * +$u.amount ); 
                         }
-                    });
+                    } 
+                    // Оптимизированное обновление кнопок
+                    if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > 100) {
+                        this.lastButtonUpdate = $timer;
+                        $('#actions_wrapper .make_bet.warning').each(function(){ 
+                            var $self=$(this); 
+                            var $bet_id = parseInt( $self.attr('data-id') ); 
+                            if( $bet_id ){
+                                var $src = parseInt( $self.attr('data-src') );
+                                var $wrap=$self.parent().parent().parent().parent(); 
+                                var $bet = parseFloat( $('input[type="text"]', $wrap).val() ); 
+                                var $cf = parseFloat( $game.cur_cf ); 
+                                var $result = ( $bet * $cf ).toFixed(2); 
+                                var $cash_out = parseFloat( $('[name="cashout_value"]', $wrap).val() );
+                                $('h2 [data-rel="current_bet"]', $self).html( $result ); 
+                                if( $('[name="cashout_switcher"]', $wrap).is(':checked') ){ 
+                                    if( $cash_out <= $cf ){ $self.click(); }
+                                } 
+                            }
+                        });
+                    }
+                    $('#bets_wrapper .info_window [data-rel="bets"] .label').html( ( $total_wins * this.factor ).toFixed(2) ); 
+                    var $players = $('#current_bets_list ul li').length; 
+                    var $winners = $('#current_bets_list ul li.active').length ; 
+                    var $perc = $winners / ( $players / 100 )
+                    $('#bets_wrapper .info_window [data-rel="bets"] .cur').html( $winners*this.factor ); 
+                    $('#bets_wrapper .progresser').css('width', $perc+'%');
                 }
-                $('#bets_wrapper .info_window [data-rel="bets"] .label').html( ( $total_wins * this.factor ).toFixed(2) ); 
-                var $players = $('#current_bets_list ul li').length; 
-                var $winners = $('#current_bets_list ul li.active').length ; 
-                var $perc = $winners / ( $players / 100 )
-                $('#bets_wrapper .info_window [data-rel="bets"] .cur').html( $winners*this.factor ); 
-                $('#bets_wrapper .progresser').css('width', $perc+'%');
                 break; 
             case "finish": 
                 if( $change ){ 
@@ -953,17 +955,12 @@ class Game {
         this.status = "flight"; 
         SETTINGS.timers.flight = $data.delta; 
         this.timer = new Date().getTime(); 
-        this.win_cf = parseFloat($data.cf); 
-        this.cur_cf = 1;
-        
-        // Убеждаемся что самолет инициализирован
-        if ($plane) {
-            $plane.status = "move"; 
-            $plane.pos = 0;  
-            $plane.x = SETTINGS.start.x; 
-            $plane.y = SETTINGS.start.y;
-            $plane.trace = true;
-        } 
+        this.win_cf = $data.cf; 
+        this.cur_cf = 1; 
+        $plane.status = "move"; 
+        $plane.pos = 0;  
+        $plane.x = SETTINGS.start.x; 
+        $plane.y = SETTINGS.start.y; 
         $('.make_bet').each(function(){
             var $self = $(this);  
             var $src = $self.attr('data-src');
@@ -996,7 +993,7 @@ class Game {
         this.status = "finish"; 
         SETTINGS.timers.finish = $data.delta; 
         this.timer = new Date().getTime(); 
-        this.cur_cf = parseFloat($data.cf); // Используем коэффициент от сервера
+        this.cur_cf = this.win_cf;
         $plane.trace = false; 
         $plane.pos = 5; 
         this.clear_level({ cf: this.win_cf }); 
@@ -1043,15 +1040,11 @@ class Game {
         SETTINGS.timers.loading = $data.delta; 
         this.win_cf = $data.cf; 
         this.cur_cf = 1; 
-        
-        // Убеждаемся что самолет инициализирован
-        if ($plane) {
-            $plane.status = "move"; // Изменено с "idle" на "move" для анимации в loading
-            $plane.pos = 0; 
-            $plane.trace = true; 
-            $plane.x = SETTINGS.start.x; 
-            $plane.y = SETTINGS.start.y;
-        } 
+        $plane.status = "idle"; 
+        $plane.pos = 0; 
+        $plane.trace = true; 
+        $plane.x = SETTINGS.start.x; 
+        $plane.y = SETTINGS.start.y; 
         $('#loading_level').css('display','flex'); 
         $('#process_level').css('display', 'none');
         $('#complete_level').css('display', 'none');
@@ -1146,17 +1139,9 @@ socket.on('message', ( msg ) => {
     if( $obj && $obj.msg && $obj.msg == "Change game state" ){
         var $data = { 
             state: $obj.game && $obj.game.state ? $obj.game.state : '', 
-            cf: $obj.game && $obj.game.cf ? $obj.game.cf : 1, // Не округляем, сохраняем точное значение
+            cf: $obj.game && $obj.game.cf ? parseFloat( $obj.game.cf ).toFixed(2) : 1, 
             delta: $obj.game && $obj.game.delta ? parseInt( $obj.game.delta ) : 0 
         } 
-        
-        // Обновляем коэффициент от WebSocket
-        if ($data.state === "flying" && $game.status === "flight") {
-            $game.cur_cf = parseFloat($data.cf);
-            $('#process_level .current').html( $game.cur_cf.toFixed(2)+"x");
-            console.log("WebSocket coefficient update:", $game.cur_cf);
-        }
-        
         switch( $data.state ){
             case "loading": 
                 $game.finish_to_loading( $data ); 
@@ -1168,6 +1153,7 @@ socket.on('message', ( msg ) => {
                 $game.flying_to_finish( $data );
                 break; 
         }
+        // open_game(); // Remove this line that shows splash on every WebSocket message
     }
 });
 
@@ -1204,11 +1190,7 @@ $(document).ready(function() {
         })
     });
     
-    // Принудительно запускаем самолет в режим движения для первого раунда
-    $plane.status = "move";
-    $plane.pos = 0;
-    
-    console.log("Plane created at:", $plane.x, $plane.y, "Status:", $plane.status);
+    console.log("Plane created at:", $plane.x, $plane.y);
     
     // Start the render loop
     render();
