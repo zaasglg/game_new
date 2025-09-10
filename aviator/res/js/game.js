@@ -244,7 +244,7 @@ class Game {
         this.timers = SETTINGS.timers; 
         this.status = "loading"; 
         this.cur_cf = 1.0; 
-        this.win_cf = 2.56; 
+        this.win_cf = 50.0; 
         this.new_delta = 0; 
         var $vics = document.querySelectorAll('[data-rel="currency"]'); 
         if( $vics && $vics.length ){
@@ -264,6 +264,7 @@ class Game {
         //$('#loading_level').css('display','flex'); 
         //$('#process_level').css('display', 'none');
         //$('#complete_level').css('display', 'none');
+        this.initWebSocket();
         render();
     }
     bind(){
@@ -482,6 +483,15 @@ class Game {
             }
         }); 
     }
+    initWebSocket(){
+        this.socket = io('http://localhost:2345');
+        this.socket.on('coefficient', (data) => {
+            var msg = JSON.parse(data);
+            if(msg.msg === 'coefficient_update') {
+                this.cur_cf = parseFloat(msg.cf);
+            }
+        });
+    }
     update( obj ){
         var $timer = new Date().getTime(); 
         var $delta = $timer - this.timer;// + this.new_delta; 
@@ -515,7 +525,7 @@ class Game {
                     // $('.make_bet').addClass('danger').removeClass('warning').attr('data-id', 0); 
                 } 
                 else { 
-                    this.cur_cf = 1 + ( $delta / 1000 ) * 0.1;
+                    // Коэффициент обновляется через WebSocket
                     if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
                     if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
                     $('#process_level .current').html( this.cur_cf.toFixed(2)+"x"); 

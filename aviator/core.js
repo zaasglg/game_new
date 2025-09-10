@@ -181,6 +181,20 @@ async function finish_game(){
 async function update_server(){
 	var $cur_time = new Date().getTime(); 
 	var $delta = $cur_time - START; 
+	
+	// Отправляем текущий коэффициент во время полета
+	if( CUR_STATE === 1 ) { // flying state
+		var current_cf = 1 + ($delta / 1000) * 0.1;
+		if( current_cf >= CURRENT_CF ) {
+			current_cf = CURRENT_CF;
+		}
+		io.emit('coefficient', JSON.stringify({
+			uid: "all",
+			msg: "coefficient_update",
+			cf: current_cf.toFixed(2)
+		}));
+	}
+	
 	if( $delta >= TIMERS[ CUR_STATE ].time ){
 		START = $cur_time; 
 		CUR_STATE += 1; 
