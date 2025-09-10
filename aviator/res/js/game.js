@@ -203,7 +203,7 @@ class Plane {
     update( obj ){ 
         if( this.status == "move" ){
             if( HELPERS.distance( { x:this.x, y:this.y }, { x:this.route[ this.pos ].x, y:this.route[ this.pos ].y } ) > 5 ){
-                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, ( !this.pos ? this.vel : ( this.pos > 4 ? this.vel*3 : 0.8 ) ) );  // Reduced multiplier from 10 to 3, and slow speed from 1 to 0.8
+                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, this.vel);
             }  
             else {
                 this.pos += 1; 
