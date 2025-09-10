@@ -507,11 +507,8 @@ class Game {
                 }
                 break;
             case "flight":
-                // Локальная генерация коэффициентов как резерв
-                var timeInSeconds = $delta / 1000;
-                this.cur_cf = 1 + (timeInSeconds * 0.1);
-                
-                // Убираем ограничение для непрерывного роста
+                // Коэффициенты обновляются только от WebSocket сервера
+                // Локальная генерация отключена
                 
                 if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
                 if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
@@ -1149,12 +1146,10 @@ socket.on('message', ( msg ) => {
             delta: $obj.game && $obj.game.delta ? parseInt( $obj.game.delta ) : 0 
         } 
         
-        // WebSocket коэффициенты перезаписывают локальные
+        // Всегда используем коэффициенты от WebSocket сервера
         if ($data.state === "flying" && $game.status === "flight") {
-            var serverCf = parseFloat($data.cf);
-            if (serverCf >= $game.cur_cf) {
-                $game.cur_cf = serverCf;
-            }
+            $game.cur_cf = parseFloat($data.cf);
+            console.log("WebSocket coefficient update:", $game.cur_cf);
         }
         
         switch( $data.state ){
