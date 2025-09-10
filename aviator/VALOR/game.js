@@ -73,7 +73,7 @@ class Helpers {
         var $distance = Math.sqrt( Math.pow( A.x - B.x, 2 ) + Math.pow( A.y - B.y, 2 ) ); 
         return $distance; 
     }
-    len( $v ){
+    len( $v ) {
         return Math.sqrt( $v.x * $v.x + $v.y * $v.y + 0 );
     } 
     normalize( $v ){ 
@@ -203,7 +203,7 @@ class Plane {
     update( obj ){ 
         if( this.status == "move" ){
             if( HELPERS.distance( { x:this.x, y:this.y }, { x:this.route[ this.pos ].x, y:this.route[ this.pos ].y } ) > 5 ){
-                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, ( !this.pos ? this.vel : ( this.pos > 4 ? this.vel*10 : 1 ) ) );
+                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, 2);
             }  
             else {
                 this.pos += 1; 
