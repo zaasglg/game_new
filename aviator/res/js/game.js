@@ -362,7 +362,7 @@ class Game {
             if( $auto_id ){ $game.autostop({id:$auto_id}); }
         }); 
         // кнопки +- 
-        $('.ranger button').off().on('click', function(){
+        $('.ranger button').off().on('click', function() {
             var $self=$(this); 
             var $dir=$self.data('dir'); 
             var $wrap=$self.parent();
@@ -739,6 +739,49 @@ class Game {
                 if( $obj.success ){ 
                     $game.user_bets[ $data.src-1 ] = +$obj.success; 
                     console.log("Updated user_bets:", $game.user_bets, "src:", $data.src);
+                    
+                    // Добавляем ставку пользователя в список текущих ставок
+                    var userBet = {
+                        uid: $user.uid,
+                        name: $user.real_name || $user.name || "You",
+                        amount: parseFloat($data.bet),
+                        cf: 10.0, // Случайный коэффициент для вывода
+                        img: $user.img || 10,
+                        win: false
+                    };
+                    
+                    // Проверяем, нет ли уже ставки этого пользователя
+                    var existingBetIndex = -1;
+                    for(var i = 0; i < $game.current_bets.length; i++) {
+                        if($game.current_bets[i].uid == $user.uid) {
+                            existingBetIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    if(existingBetIndex >= 0) {
+                        // Обновляем существующую ставку
+                        $game.current_bets[existingBetIndex] = userBet;
+                        var $line = $('#current_bets_list ul li[data-uid="'+ $user.uid +'"]');
+                        $('.bet', $line).html(userBet.amount.toFixed(2));
+                    } else {
+                        // Добавляем новую ставку
+                        $game.current_bets.push(userBet);
+                        var $tmps = `<li data-uid="${ userBet.uid }"> 
+                                        <div class="user"><img src="res/img/users/av-${ userBet.img }.png" alt=""><span>${ userBet.name }</span></div> 
+                                        <div class="bet">${ userBet.amount.toFixed(2) }</div> 
+                                        <div class="betx"></div> 
+                                        <div class="win"></div> 
+                                    </li>`;
+                        $('#current_bets_list ul').append($tmps);
+                    }
+                    
+                    // Обновляем счетчики
+                    var totalBets = $game.current_bets.length * $game.factor;
+                    $('#game_bets .label').html(totalBets); 
+                    $('#bets_wrapper .info_window [data-rel="bets"] .cur').html(totalBets);
+                    $('#bets_wrapper .info_window [data-rel="bets"] .total').html(totalBets);
+                    
                     if( $data['type'] == "manual" ){ 
                         $('.make_bet[data-src="'+ $data.src +'"]').attr('data-id', $obj.success); 
                         console.log("Set data-id", $obj.success, "for button with data-src:", $data.src);
@@ -783,6 +826,24 @@ class Game {
                 var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
                 if( $obj.success ){ 
                     $game.user_bets[ $data.src-1 ] = 0; 
+                    
+                    // Удаляем ставку пользователя из списка текущих ставок
+                    for(var i = 0; i < $game.current_bets.length; i++) {
+                        if($game.current_bets[i].uid == $user.uid) {
+                            $game.current_bets.splice(i, 1);
+                            break;
+                        }
+                    }
+                    
+                    // Удаляем из DOM
+                    $('#current_bets_list ul li[data-uid="'+ $user.uid +'"]').remove();
+                    
+                    // Обновляем счетчики
+                    var totalBets = $game.current_bets.length * $game.factor;
+                    $('#game_bets .label').html(totalBets); 
+                    $('#bets_wrapper .info_window [data-rel="bets"] .cur').html(totalBets);
+                    $('#bets_wrapper .info_window [data-rel="bets"] .total').html(totalBets);
+                    
                     if( $data['type'] == "manual" ){ $('.make_bet[data-src="'+ $data.src +'"]').attr('data-id', 0); } 
                     else { $('.auto_out_switcher input[data-src="'+ $data.src +'"]').attr('data-id', 0); }
                 }
