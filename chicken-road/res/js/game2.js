@@ -144,17 +144,8 @@ class Game{
                                 <img src="./res/img/arc.png" class="entry" alt="">
                                 <div class="border"></div>
                             </div>`); 
-        var flameSegments = this.traps || [];
-        // Если нет ловушек от WebSocket, используем случайную генерацию
-        if (flameSegments.length === 0) {
-            var $flame_segment;
-            if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode && Math.random() < 0.2) {
-                $flame_segment = 1;
-            } else {
-                $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
-            }
-            flameSegments = [$flame_segment];
-        }
+        var flameSegments = this.traps && this.traps.length > 0 ? this.traps : [];
+        // Если нет ловушек от WebSocket, НЕ используем локальную генерацию, просто не показываем огонь
         this.fire = flameSegments.length > 0 ? flameSegments[0] : 0;
         for( var $i=0; $i<$arr.length; $i++ ){
             if( $i == $arr.length - 1 ){
