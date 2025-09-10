@@ -507,7 +507,13 @@ class Game {
                 }
                 break;
             case "flight":
-                // Обновляем отображение коэффициента
+                // Локальная генерация коэффициентов до финального значения
+                var timeInSeconds = $delta / 1000;
+                var localCf = 1 + (timeInSeconds * 0.1);
+                if (localCf <= this.win_cf) {
+                    this.cur_cf = localCf;
+                }
+                
                 if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
                 if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
                 $('#process_level .current').html( this.cur_cf.toFixed(2)+"x");
