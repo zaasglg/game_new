@@ -131,9 +131,12 @@ class Game{
         this.wrap.html('').css('left', 0);
         // Создаем поле сразу, не ждем WebSocket
         this.createBoard();
-        // Если WebSocket подключен, отправляем запрос ловушек
+        // Если WebSocket подключен, всегда отправляем set_level перед запросом ловушки
         if (this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify({type: 'request_traps', level: this.cur_lvl}));
+            this.ws.send(JSON.stringify({type: 'set_level', level: this.cur_lvl}));
+            setTimeout(() => {
+                this.ws.send(JSON.stringify({type: 'request_traps', level: this.cur_lvl}));
+            }, 100);
         }
     }
     createBoard(){
