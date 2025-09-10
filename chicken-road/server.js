@@ -13,9 +13,12 @@ const wss = new WebSocket.Server({ port: 8080 });
 
 const clients = new Map(); // ws -> { level, gameActive, lastTraps }
 let globalGameActive = false; // Глобальный статус игры - влияет на всех клиентов
+// Храним trap index для каждого клиента и уровня на время игровой сессии
+const sessionTraps = new Map(); // ws -> { level: trapIndex }
 
 wss.on('connection', function connection(ws) {
     clients.set(ws, { level: 'easy', gameActive: false, lastTraps: [], connectedAt: Date.now() });
+    sessionTraps.set(ws, {});
     console.log('Client connected, total clients:', clients.size);
 
     ws.on('message', function incoming(message) {
@@ -31,22 +34,40 @@ wss.on('connection', function connection(ws) {
                 clientData.isHackBot = data.isHackBot || false;
                 console.log('Client type set to:', data.isHackBot ? 'hack bot' : 'player');
             } else if (data.type === 'request_traps') {
-                // Все клиенты получают ловушки как первый игрок (индекс 0)
-                const traps = generateTraps(clientData.level, 0);
+                // Если игра активна (game_start был), используем фиксированный trap index для уровня
+                let traps;
+                let session = sessionTraps.get(ws);
+                if (globalGameActive && session && session[clientData.level]) {
+                    traps = [session[clientData.level]];
+                } else {
+                    traps = generateTraps(clientData.level, 0);
+                    // Если игра активна, фиксируем trap index для уровня
+                    if (globalGameActive && session) {
+                        session[clientData.level] = traps[0];
+                    }
+                }
                 clientData.lastTraps = traps;
                 console.log('Generated traps for level', clientData.level, 'client (synced)', ':', traps);
                 ws.send(JSON.stringify({ type: 'traps', traps: traps, level: clientData.level }));
             } else if (data.type === 'game_start') {
                 globalGameActive = true; // Глобально останавливаем генерацию
                 console.log('🎮 GAME STARTED - All trap generation paused globally');
-                // Отправляем последние сгенерированные ловушки всем клиентам
+                // Фиксируем trap index для каждого клиента и уровня
                 clients.forEach((clientData, clientWs) => {
                     if (clientWs.readyState === WebSocket.OPEN) {
-                        clientWs.send(JSON.stringify({ type: 'game_traps', traps: clientData.lastTraps, level: clientData.level }));
+                        let traps = generateTraps(clientData.level, 0);
+                        let session = sessionTraps.get(clientWs);
+                        if (session) session[clientData.level] = traps[0];
+                        clientData.lastTraps = traps;
+                        clientWs.send(JSON.stringify({ type: 'game_traps', traps: traps, level: clientData.level }));
                     }
                 });
             } else if (data.type === 'game_end') {
                 globalGameActive = false; // Глобально возобновляем генерацию
+                // Очищаем фиксированные trap index
+                sessionTraps.forEach((session, ws) => {
+                    sessionTraps.set(ws, {});
+                });
                 console.log('🏁 GAME ENDED - All trap generation resumed globally');
             }
         } catch (error) {
@@ -55,8 +76,9 @@ wss.on('connection', function connection(ws) {
     });
 
     ws.on('close', function() {
-        clients.delete(ws);
-        console.log('Client disconnected, total clients:', clients.size);
+    clients.delete(ws);
+    sessionTraps.delete(ws);
+    console.log('Client disconnected, total clients:', clients.size);
     });
 
     ws.on('error', function(error) {
@@ -93,13 +115,15 @@ setInterval(() => {
 function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
     const chance = SETTINGS.chance[level];
     if (!chance) return [];
-    
+
     // Используем broadcastSeed если передан, иначе генерируем новый
-    const seed = broadcastSeed !== null ? broadcastSeed + clientIndex * 1000 : Date.now() + clientIndex * 1000;
+    const seed = broadcastSeed !== null ? broadcastSeed + clientIndex * 1000 : Date.now() + Math.floor(Math.random() * 10000);
     const random = seededRandom(seed);
-    
-    const flameIndex = Math.ceil(random() * chance[Math.round(random() * 100) > 95 ? 1 : 0]);
-    
+
+    // Для разнообразия: выбираем случайный trap index в диапазоне шанса для уровня
+    const maxTrap = chance[Math.round(random() * 100) > 95 ? 1 : 0];
+    const flameIndex = Math.ceil(random() * maxTrap);
+
     // Коэффициенты для каждого уровня (из оригинальной игры)
     const coefficients = {
         easy: [ 1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63, 1.75, 1.88, 2.04, 2.22, 2.45, 2.72, 3.06, 3.50, 4.08, 4.90, 6.13, 6.61, 9.81, 19.44 ],
@@ -107,12 +131,12 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
         hard: [ 1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21, 22.59, 34.79, 55.97, 94.99, 172.42, 341.40, 760.46, 2007.63, 6956.47, 41321.43 ],
         hardcore: [ 1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89, 9161.08, 39301.05, 233448.29 ]
     };
-    
+
     const levelCoeffs = coefficients[level] || coefficients.easy;
     const coefficient = levelCoeffs[flameIndex - 1] || levelCoeffs[0]; // -1 потому что индекс с 1
-    
+
     console.log(`Client ${clientIndex}: Level: ${level}, Trap index: ${flameIndex}, Coefficient: ${coefficient}x`);
-    
+
     return [flameIndex];
 }
 
