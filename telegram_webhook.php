@@ -56,9 +56,7 @@ if ($text === '+' || $text === '-') {
                             $balanceStmt = $conn->prepare("UPDATE users SET deposit = deposit + ? WHERE user_id = ?");
                             $balanceUpdated = $balanceStmt->execute([$amount, $userId]);
                             
-                            if ($balanceUpdated && $balanceStmt->rowCount() > 0) {
-                                $confirmText .= "\n💰 Баланс пользователя $userId пополнен на $amount $currency";
-                            }
+                            // Баланс пополнен, но не показываем сумму в Telegram
                         }
                     }
                     
