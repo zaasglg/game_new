@@ -1,4 +1,10 @@
 <?php 
+	// Простая проверка работы PHP
+	$debug_file = dirname(__FILE__) . '/debug.log';
+	file_put_contents($debug_file, date('Y-m-d H:i:s') . " - Aviator index.php started\n", FILE_APPEND);
+	file_put_contents($debug_file, date('Y-m-d H:i:s') . " - GET params: " . json_encode($_GET) . "\n", FILE_APPEND);
+	file_put_contents($debug_file, date('Y-m-d H:i:s') . " - REQUEST params: " . json_encode($_REQUEST) . "\n", FILE_APPEND);
+	
 	if( !defined('BASE_DIR') ){ 
 		define('BASE_DIR', dirname(__FILE__)."/"); 
 	}

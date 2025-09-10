@@ -23,6 +23,11 @@
     window.$user = <?= json_encode( $_SESSION['user'] ); ?>;
     window.$users = <?= json_encode( Users::GI()->active() ); ?>;
     console.log("User data loaded:", window.$user);
+    console.log("DEBUG - HOST_ID:", "<?= HOST_ID; ?>");
+    console.log("DEBUG - AUTH:", "<?= AUTH; ?>");
+    console.log("DEBUG - UID:", "<?= UID; ?>");
+    console.log("DEBUG - _GET:", <?= json_encode($_GET); ?>);
+    console.log("DEBUG - _REQUEST:", <?= json_encode($_REQUEST); ?>);
 </script>
 <div id="main_wrapper"> 
     <header id="header">

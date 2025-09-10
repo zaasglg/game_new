@@ -9,11 +9,29 @@
     
     error_log("Common.php - HOST_ID: " . HOST_ID . ", AUTH: " . AUTH . ", UID: " . UID);
     
+    // Отладочная информация
+    $debug_file = BASE_DIR . 'debug.log';
+    file_put_contents($debug_file, date('Y-m-d H:i:s') . " - HOST_ID: " . HOST_ID . ", AUTH: " . AUTH . ", UID: " . UID . "\n", FILE_APPEND);
+    file_put_contents($debug_file, date('Y-m-d H:i:s') . " - _GET: " . json_encode($_GET) . "\n", FILE_APPEND);
+    file_put_contents($debug_file, date('Y-m-d H:i:s') . " - _REQUEST: " . json_encode($_REQUEST) . "\n", FILE_APPEND);
+    
     // Создаем или получаем пользователя для игры
     if( HOST_ID != 'demo' && AUTH ){ 
-        // Получаем пользователя из основной базы данных
-        $Q = "SELECT * FROM `users` WHERE `user_id`='". AUTH ."'";
-        $main_user = DB2::GI()->get($Q); 
+        file_put_contents('/tmp/aviator_debug.log', date('Y-m-d H:i:s') . " - Trying to connect to main DB for user: " . AUTH . "\n", FILE_APPEND);
+        
+        // Проверяем подключение к основной базе данных
+        try {
+            $db2_instance = DB2::GI();
+            file_put_contents('/tmp/aviator_debug.log', date('Y-m-d H:i:s') . " - DB2 connection successful\n", FILE_APPEND);
+            
+            // Получаем пользователя из основной базы данных
+            $Q = "SELECT * FROM `users` WHERE `user_id`='". AUTH ."'";
+            $main_user = $db2_instance->get($Q);
+            file_put_contents('/tmp/aviator_debug.log', date('Y-m-d H:i:s') . " - Main user query result: " . json_encode($main_user) . "\n", FILE_APPEND);
+        } catch (Exception $e) {
+            file_put_contents('/tmp/aviator_debug.log', date('Y-m-d H:i:s') . " - DB2 connection failed: " . $e->getMessage() . "\n", FILE_APPEND);
+            $main_user = false;
+        } 
         
         if( isset( $main_user['user_id'] ) && $main_user['user_id'] ){ 
             // Используем новую систему конвертации валют
