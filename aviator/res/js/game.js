@@ -517,7 +517,49 @@ class Game {
                 
                 if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
                 if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
-                $('#process_level .current').html( this.cur_cf.toFixed(2)+"x"); 
+                $('#process_level .current').html( this.cur_cf.toFixed(2)+"x");
+                
+                this.autocheck(); 
+                var $total_wins = 0; 
+                for( var $u of this.current_bets ){
+                    if( this.cur_cf >= $u.cf ){ 
+                        $u.win = true; 
+                        var $line = $('#current_bets_list ul li[data-uid="'+ $u.uid +'"]'); 
+                        if( !$line.hasClass('active') ){
+                            $line.addClass('active'); 
+                            $('.betx', $line).html( ( +$u.cf ).toFixed(2) ).addClass( +$u.cf > 6 ? 'high' : ( +$u.cf > 2 ? 'mid' : '' ) );
+                            $('.win', $line).html( ( +$u.cf * +$u.amount ).toFixed(2) ); 
+                        }
+                        $total_wins += parseFloat( +$u.cf * +$u.amount ); 
+                    }
+                } 
+                // Оптимизированное обновление кнопок
+                if (!this.lastButtonUpdate || ($timer - this.lastButtonUpdate) > 100) {
+                    this.lastButtonUpdate = $timer;
+                    $('#actions_wrapper .make_bet.warning').each(function(){ 
+                        var $self=$(this); 
+                        var $bet_id = parseInt( $self.attr('data-id') ); 
+                        if( $bet_id ){
+                            var $src = parseInt( $self.attr('data-src') );
+                            var $wrap=$self.parent().parent().parent().parent(); 
+                            var $bet = parseFloat( $('input[type="text"]', $wrap).val() ); 
+                            var $cf = parseFloat( $game.cur_cf ); 
+                            var $result = ( $bet * $cf ).toFixed(2); 
+                            var $cash_out = parseFloat( $('[name="cashout_value"]', $wrap).val() );
+                            $('h2 [data-rel="current_bet"]', $self).html( $result ); 
+                            if( $('[name="cashout_switcher"]', $wrap).is(':checked') ){ 
+                                if( $cash_out <= $cf ){ $self.click(); }
+                            } 
+                        }
+                    });
+                }
+                $('#bets_wrapper .info_window [data-rel="bets"] .label').html( ( $total_wins * this.factor ).toFixed(2) ); 
+                var $players = $('#current_bets_list ul li').length; 
+                var $winners = $('#current_bets_list ul li.active').length ; 
+                var $perc = $winners / ( $players / 100 )
+                $('#bets_wrapper .info_window [data-rel="bets"] .cur').html( $winners*this.factor ); 
+                $('#bets_wrapper .progresser').css('width', $perc+'%');
+                break; 
                     this.autocheck(); 
                     var $total_wins = 0; 
                     for( var $u of this.current_bets ){
