@@ -1,12 +1,20 @@
 <?php 
+	error_reporting(E_ALL);
+	ini_set('display_errors', 1);
+	
 	$post = $_REQUEST; 
 	$input = json_decode( file_get_contents('php://input'), 1, 1024 ); 
 	$return = array('error'=>1, 'msg'=>"UNAUTHORIZED"); 
 
-	$fields = isset( $post['fields'] ) ? $post['fields'] : false; 
-	$cond = isset( $post['cond'] ) ? $post['cond'] : false; 
+	$data = array_merge( $post, $input ? $input : [] );
 
-	//var_dump( $input );
+	$fields = isset( $data['fields'] ) ? $data['fields'] : false; 
+	$cond = isset( $data['cond'] ) ? $data['cond'] : false; 
+
+	// Логирование для отладки
+	if(ACTION == 'add' && CONTROLLER == 'bets') {
+		error_log("Aviator Bet Add - Data: " . json_encode($data));
+	}
 
 	$CLASS = "";
 //
@@ -27,26 +35,26 @@
 	}
 
 	switch( ACTION ){
-		case "add": $return = $CLASS->add( $post ); break; 
-		case "edit": $return = $CLASS->edit( $post ); break; 
-		case "load": $return = $CLASS->load( $post ); break; 
-		case "get": $return = $CLASS->get( $post ); break;  
+		case "add": $return = $CLASS->add( $data ); break; 
+		case "edit": $return = $CLASS->edit( $data ); break; 
+		case "load": $return = $CLASS->load( $data ); break; 
+		case "get": $return = $CLASS->get( $data ); break;  
 		// users 
-		case "auth": $return = $CLASS->auth( $post ); break;
-		case "reg": $return = $CLASS->reg( $post ); break; 
-		case "balance": $return = $CLASS->balance( $post ); break; 
+		case "auth": $return = $CLASS->auth( $data ); break;
+		case "reg": $return = $CLASS->reg( $data ); break; 
+		case "balance": $return = $CLASS->balance( $data ); break; 
 		// cf
-		case "next": $return = $CLASS->next( $post ); break;
-		case "bulk": $return = $CLASS->bulk( $post ); break;  
-		case "current": $return = $CLASS->current( $post ); break;  
+		case "next": $return = $CLASS->next( $data ); break;
+		case "bulk": $return = $CLASS->bulk( $data ); break;  
+		case "current": $return = $CLASS->current( $data ); break;  
 		// games  
-		case "search": $return = $CLASS->search( $post ); break; 
-		case "history": $return = $CLASS->history( $post ); break; 
-		case "close": $return = $CLASS->close( $post ); break; 
+		case "search": $return = $CLASS->search( $data ); break; 
+		case "history": $return = $CLASS->history( $data ); break; 
+		case "close": $return = $CLASS->close( $data ); break; 
 		// currency conversion methods
-		case "save_game_result": $return = $CLASS->save_game_result( $post ); break;
-		case "get_user_balance": $return = $CLASS->get_user_balance( $post ); break;
-		case "update_balance": $return = $CLASS->updateBalance( $post ); break; 
+		case "save_game_result": $return = $CLASS->save_game_result( $data ); break;
+		case "get_user_balance": $return = $CLASS->get_user_balance( $data ); break;
+		case "update_balance": $return = $CLASS->updateBalance( $data ); break; 
 
 	}
 

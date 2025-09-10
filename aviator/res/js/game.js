@@ -796,21 +796,22 @@ class Game {
                     $('[data-rel="balance"]').val( $balance ).html( $balance );
                 } 
                 if( $obj.error ){
-                    if( $data.type == "manual" ){
-                        var $btn = $('.make_bet[data-src="'+$data.src+'"]');
-                        $btn.removeClass('danger').removeClass('warning'); 
-                        $game.user_bets[ $data.src-1 ] = 0; 
-                        $btn.attr('data-id', 0);
-                        $('span', $btn ).html(LOCALIZATION.make_bet_generic_bet);
-                        $('h2', $btn).css('display','flex'); 
-                        $('h3', $btn).hide();  
-                        $('.actions_field[data-id="'+$data.src+'"]').removeClass('disabled'); 
-                        $('.actions_field[data-id="'+$data.src+'"] .fast_bet').attr('disabled', "disabled"); 
-                        $('.actions_field[data-id="'+$data.src+'"] .autoplay').attr('disabled','disabled'); 
-                    } 
-                    if( $data.type == "auto" ){
-                        $('.actions_field[data-id="'+$data.src+'"] .autoplay').click(); 
-                    }
+                console.log("Bet error:", $obj.msg || $obj.error);
+                if( $data.type == "manual" ){
+                var $btn = $('.make_bet[data-src="'+$data.src+'"]');
+                $btn.removeClass('danger').removeClass('warning');
+                $game.user_bets[ $data.src-1 ] = 0;
+                $btn.attr('data-id', 0);
+                $('span', $btn ).html(LOCALIZATION.make_bet_generic_bet);
+                $('h2', $btn).css('display','flex');
+                $('h3', $btn).hide();
+                $('.actions_field[data-id="'+$data.src+'"]').removeClass('disabled');
+                $('.actions_field[data-id="'+$data.src+'"] .fast_bet').removeAttr('disabled');
+                $('.actions_field[data-id="'+$data.src+'"] .autoplay').removeAttr('disabled');
+                }
+                if( $data.type == "auto" ){
+                $('.actions_field[data-id="'+$data.src+'"] .autoplay').click();
+                }
                 }
             }
         });
