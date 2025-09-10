@@ -515,7 +515,7 @@ class Game {
                     // $('.make_bet').addClass('danger').removeClass('warning').attr('data-id', 0); 
                 } 
                 else { 
-                    this.cur_cf = 1 + 0.5 * ( Math.exp( ( $delta / 1000 )  / 5 ) - 1 );
+                    this.cur_cf = 1 + ( $delta / 1000 ) * 0.1;
                     if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
                     if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
                     $('#process_level .current').html( this.cur_cf.toFixed(2)+"x"); 
