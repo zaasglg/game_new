@@ -511,10 +511,7 @@ class Game {
                 var timeInSeconds = $delta / 1000;
                 this.cur_cf = 1 + (timeInSeconds * 0.1);
                 
-                // Ограничиваем максимальный коэффициент
-                if (this.cur_cf > this.win_cf) {
-                    this.cur_cf = this.win_cf;
-                }
+                // Убираем ограничение для непрерывного роста
                 
                 if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
                 if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
