@@ -245,8 +245,7 @@ class Game {
         this.timers = SETTINGS.timers; 
         this.status = "loading"; 
         this.cur_cf = 1.0; 
-        this.win_cf = 10.0;
-        this.serverControlled = false; // Флаг для контроля WebSocket 
+        this.win_cf = 10.0; 
         this.new_delta = 0; 
         var $vics = document.querySelectorAll('[data-rel="currency"]'); 
         if( $vics && $vics.length ){
@@ -508,11 +507,14 @@ class Game {
                 }
                 break;
             case "flight":
-                // Используем коэффициент от WebSocket, а не собственные вычисления
-                // Обновляем коэффициент только если нет данных от сервера
-                if (!this.serverControlled) {
-                    var timeInSeconds = $delta / 1000;
-                    this.cur_cf = 1 + (timeInSeconds * 0.1);
+                // Плавное увеличение коэффициента в реальном времени
+                var timeInSeconds = $delta / 1000;
+                // Увеличиваем коэффициент со скоростью 0.05 в секунду для плавности
+                this.cur_cf = 1 + (timeInSeconds * 0.05);
+                
+                // Ограничиваем максимальный коэффициент
+                if (this.cur_cf > this.win_cf) {
+                    this.cur_cf = this.win_cf;
                 }
                 
                 if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
@@ -955,8 +957,7 @@ class Game {
         SETTINGS.timers.flight = $data.delta; 
         this.timer = new Date().getTime(); 
         this.win_cf = parseFloat($data.cf); 
-        this.cur_cf = 1; 
-        this.serverControlled = true; // Включаем контроль от сервера
+        this.cur_cf = 1;
         
         // Убеждаемся что самолет инициализирован
         if ($plane) {
@@ -999,7 +1000,6 @@ class Game {
         SETTINGS.timers.finish = $data.delta; 
         this.timer = new Date().getTime(); 
         this.cur_cf = parseFloat($data.cf); // Используем коэффициент от сервера
-        this.serverControlled = false; // Отключаем контроль от сервера
         $plane.trace = false; 
         $plane.pos = 5; 
         this.clear_level({ cf: this.win_cf }); 
@@ -1153,10 +1153,12 @@ socket.on('message', ( msg ) => {
             delta: $obj.game && $obj.game.delta ? parseInt( $obj.game.delta ) : 0 
         } 
         
-        // Обновляем коэффициент в реальном времени во время полета
+        // Обновляем коэффициент от сервера только если он больше текущего
         if ($data.state === "flying" && $game.status === "flight") {
-            $game.cur_cf = parseFloat($data.cf);
-            $('#process_level .current').html( $game.cur_cf.toFixed(2)+"x");
+            var serverCf = parseFloat($data.cf);
+            if (serverCf > $game.cur_cf) {
+                $game.cur_cf = serverCf;
+            }
         }
         
         switch( $data.state ){
