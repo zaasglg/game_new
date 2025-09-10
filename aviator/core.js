@@ -184,9 +184,12 @@ async function update_server(){
 	
 	// Отправляем текущий коэффициент во время полета
 	if( CUR_STATE === 1 ) { // flying state
-		var current_cf = 1 + ($delta / 1000) * 0.1;
+		var current_cf = 1 + ($delta / 1000) * 0.05;
 		if( current_cf >= CURRENT_CF ) {
 			current_cf = CURRENT_CF;
+			// Завершаем игру когда достигнут целевой коэффициент
+			START = $cur_time;
+			CUR_STATE = 2; // переходим к finish
 		}
 		io.emit('coefficient', JSON.stringify({
 			uid: "all",
