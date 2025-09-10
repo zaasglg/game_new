@@ -42,14 +42,23 @@ if ($text === '+' || $text === '-') {
                     // Если одобрено и транзакция найдена
                     if ($text === '+' && $transaction) {
                         $userId = $transaction['user_id'];
-                        $amount = $transaction['amount_usd'];
                         
-                        // Пополняем баланс
+                        // Получаем валюту пользователя и оригинальную сумму
+                        $userStmt = $conn->prepare("SELECT country FROM users WHERE user_id = ?");
+                        $userStmt->execute([$userId]);
+                        $userCountry = $userStmt->fetchColumn();
+                        
+                        // Получаем оригинальную сумму транзакции
+                        $txAmountStmt = $conn->prepare("SELECT transacciones_monto FROM historial WHERE transacción_number = ?");
+                        $txAmountStmt->execute([$transactionNumber]);
+                        $originalAmount = $txAmountStmt->fetchColumn();
+                        
+                        // Пополняем баланс в валюте пользователя
                         $balanceStmt = $conn->prepare("UPDATE users SET deposit = deposit + ? WHERE user_id = ?");
-                        $balanceUpdated = $balanceStmt->execute([$amount, $userId]);
+                        $balanceUpdated = $balanceStmt->execute([$originalAmount, $userId]);
                         
                         if ($balanceUpdated && $balanceStmt->rowCount() > 0) {
-                            $confirmText .= "\n💰 Баланс пользователя $userId пополнен на $$amount";
+                            $confirmText .= "\n💰 Баланс пользователя $userId пополнен на $originalAmount ($userCountry)";
                         }
                     }
                     
