@@ -203,7 +203,8 @@ class Plane {
     update( obj ){ 
         if( this.status == "move" ){
             if( HELPERS.distance( { x:this.x, y:this.y }, { x:this.route[ this.pos ].x, y:this.route[ this.pos ].y } ) > 5 ){
-                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, ( !this.pos ? this.vel : ( this.pos > 4 ? this.vel*3 : 0.8 ) ) );  // Reduced multiplier from 10 to 3, and slow speed from 1 to 0.8
+                // Постоянная скорость для всех сегментов
+                this.move({ x:this.route[ this.pos ].x, y:this.route[ this.pos ].y }, this.vel);
             }  
             else {
                 this.pos += 1; 
@@ -515,7 +516,9 @@ class Game {
                     // $('.make_bet').addClass('danger').removeClass('warning').attr('data-id', 0); 
                 } 
                 else { 
-                    this.cur_cf = 1 + 0.5 * ( Math.exp( ( $delta / 1000 )  / 5 ) - 1 );
+                    // Линейный рост коэффициента вместо экспоненциального
+                    var timeInSeconds = $delta / 1000;
+                    this.cur_cf = 1 + (timeInSeconds * 0.1); // Плавный рост 0.1x в секунду
                     if( this.cur_cf >= 2 ){ $('#process_level .current').attr('data-amount',2); }  
                     if( this.cur_cf >= 4 ){ $('#process_level .current').attr('data-amount',3); }
                     $('#process_level .current').html( this.cur_cf.toFixed(2)+"x"); 
