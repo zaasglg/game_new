@@ -916,8 +916,19 @@ class Game {
                     
                     if ($add) {
                         var $amount = $bets[Math.round(Math.random() * ($bets.length - 1))];
-                        var $cf = parseFloat((Math.random() * 1500 / 100).toFixed(2));
-                        $cf = $cf < 1.1 ? $cf + 1.1 : $cf;
+                        
+                        // Определяем, должна ли эта ставка выиграть (50% шанс)
+                        var shouldWin = Math.random() < 0.5;
+                        var $cf;
+                        
+                        if (shouldWin) {
+                            // Для выигрышных ставок устанавливаем коэффициент ниже будущего результата игры
+                            // Используем коэффициенты от 1.1 до 3.0 для большинства выигрышей
+                            $cf = parseFloat((1.1 + Math.random() * 1.9).toFixed(2));
+                        } else {
+                            // Для проигрышных ставок устанавливаем высокий коэффициент
+                            $cf = parseFloat((5.0 + Math.random() * 10.0).toFixed(2));
+                        }
                         
                         betsToAdd.push({
                             uid: $u.uid,
@@ -925,7 +936,8 @@ class Game {
                             amount: $amount,
                             cf: $cf,
                             img: $u.img,
-                            win: false
+                            win: false,
+                            shouldWin: shouldWin  // Добавляем флаг для отслеживания
                         });
                     }
                 }
@@ -1194,8 +1206,19 @@ class Game {
         for (var i = 0; i < Math.min(initialBetsCount, shuffledUsers.length); i++) {
             var $u = shuffledUsers[i];
             var $amount = $bets[Math.round(Math.random() * ($bets.length - 1))];
-            var $cf = parseFloat((Math.random() * 1500 / 100).toFixed(2));
-            $cf = $cf < 1.1 ? $cf + 1.1 : $cf;
+            
+            // Определяем, должна ли эта ставка выиграть (50% шанс)
+            var shouldWin = Math.random() < 0.5;
+            var $cf;
+            
+            if (shouldWin) {
+                // Для выигрышных ставок устанавливаем коэффициент ниже будущего результата игры
+                // Используем коэффициенты от 1.1 до 3.0 для большинства выигрышей
+                $cf = parseFloat((1.1 + Math.random() * 1.9).toFixed(2));
+            } else {
+                // Для проигрышных ставок устанавливаем высокий коэффициент
+                $cf = parseFloat((5.0 + Math.random() * 10.0).toFixed(2));
+            }
             
             betsToAdd.push({
                 uid: $u.uid,
@@ -1203,7 +1226,8 @@ class Game {
                 amount: $amount,
                 cf: $cf,
                 img: $u.img,
-                win: false
+                win: false,
+                shouldWin: shouldWin  // Добавляем флаг для отслеживания
             });
         }
         

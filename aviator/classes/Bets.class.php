@@ -45,9 +45,25 @@
                 }
             }
 
-            $balance = isset( $_SESSION['aviator_demo'] ) ? 
-                        $_SESSION['aviator_demo'] : 
-                        Users::GI()->balance(); 
+            if( isset( $_SESSION['aviator_demo'] ) ){
+                $balance = $_SESSION['aviator_demo'];
+            } else {
+                // Получаем баланс из основной базы данных и конвертируем в игровую валюту (USD)
+                if( AUTH ){
+                    try {
+                        $main_balance = DB2::GI()->getField('deposit', 'users', ['user_id' => AUTH]);
+                        $user_rate = isset($_SESSION['USER_RATE']) ? $_SESSION['USER_RATE'] : 1;
+                        $balance = $main_balance / $user_rate; // Конвертируем в USD для игры
+                        
+                        // Обновляем баланс в игровой базе данных
+                        Users::GI()->edit(['uid' => UID, 'balance' => $balance]);
+                    } catch (Exception $e) {
+                        $balance = Users::GI()->balance();
+                    }
+                } else {
+                    $balance = Users::GI()->balance();
+                }
+            } 
 
             if( $data['bet'] > $balance ){
                 return ['error'=>1, 'msg'=>"Low balance"]; 

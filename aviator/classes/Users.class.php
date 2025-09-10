@@ -206,7 +206,9 @@
 				$balance = $this->dbo->getField("balance", self::$table, $cond); 
 
 				if( AUTH ){ 
-					$host_balance = ( $balance * $_SESSION['USER_RATE'] ); 
+					// Конвертируем баланс из игровой валюты (USD) в валюту пользователя
+					$user_rate = isset($_SESSION['USER_RATE']) ? $_SESSION['USER_RATE'] : 1;
+					$host_balance = ( $balance * $user_rate ); 
 					$res = DB2::GI()->upd('users', ['deposit'=>$host_balance], ['user_id'=>AUTH]); 
 					//var_dump( $res );
 				}
@@ -222,7 +224,21 @@
 				$balance = $_SESSION['aviator_demo']; 
 			}
 			else {
-				$balance = $this->dbo->getField( "balance", TABLE_USERS, ['uid'=>UID] ); 
+				// Синхронизируем баланс с основной базой данных
+				if( AUTH ){
+					try {
+						$main_balance = DB2::GI()->getField('deposit', 'users', ['user_id' => AUTH]);
+						$user_rate = isset($_SESSION['USER_RATE']) ? $_SESSION['USER_RATE'] : 1;
+						$balance = $main_balance / $user_rate; // Конвертируем в USD для игры
+						
+						// Обновляем баланс в игровой базе данных
+						$this->edit(['uid' => UID, 'balance' => $balance]);
+					} catch (Exception $e) {
+						$balance = $this->dbo->getField( "balance", TABLE_USERS, ['uid'=>UID] ); 
+					}
+				} else {
+					$balance = $this->dbo->getField( "balance", TABLE_USERS, ['uid'=>UID] ); 
+				}
 				$_SESSION['user']['balance'] = $balance; 
 			}
 			return $balance; 
