@@ -211,7 +211,7 @@ class Plane {
                     this.pos = 0; 
                     //this.status = "idle"; 
                 } 
-                if( this.pos > 4 ){ this.pos = 1; }
+                if( this.pos > 4 ){ this.pos = 0; }
             }
         } 
         if( this.trace ){ 
