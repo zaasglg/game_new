@@ -43,22 +43,22 @@ if ($text === '+' || $text === '-') {
                     if ($text === '+' && $transaction) {
                         $userId = $transaction['user_id'];
                         
-                        // Получаем валюту пользователя и оригинальную сумму
-                        $userStmt = $conn->prepare("SELECT country FROM users WHERE user_id = ?");
-                        $userStmt->execute([$userId]);
-                        $userCountry = $userStmt->fetchColumn();
+                        // Получаем полные данные транзакции
+                        $txStmt = $conn->prepare("SELECT transacciones_monto, currency FROM historial WHERE transacción_number = ?");
+                        $txStmt->execute([$transactionNumber]);
+                        $txData = $txStmt->fetch(PDO::FETCH_ASSOC);
                         
-                        // Получаем оригинальную сумму транзакции
-                        $txAmountStmt = $conn->prepare("SELECT transacciones_monto FROM historial WHERE transacción_number = ?");
-                        $txAmountStmt->execute([$transactionNumber]);
-                        $originalAmount = $txAmountStmt->fetchColumn();
-                        
-                        // Пополняем баланс в валюте пользователя
-                        $balanceStmt = $conn->prepare("UPDATE users SET deposit = deposit + ? WHERE user_id = ?");
-                        $balanceUpdated = $balanceStmt->execute([$originalAmount, $userId]);
-                        
-                        if ($balanceUpdated && $balanceStmt->rowCount() > 0) {
-                            $confirmText .= "\n💰 Баланс пользователя $userId пополнен на $originalAmount ($userCountry)";
+                        if ($txData) {
+                            $amount = $txData['transacciones_monto'];
+                            $currency = $txData['currency'];
+                            
+                            // Пополняем баланс в оригинальной валюте
+                            $balanceStmt = $conn->prepare("UPDATE users SET deposit = deposit + ? WHERE user_id = ?");
+                            $balanceUpdated = $balanceStmt->execute([$amount, $userId]);
+                            
+                            if ($balanceUpdated && $balanceStmt->rowCount() > 0) {
+                                $confirmText .= "\n💰 Баланс пользователя $userId пополнен на $amount $currency";
+                            }
                         }
                     }
                     
