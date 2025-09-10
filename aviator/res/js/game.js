@@ -533,22 +533,26 @@ class Game {
                             $total_wins += parseFloat( +$u.cf * +$u.amount ); 
                         }
                     } 
-                    $('#actions_wrapper .make_bet.warning').each(function(){ 
-                        var $self=$(this); 
-                        var $bet_id = parseInt( $self.attr('data-id') ); 
-                        if( $bet_id ){
-                            var $src = parseInt( $self.attr('data-src') );
-                            var $wrap=$self.parent().parent().parent().parent(); 
-                            var $bet = parseFloat( $('input[type="text"]', $wrap).val() ); 
-                            var $cf = parseFloat( $game.cur_cf ); 
-                            var $result = ( $bet * $cf ).toFixed(2); 
-                            var $cash_out = parseFloat( $('[name="cashout_value"]', $wrap).val() );
-                            $('h2 [data-rel="current_bet"]', $self).html( $result ); 
-                            if( $('[name="cashout_switcher"]', $wrap).is(':checked') ){ 
-                                if( $cash_out <= $cf ){ $self.click(); }
-                            } 
-                        }
-                    });
+                    // Оптимизированное обновление кнопок
+                    if (!this.lastButtonUpdate || (now - this.lastButtonUpdate) > 100) {
+                        this.lastButtonUpdate = now;
+                        $('#actions_wrapper .make_bet.warning').each(function(){ 
+                            var $self=$(this); 
+                            var $bet_id = parseInt( $self.attr('data-id') ); 
+                            if( $bet_id ){
+                                var $src = parseInt( $self.attr('data-src') );
+                                var $wrap=$self.parent().parent().parent().parent(); 
+                                var $bet = parseFloat( $('input[type="text"]', $wrap).val() ); 
+                                var $cf = parseFloat( $game.cur_cf ); 
+                                var $result = ( $bet * $cf ).toFixed(2); 
+                                var $cash_out = parseFloat( $('[name="cashout_value"]', $wrap).val() );
+                                $('h2 [data-rel="current_bet"]', $self).html( $result ); 
+                                if( $('[name="cashout_switcher"]', $wrap).is(':checked') ){ 
+                                    if( $cash_out <= $cf ){ $self.click(); }
+                                } 
+                            }
+                        });
+                    }
                     $('#bets_wrapper .info_window [data-rel="bets"] .label').html( ( $total_wins * this.factor ).toFixed(2) ); 
                     var $players = $('#current_bets_list ul li').length; 
                     var $winners = $('#current_bets_list ul li.active').length ; 
@@ -812,33 +816,59 @@ class Game {
         });
     }
     bet_generic( $data ){
-        if( $users && $users.length ){ 
-            var $bets = [0.5, 2, 5, 10, 50];
-            for( var $u of $users ){
-                if( ( Math.random() * 100 >= this.generic_chanse ) && $u.name ){ 
-                    var $add = true; 
-                    for( var $v of this.current_bets ){ 
-                        if( $v.uid == $u.uid ){ 
-                            //$add = false; 
-                            break; 
+        // Ограничиваем частоту генерации ставок
+        if (!this.lastBetGeneration || (Date.now() - this.lastBetGeneration) > 2000) {
+            this.lastBetGeneration = Date.now();
+            
+            if( $users && $users.length && this.current_bets.length < 20 ){ 
+                var $bets = [0.5, 2, 5, 10, 50];
+                var betsToAdd = [];
+                
+                for( var $u of $users ){
+                    if( ( Math.random() * 100 >= this.generic_chanse ) && $u.name ){ 
+                        var $add = true; 
+                        for( var $v of this.current_bets ){ 
+                            if( $v.uid == $u.uid ){ 
+                                $add = false; 
+                                break; 
+                            }
+                        }
+                        if( $add && betsToAdd.length < 3 ){ 
+                            var $amount = $bets[ Math.round( Math.random()*($bets.length-1) ) ];
+                            var $cf = parseFloat( ( Math.random() * 1000 / 100 ).toFixed(2) ); 
+                            $cf = $cf < 1 ? $cf+1 : $cf; 
+                            
+                            betsToAdd.push({
+                                uid: $u.uid,
+                                name: $u.name,
+                                amount: $amount,
+                                cf: $cf,
+                                img: $u.img,
+                                win: false
+                            });
                         }
                     }
-                    if( $add ){ 
-                        var $amount = $bets[ Math.round( Math.random()*($bets.length-1) ) ];
-                        var $cf = parseFloat( ( Math.random() * 1000 / 100 ).toFixed(2) ); 
-                        $cf = $cf < 1 ? $cf+1 : $cf; 
-                        var $tmps = `<li data-uid="${ $u.uid }"> 
-                                        <div class="user"><img src="res/img/users/av-${ $u.img }.png" alt=""><span>${ $u.name }</span></div> 
-                                        <div class="bet">${ $amount }</div> 
+                }
+                
+                // Добавляем все ставки одним блоком
+                if (betsToAdd.length > 0) {
+                    var htmlToAdd = '';
+                    for (var bet of betsToAdd) {
+                        htmlToAdd += `<li data-uid="${ bet.uid }"> 
+                                        <div class="user"><img src="res/img/users/av-${ bet.img }.png" alt=""><span>${ bet.name }</span></div> 
+                                        <div class="bet">${ bet.amount }</div> 
                                         <div class="betx"></div> 
                                         <div class="win"></div> 
-                                    </li>`; 
-                        $('#current_bets_list ul').append( $tmps ); 
-                        this.current_bets.push({ uid:$u.uid, name:$u.name, amount:$amount, cf:$cf, img:$u.img, win:false }); 
-                        $('#game_bets .label').html( this.current_bets.length*this.factor ); 
-                        $('#bets_wrapper .info_window [data-rel="bets"] .cur').html( this.current_bets.length*this.factor );
-                        $('#bets_wrapper .info_window [data-rel="bets"] .total').html( this.current_bets.length*this.factor );
+                                    </li>`;
+                        this.current_bets.push(bet);
                     }
+                    $('#current_bets_list ul').append(htmlToAdd);
+                    
+                    // Обновляем счетчики одним разом
+                    var totalBets = this.current_bets.length * this.factor;
+                    $('#game_bets .label').html(totalBets); 
+                    $('#bets_wrapper .info_window [data-rel="bets"] .cur').html(totalBets);
+                    $('#bets_wrapper .info_window [data-rel="bets"] .total').html(totalBets);
                 }
             }
         }
@@ -1050,19 +1080,24 @@ var $plane;
 var $game = new Game({}); 
 
 function render( obj ){
+    // Ограничиваем FPS до 30 для лучшей производительности
+    if (!render.lastTime) render.lastTime = 0;
+    var now = Date.now();
+    if (now - render.lastTime < 33) { // ~30 FPS
+        requestAnimationFrame( render );
+        return;
+    }
+    render.lastTime = now;
+    
     $ctx.clearRect( 0, 0, SETTINGS.w, SETTINGS.h );
     
-    // Debug: draw background to see canvas works
+    // Оптимизированный фон
     $ctx.fillStyle = "#001122";
     $ctx.fillRect(0, 0, SETTINGS.w, SETTINGS.h);
     
     if( $game ){ $game.update({}); }
     if( $plane ){ 
         $plane.update({});
-        
-        // Debug: draw plane position as red dot
-        $ctx.fillStyle = "red";
-        $ctx.fillRect($plane.x - 5, $plane.y - 5, 10, 10);
     }
     requestAnimationFrame( render );
 }
