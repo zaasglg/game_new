@@ -327,11 +327,16 @@ try {
                 console.log(`🔥 WebSocket Traps for ${level}:`, traps);
 
                 if (traps && traps.length > 0 && isHackAnalyze) {
-                    const trapIndex = traps[0];
+                    // Используем первую ловушку как индекс (0-основанный)
+                    const trapIndex = traps[0] - 1; // Преобразуем в 0-основанный индекс
                     const coefficients = this.getCoefficientsForLevel(level);
-                    const coefficient = coefficients[trapIndex - 1] || coefficients[0];
+                    
+                    // Проверяем границы массива
+                    const coefficient = (trapIndex >= 0 && trapIndex < coefficients.length) ? 
+                        coefficients[trapIndex] : coefficients[0];
 
-                    // Обновляем коэффициент только при анализе
+                    console.log(`🎯 Trap: ${traps[0]}, Index: ${trapIndex}, Coefficient: ${coefficient}`);
+
                     const coefficientNumber = document.getElementById('coefficient-number');
                     if (coefficientNumber) {
                         coefficientNumber.textContent = coefficient.toFixed(2);
@@ -342,7 +347,6 @@ try {
                         coefficientStatus.textContent = 'Analysis Complete';
                     }
 
-                    // Сохраняем в базу
                     updateCoefficientInDB(coefficient);
                 }
             }
