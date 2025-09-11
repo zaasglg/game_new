@@ -1074,7 +1074,49 @@ class Game {
         this.moving_time = 0; 
         this.segment  = 0;
         this.chicken = 0; 
-        this.win = 0; 
+        this.win = 0;
+        
+        // WebSocket подключение для получения трапов
+        this.ws = null;
+        this.isConnected = false;
+        this.webSocketTraps = null;
+        this.connectWebSocket();
+    }
+    
+    connectWebSocket() {
+        try {
+            console.log('🔌 Game connecting to WebSocket server...');
+            this.ws = new WebSocket('wss://valor-games.com/ws/');
+            
+            this.ws.onopen = () => {
+                this.isConnected = true;
+                console.log('✅ Game connected to WebSocket server');
+                this.ws.send(JSON.stringify({ type: 'set_level', level: this.cur_lvl }));
+                this.ws.send(JSON.stringify({ type: 'set_client_type', isHackBot: false }));
+            };
+            
+            this.ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('📥 Game received:', data);
+                
+                if (data.type === 'game_traps') {
+                    console.log('🎮 Game traps received:', data.traps);
+                    this.webSocketTraps = data.traps;
+                }
+            };
+            
+            this.ws.onclose = () => {
+                this.isConnected = false;
+                console.log('📱 Game disconnected from WebSocket server');
+                setTimeout(() => this.connectWebSocket(), 3000);
+            };
+            
+            this.ws.onerror = (error) => {
+                console.error('❌ Game WebSocket error:', error);
+            };
+        } catch (error) {
+            console.error('❌ Game failed to connect to WebSocket:', error);
+        }
     } 
     create(){
         this.stp = 0; 
@@ -1105,10 +1147,15 @@ class Game {
                 }
             })
         ); 
-        // flame segment 
-        //var $flame_segment = Math.ceil( Math.random() * ( SETTINGS.cfs[ this.cur_lvl ].length - 1 ) ); 
-        var $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 90 ? 1 : 0 ] );
-        //console.log("FLAME SEGMENT: "+$flame_segment);
+        // flame segment - используем WebSocket или fallback
+        var $flame_segment;
+        if (this.webSocketTraps && this.webSocketTraps.length > 0) {
+            $flame_segment = this.webSocketTraps[0];
+            console.log('🎯 Using WebSocket trap:', $flame_segment);
+        } else {
+            $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 90 ? 1 : 0 ] );
+            console.log('🎲 Using random trap:', $flame_segment);
+        }
         for( var $i=0; $i<$arr.length; $i++ ){ 
             var $numbreaks = Math.round( Math.random() * 3 ); 
             var $breaks = []; 
@@ -1158,14 +1205,25 @@ class Game {
             this.alife = 1; 
             CHICKEN.alife = 1; 
             this.balance -= this.current_bet;
-            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
+            
+            // Запрашиваем трапы от WebSocket сервера
+            if (this.isConnected && this.ws) {
+                this.ws.send(JSON.stringify({ type: 'game_start' }));
+                console.log('🎮 Game started - requesting traps from WebSocket');
+            }
         }
     }
     finish( $win ){ 
         $('#overlay').show(); 
         this.cur_status = "finish"; 
         this.alife = 0; 
-        CHICKEN.alife = 0; 
+        CHICKEN.alife = 0;
+        
+        // Уведомляем WebSocket о завершении игры
+        if (this.isConnected && this.ws) {
+            this.ws.send(JSON.stringify({ type: 'game_end' }));
+        } 
         
         var $award = 0;
         if( $win ){ 
@@ -1544,7 +1602,11 @@ $(document).ready(function(){
             if( SETTINGS.volume.active ){ SOUNDS.button.play(); } 
             var $self=$(this); 
             var $val = $self.val(); 
-            GAME.cur_lvl = $val; 
+            GAME.cur_lvl = $val;
+            // Обновляем уровень в WebSocket
+            if (GAME.isConnected && GAME.ws) {
+                GAME.ws.send(JSON.stringify({ type: 'set_level', level: $val }));
+            }
             GAME.create(); 
         } 
         else {
