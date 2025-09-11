@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", function () {
   async function checkUserStatus() {
     try {
       const response = await fetch(
-        `get_user_status.php?user_id=${encodeURIComponent(userId)}`
+        `/get_user_status.php?user_id=${encodeURIComponent(userId)}`
       );
       if (!response.ok) throw new Error("Network response was not ok");
 
