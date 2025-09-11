@@ -16,7 +16,8 @@
     file_put_contents($debug_file, date('Y-m-d H:i:s') . " - _REQUEST: " . json_encode($_REQUEST) . "\n", FILE_APPEND);
     
     // Создаем или получаем пользователя для игры
-    if( HOST_ID != 'demo' && AUTH ){ 
+    if( AUTH ){ 
+        if (isset($_SESSION['aviator_demo'])) { unset($_SESSION['aviator_demo']); }
         file_put_contents('/tmp/aviator_debug.log', date('Y-m-d H:i:s') . " - Trying to connect to main DB for user: " . AUTH . "\n", FILE_APPEND);
         
         // Проверяем подключение к основной базе данных

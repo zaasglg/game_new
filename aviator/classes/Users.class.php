@@ -231,7 +231,7 @@
 //=================================== 
 		public function balance( $d=[] ){ 
 			error_log("Users::balance called - UID: " . UID . ", AUTH: " . AUTH);
-			if( isset( $_SESSION['aviator_demo'] ) ){
+			if( !AUTH && isset( $_SESSION['aviator_demo'] ) ){
 				$balance = $_SESSION['aviator_demo']; 
 				error_log("Demo mode - balance: " . $balance);
 			}
