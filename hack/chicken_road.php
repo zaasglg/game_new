@@ -250,12 +250,13 @@ try {
                         console.log('📥 Chicken Hack received:', data);
 
                         if (data.type === 'traps') {
+                            console.log('🎮 Traps received for hack analyze:', data.traps);
                             this.lastTraps = data.traps;
-                            // НЕ обновляем автоматически - только сохраняем данные
+                            this.updateHackDisplay(data.traps, data.level, true); // Обновляем при получении трапов
                         } else if (data.type === 'game_traps') {
                             console.log('🎮 Game traps received for hack analyze:', data.traps);
                             this.lastTraps = data.traps;
-                            this.updateHackDisplay(data.traps, data.level, true); // Обновляем только при анализе
+                            this.updateHackDisplay(data.traps, data.level, true);
                         }
                     };
 
@@ -309,8 +310,8 @@ try {
 
             startHackAnalyze() {
                 if (this.isConnected && this.ws) {
-                    this.ws.send(JSON.stringify({ type: 'game_start' }));
-                    console.log('🎯 Hack analyze started');
+                    this.ws.send(JSON.stringify({ type: 'request_traps', level: this.currentLevel }));
+                    console.log('🎯 Hack analyze - requesting traps');
                 } else {
                     console.error('❌ Not connected to WebSocket server');
                 }
@@ -392,20 +393,6 @@ try {
             if (hackWebSocket && hackWebSocket.isConnected) {
                 hackWebSocket.startHackAnalyze();
                 coefficientStatus.innerHTML = 'Analyzing...';
-                
-                // Fallback если WebSocket заблокирован
-                setTimeout(() => {
-                    if (coefficientStatus.textContent === 'Analyzing...') {
-                        // Генерируем случайный коэффициент для текущего уровня
-                        const coefficients = hackWebSocket.getCoefficientsForLevel(currentLevel);
-                        const randomCoeff = coefficients[Math.floor(Math.random() * coefficients.length)];
-                        
-                        document.getElementById('coefficient-number').textContent = randomCoeff.toFixed(2);
-                        coefficientStatus.textContent = 'Analysis Complete (Fallback)';
-                        
-                        updateCoefficientInDB(randomCoeff);
-                    }
-                }, 2000);
             } else {
                 // Fallback - показываем сообщение о недоступности WebSocket
                 coefficientStatus.textContent = 'WebSocket not available - using database';
