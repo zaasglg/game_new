@@ -148,11 +148,18 @@ class Game{
                                 <div class="border"></div>
                             </div>`); 
         var flameSegments = this.traps && this.traps.length > 0 ? this.traps : [];
-        // Если нет ловушек от WebSocket, НЕ используем локальную генерацию, просто не показываем огонь
-        this.fire = flameSegments.length > 0 ? flameSegments[0] : 0;
+        // Используем WebSocket трапы или fallback к локальной генерации
+        if (flameSegments.length > 0) {
+            this.fire = flameSegments[0];
+            console.log('🎯 Using WebSocket trap:', this.fire);
+        } else {
+            // Fallback к локальной генерации если WebSocket недоступен
+            this.fire = Math.ceil(Math.random() * SETTINGS.chance[this.cur_lvl][Math.round(Math.random() * 100) > 95 ? 1 : 0]);
+            console.log('🎲 Using random trap:', this.fire);
+        }
         for( var $i=0; $i<$arr.length; $i++ ){
             if( $i == $arr.length - 1 ){
-                this.wrap.append(`<div class="sector finish" data-id="${ $i+1 }" ${ flameSegments.includes($i) ? 'flame="1"' : '' }>
+                this.wrap.append(`<div class="sector finish" data-id="${ $i+1 }" ${ ($i+1) === this.fire ? 'flame="1"' : '' }>
                                         <div class="coincontainer">
                                             <img src="./res/img/bet5.png" alt="" class="coin e">
                                             <img src="./res/img/bet6.png" alt="" class="coin f">
@@ -170,7 +177,7 @@ class Game{
                                     </div>`);
             } 
             else {
-                this.wrap.append(`<div class="sector ${ $i ? 'far' : '' }" data-id="${ $i+1 }" ${ flameSegments.includes($i) ? 'flame="1"' : '' }>
+                this.wrap.append(`<div class="sector ${ $i ? 'far' : '' }" data-id="${ $i+1 }" ${ ($i+1) === this.fire ? 'flame="1"' : '' }>
                                         <div class="breaks" breaks="4"></div>
                                         <div class="breaks" breaks="5"></div>
                                         <div class="coincontainer">
