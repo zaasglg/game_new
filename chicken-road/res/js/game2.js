@@ -129,16 +129,14 @@ class Game{
     }
     create(){
         this.traps = null;
+        this.fire = 0;
         this.ws_attempts = 0;
         this.wrap.html('').css('left', 0);
-        // Создаем поле сразу, не ждем WebSocket
+        // Создаем поле без огня
         this.createBoard();
-        // Если WebSocket подключен, всегда отправляем set_level перед запросом ловушки
+        // Устанавливаем уровень в WebSocket
         if (this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({type: 'set_level', level: this.cur_lvl}));
-            setTimeout(() => {
-                this.ws.send(JSON.stringify({type: 'request_traps', level: this.cur_lvl}));
-            }, 100);
         }
     }
     createBoard(){
@@ -384,8 +382,8 @@ class Game{
             function(){ 
                 $('#overlay').hide(); 
                 GAME.cur_status = "loading"; 
-                $('#win_modal').hide(); 
-                GAME.create();  
+                $('#win_modal').hide();
+                // НЕ пересоздаем поле - оставляем текущее
             }, $win ? 5000 : 3000  
         ); 
     }
@@ -638,6 +636,8 @@ class Game{
                     case 'loading': 
                         $self.html( LOCALIZATION.TEXT_BETS_WRAPPER_GO ); 
                         if( +$('#bet_size').val() > 0 ){ 
+                            // Пересоздаем поле перед началом игры
+                            GAME.create();
                             GAME.start(); 
                         }
                         break; 
