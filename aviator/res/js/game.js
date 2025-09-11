@@ -18,6 +18,19 @@ var SETTINGS = {
     currency: $('body').attr('data-currency') ? $('body').attr('data-currency')  : "USD" 
 }
 
+function trunc2(val) {
+    var n = Number(val);
+    if (isNaN(n)) return '0.00';
+    return (Math.floor(n * 100) / 100).toFixed(2);
+}
+function setBalanceDisplay(val) {
+    var disp = trunc2(val);
+    $('[data-rel="balance"]').each(function(){
+        $(this).val(disp).html(disp).text(disp);
+    });
+    $('#main_balance').html(disp);
+}
+
 var $canvas = document.querySelector("#canvas");
 var $ctx = $canvas.getContext("2d");
 $canvas.width = SETTINGS.w; 
@@ -1412,15 +1425,11 @@ $(document).ready(function() {
     if(window.$user && $user.balance) {
         console.log("Setting initial balance:", $user.balance);
         // Принудительно обновляем все элементы с балансом
-        $('[data-rel="balance"]').each(function() {
-            $(this).val($user.balance).html($user.balance).text($user.balance);
-        });
-        $('#main_balance').html($user.balance);
+        setBalanceDisplay($user.balance);
     } else {
         // Fallback - set demo balance if user data is missing
         console.log("No user balance found, setting demo balance");
-        $('[data-rel="balance"]').val(500).html(500);
-        $('#main_balance').html(500);
+        setBalanceDisplay(500);
         if(!window.$user) {
             window.$user = {
                 uid: 'demo_' + Date.now(),
@@ -1432,6 +1441,32 @@ $(document).ready(function() {
         }
     }
     
+    // Observe balance elements for changes and truncate to 2 decimals
+    try {
+        var balanceNodes = document.querySelectorAll('[data-rel="balance"], #main_balance');
+        balanceNodes.forEach(function(node){
+            var obs = new MutationObserver(function(mutations){
+                mutations.forEach(function(m){
+                    var el = m.target.nodeType === Node.TEXT_NODE ? m.target.parentNode : m.target;
+                    var text = (el.textContent || '').trim();
+                    if (text) {
+                        var n = parseFloat(text.replace(/[^\d\.\-]/g, ''));
+                        if (!isNaN(n)) {
+                            var disp = trunc2(n);
+                            if (el.textContent !== disp) {
+                                el.textContent = disp;
+                            }
+                            if ('value' in el && el.value !== disp) {
+                                el.value = disp;
+                            }
+                        }
+                    }
+                });
+            });
+            obs.observe(node, {characterData: true, childList: true, subtree: true});
+        });
+    } catch(e) { console.warn('Balance observer error', e); }
+
     // Fix canvas size after DOM is ready
     SETTINGS.w = document.querySelector('#game_field').offsetWidth;
     SETTINGS.h = document.querySelector('#game_field').offsetHeight;
