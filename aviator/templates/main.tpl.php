@@ -18,12 +18,18 @@
     console.log("DEBUG - _REQUEST:", <?= json_encode($_REQUEST); ?>);
     
     // Принудительно обновляем баланс в интерфейсе
+    function trunc2(val) {
+        var n = Number(val);
+        if (isNaN(n)) return '0.00';
+        return (Math.floor(n * 100) / 100).toFixed(2);
+    }
     $(document).ready(function() {
-        if(window.$user && $user.balance) {
-            console.log("Updating balance in template:", $user.balance);
-            $('#main_balance').html($user.balance);
+        if(window.$user && $user.balance !== undefined && $user.balance !== null) {
+            var disp = trunc2($user.balance);
+            console.log("Updating balance in template:", $user.balance, "->", disp);
+            $('#main_balance').html(disp);
             $('[data-rel="balance"]').each(function() {
-                $(this).val($user.balance).html($user.balance).text($user.balance);
+                $(this).val(disp).html(disp).text(disp);
             });
         }
     });
@@ -32,7 +38,7 @@
     <header id="header">
         <a href="/" id="main_link"><img src="res/img/label.svg" alt="Aviator"></a>
         <div class="resize"></div>
-        <div id="main_balance" data-rel="balance"><?= $_SESSION['user']['balance']; ?></div>
+        <div id="main_balance" data-rel="balance"><?= sprintf('%.2f', floor((float)$_SESSION['user']['balance'] * 100) / 100); ?></div>
         <div id="main_currency" data-rel="currency"><?= CURRENCY; ?></div> 
         <button id="sound_switcher"></button>
         <?php if( 2 == 3 ){ ?>
