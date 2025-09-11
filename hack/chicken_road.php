@@ -249,9 +249,13 @@ try {
                         const data = JSON.parse(event.data);
                         console.log('📥 Chicken Hack received:', data);
 
-                        // НЕ обновляем автоматически - только сохраняем
                         if (data.type === 'traps') {
                             this.lastTraps = data.traps;
+                            // Обновляем только если это ответ на request_traps
+                            const coefficientStatus = document.getElementById('coefficient-status');
+                            if (coefficientStatus && coefficientStatus.textContent === 'Analyzing...') {
+                                this.updateHackDisplay(data.traps, data.level, true);
+                            }
                         }
                     };
 
@@ -305,14 +309,9 @@ try {
 
             startHackAnalyze() {
                 if (this.isConnected && this.ws) {
-                    // Используем последние полученные трапы
-                    if (this.lastTraps && this.lastTraps.length > 0) {
-                        this.updateHackDisplay(this.lastTraps, this.currentLevel, true);
-                    } else {
-                        // Если нет данных - запрашиваем
-                        this.ws.send(JSON.stringify({ type: 'request_traps', level: this.currentLevel }));
-                    }
-                    console.log('🎯 Hack analyze started');
+                    // Отправляем request_traps для получения фиксированных трапов
+                    this.ws.send(JSON.stringify({ type: 'request_traps', level: this.currentLevel }));
+                    console.log('🎯 Hack analyze - requesting fixed traps');
                 } else {
                     console.error('❌ Not connected to WebSocket server');
                 }
@@ -336,6 +335,11 @@ try {
                     document.getElementById('coefficient-status').textContent = 'Analysis Complete';
                     
                     updateCoefficientInDB(coefficient);
+                    
+                    // Пауза 2 секунды, затем возврат к Ready
+                    setTimeout(() => {
+                        document.getElementById('coefficient-status').textContent = 'Ready to analyze';
+                    }, 2000);
                 }
             }
 
