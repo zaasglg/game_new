@@ -328,11 +328,13 @@ try {
 
             updateHackDisplay(traps, level, isHackAnalyze = false) {
                 if (traps && traps.length > 0 && isHackAnalyze) {
-                    const trapIndex = traps[0] - 1;
+                    const trapIndex = traps[0]; // Используем как есть, без -1
                     const coefficients = this.getCoefficientsForLevel(level);
-                    const coefficient = (trapIndex >= 0 && trapIndex < coefficients.length) ? 
-                        coefficients[trapIndex] : coefficients[0];
+                    const coefficient = (trapIndex > 0 && trapIndex <= coefficients.length) ? 
+                        coefficients[trapIndex - 1] : coefficients[0]; // -1 только для доступа к массиву
 
+                    console.log(`🎯 Trap: ${trapIndex}, Coefficient: ${coefficient.toFixed(2)}x`);
+                    
                     document.getElementById('coefficient-number').textContent = coefficient.toFixed(2);
                     document.getElementById('coefficient-status').textContent = 'Coefficient Locked - Game Active';
                     
