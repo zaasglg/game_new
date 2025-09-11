@@ -34,21 +34,26 @@ wss.on('connection', function connection(ws) {
                 clientData.isHackBot = data.isHackBot || false;
                 console.log('Client type set to:', data.isHackBot ? 'hack bot' : 'player');
             } else if (data.type === 'request_traps') {
-                // Если игра активна (game_start был), используем фиксированный trap index для уровня
-                let traps;
+                // request_traps делает паузу как game_start
+                globalGameActive = true;
+                console.log('🎯 REQUEST_TRAPS - Pausing broadcast for 3 seconds');
+                
+                let traps = generateTraps(clientData.level, 0);
                 let session = sessionTraps.get(ws);
-                if (globalGameActive && session && session[clientData.level]) {
-                    traps = [session[clientData.level]];
-                } else {
-                    traps = generateTraps(clientData.level, 0);
-                    // Если игра активна, фиксируем trap index для уровня
-                    if (globalGameActive && session) {
-                        session[clientData.level] = traps[0];
-                    }
-                }
+                if (session) session[clientData.level] = traps[0];
                 clientData.lastTraps = traps;
+                
                 console.log('Generated traps for level', clientData.level, 'client (synced)', ':', traps);
                 ws.send(JSON.stringify({ type: 'traps', traps: traps, level: clientData.level }));
+                
+                // Автоматически возобновляем через 3 секунды
+                setTimeout(() => {
+                    globalGameActive = false;
+                    sessionTraps.forEach((session, ws) => {
+                        sessionTraps.set(ws, {});
+                    });
+                    console.log('🔄 REQUEST_TRAPS timeout - Resuming broadcast');
+                }, 3000);
             } else if (data.type === 'game_start') {
                 globalGameActive = true; // Глобально останавливаем генерацию
                 console.log('🎮 GAME STARTED - All trap generation paused globally');
