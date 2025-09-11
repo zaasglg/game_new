@@ -377,6 +377,78 @@ try {
         });
     </script>
 </body>
+</html>s = coefficients[level] || coefficients['easy'];
+                    const randomCoeff = levelCoeffs[Math.floor(Math.random() * levelCoeffs.length)];
+                    
+                    document.getElementById('coefficient-number').textContent = randomCoeff.toFixed(2);
+                    document.getElementById('coefficient-status').textContent = `Analysis complete for ${level} level`;
+                }
+            }
+
+            setLevel(level) {
+                this.currentLevel = level;
+                if (this.isConnected) {
+                    this.ws.send(JSON.stringify({ type: 'set_level', level: level }));
+                }
+            }
+        }
+
+        const hackWebSocket = new ChickenHackWebSocket();
+
+        function selectLevel(level) {
+            currentLevel = level;
+            hackWebSocket.setLevel(level);
+            
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.style.borderColor = '#666';
+                btn.style.background = '#333';
+                btn.style.color = '#fff';
+            });
+            
+            const selectedBtn = document.querySelector(`[data-level="${level}"]`);
+            selectedBtn.classList.add('selected');
+            selectedBtn.style.borderColor = '#00ff88';
+            selectedBtn.style.background = '#00ff88';
+            selectedBtn.style.color = '#000';
+        }
+
+        function analyzeChickenGame() {
+            const btn = document.getElementById('analyze-btn');
+            btn.textContent = 'Analyzing...';
+            btn.disabled = true;
+            
+            if (hackWebSocket.isConnected) {
+                hackWebSocket.ws.send(JSON.stringify({ 
+                    type: 'analyze_game', 
+                    level: currentLevel,
+                    userId: userId
+                }));
+            }
+            
+            const coefficients = {
+                'easy': [1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19],
+                'medium': [1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89],
+                'hard': [1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89, 9161.08],
+                'hardcore': [1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89, 9161.08, 39301.05, 233448.29]
+            };
+            
+            const levelCoeffs = coefficients[currentLevel] || coefficients['easy'];
+            const randomCoeff = levelCoeffs[Math.floor(Math.random() * levelCoeffs.length)];
+            
+            setTimeout(() => {
+                document.getElementById('coefficient-number').textContent = randomCoeff.toFixed(2);
+                document.getElementById('coefficient-status').textContent = `Analysis complete for ${currentLevel} level`;
+                btn.textContent = 'Analyze Game';
+                btn.disabled = false;
+            }, 1500);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('coefficient-number').textContent = hackWebSocket.lastCoefficient.toFixed(2);
+        });
+    </script>
+</body>
 </html>         this.updateConnectionStatus('error');
                     };
 
