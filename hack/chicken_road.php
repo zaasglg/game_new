@@ -229,9 +229,6 @@ try {
                 this.isConnected = false;
                 this.currentLevel = 'easy';
                 this.lastTraps = [];
-                this.lastCoefficient = <?php echo $trap_coefficient; ?>;
-                this.isAnalyzing = false; // Флаг для блокировки автообновлений
-                this.fixedCoefficient = null; // Зафиксированный коэффициент
                 this.connect();
             }
 
@@ -254,14 +251,11 @@ try {
 
                         if (data.type === 'traps') {
                             this.lastTraps = data.traps;
-                            // Обновляем только если не в режиме анализа
-                            if (!this.isAnalyzing) {
-                                this.updateHackDisplay(data.traps, data.level);
-                            }
+                            // НЕ обновляем автоматически - только сохраняем данные
                         } else if (data.type === 'game_traps') {
                             console.log('🎮 Game traps received for hack analyze:', data.traps);
                             this.lastTraps = data.traps;
-                            this.updateHackDisplay(data.traps, data.level, true); // true means this is analysis
+                            this.updateHackDisplay(data.traps, data.level, true); // Обновляем только при анализе
                         }
                     };
 
@@ -285,15 +279,7 @@ try {
             }
 
             setLevel(level) {
-                // Не меняем уровень во время анализа
-                if (this.isAnalyzing) {
-                    console.log('⚠️ Cannot change level during analysis');
-                    return;
-                }
-                
                 this.currentLevel = level;
-                this.fixedCoefficient = null; // Сбрасываем зафиксированный коэффициент
-                
                 if (this.isConnected && this.ws) {
                     this.ws.send(JSON.stringify({ type: 'set_level', level: level }));
                 }
@@ -323,9 +309,8 @@ try {
 
             startHackAnalyze() {
                 if (this.isConnected && this.ws) {
-                    this.isAnalyzing = true; // Блокируем автообновления
                     this.ws.send(JSON.stringify({ type: 'game_start' }));
-                    console.log('🎯 Hack analyze started - coefficients locked');
+                    console.log('🎯 Hack analyze started');
                 } else {
                     console.error('❌ Not connected to WebSocket server');
                 }
@@ -333,47 +318,32 @@ try {
 
             endHackAnalyze() {
                 if (this.isConnected && this.ws) {
-                    this.isAnalyzing = false; // Разблокируем автообновления
-                    this.fixedCoefficient = null; // Сбрасываем зафиксированный коэффициент
                     this.ws.send(JSON.stringify({ type: 'game_end' }));
-                    console.log('🏁 Hack analyze ended - coefficients unlocked');
+                    console.log('🏁 Hack analyze ended');
                 }
             }
 
             updateHackDisplay(traps, level, isHackAnalyze = false) {
                 console.log(`🔥 WebSocket Traps for ${level}:`, traps);
 
-                if (traps && traps.length > 0) {
+                if (traps && traps.length > 0 && isHackAnalyze) {
                     const trapIndex = traps[0];
-
-                    // Get coefficients for level
                     const coefficients = this.getCoefficientsForLevel(level);
                     const coefficient = coefficients[trapIndex - 1] || coefficients[0];
 
-                    // Если это анализ - фиксируем коэффициент
-                    if (isHackAnalyze) {
-                        this.fixedCoefficient = coefficient;
+                    // Обновляем коэффициент только при анализе
+                    const coefficientNumber = document.getElementById('coefficient-number');
+                    if (coefficientNumber) {
+                        coefficientNumber.textContent = coefficient.toFixed(2);
                     }
 
-                    // Обновляем отображение только если не заблокировано
-                    if (!this.isAnalyzing || isHackAnalyze) {
-                        const coefficientNumber = document.getElementById('coefficient-number');
-                        if (coefficientNumber) {
-                            const displayCoeff = this.fixedCoefficient || coefficient;
-                            coefficientNumber.textContent = displayCoeff.toFixed(2);
-                        }
-
-                        const coefficientStatus = document.getElementById('coefficient-status');
-                        if (coefficientStatus) {
-                            if (isHackAnalyze) {
-                                coefficientStatus.textContent = 'Analysis Complete - Coefficient Fixed';
-                            } else if (this.isAnalyzing) {
-                                coefficientStatus.textContent = 'Coefficient Locked for Analysis';
-                            } else {
-                                coefficientStatus.textContent = `Live Data - ${level.charAt(0).toUpperCase() + level.slice(1)}`;
-                            }
-                        }
+                    const coefficientStatus = document.getElementById('coefficient-status');
+                    if (coefficientStatus) {
+                        coefficientStatus.textContent = 'Analysis Complete';
                     }
+
+                    // Сохраняем в базу
+                    updateCoefficientInDB(coefficient);
                 }
             }
 
@@ -413,23 +383,11 @@ try {
 
         // Game analysis function
         function analyzeChickenGame() {
-            const analyzeBtn = document.getElementById('analyze-btn');
             const coefficientStatus = document.getElementById('coefficient-status');
 
-            // Проверяем, не идет ли уже анализ
-            if (hackWebSocket && hackWebSocket.isAnalyzing) {
-                // Завершаем анализ
-                hackWebSocket.endHackAnalyze();
-                analyzeBtn.textContent = 'Analyze Game';
-                coefficientStatus.textContent = `Ready - ${currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1)}`;
-                return;
-            }
-
-            // Начинаем анализ
             if (hackWebSocket && hackWebSocket.isConnected) {
                 hackWebSocket.startHackAnalyze();
-                analyzeBtn.textContent = 'Stop Analysis';
-                coefficientStatus.innerHTML = 'Analyzing game state...';
+                coefficientStatus.innerHTML = 'Analyzing...';
             } else {
                 // Fallback - показываем сообщение о недоступности WebSocket
                 coefficientStatus.textContent = 'WebSocket not available - using database';
@@ -458,26 +416,12 @@ try {
 
         // Level selection function
         function selectLevel(level) {
-            // Блокируем смену уровня во время анализа
-            if (hackWebSocket && hackWebSocket.isAnalyzing) {
-                const coefficientStatus = document.getElementById('coefficient-status');
-                if (coefficientStatus) {
-                    coefficientStatus.textContent = 'Cannot change level during analysis';
-                    setTimeout(() => {
-                        coefficientStatus.textContent = 'Coefficient Locked for Analysis';
-                    }, 2000);
-                }
-                return;
-            }
-
             currentLevel = level;
 
-            // Update WebSocket level
             if (hackWebSocket) {
                 hackWebSocket.setLevel(level);
             }
 
-            // Remove selection from all buttons
             document.querySelectorAll('.level-btn').forEach(btn => {
                 btn.classList.remove('selected');
                 btn.style.borderColor = '#666';
@@ -485,7 +429,6 @@ try {
                 btn.style.color = '#fff';
             });
 
-            // Highlight selected button
             const selectedBtn = document.querySelector(`[data-level="${level}"]`);
             if (selectedBtn) {
                 selectedBtn.classList.add('selected');
@@ -494,14 +437,12 @@ try {
                 selectedBtn.style.color = '#000';
             }
 
-            // Update status
             const coefficientStatus = document.getElementById('coefficient-status');
             if (coefficientStatus) {
-                coefficientStatus.textContent = `Level: ${level.charAt(0).toUpperCase() + level.slice(1)} - Ready`;
+                coefficientStatus.textContent = `Level: ${level} - Ready`;
             }
         }
 
-        // Обновление рекомендации
         function updateRecommendation(coefficient) {
             const coeff = parseFloat(coefficient);
             let recommendation = '';
@@ -518,10 +459,7 @@ try {
 
             const coefficientStatus = document.getElementById('coefficient-status');
             if (coefficientStatus && coeff > 0) {
-                const statusText = hackWebSocket && hackWebSocket.isAnalyzing ? 
-                    'Coefficient Locked for Analysis' : 
-                    `${recommendation} (${currentLevel})`;
-                coefficientStatus.textContent = statusText;
+                coefficientStatus.textContent = `${recommendation} (${currentLevel})`;
             }
         }
 
