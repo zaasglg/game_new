@@ -16,6 +16,17 @@
     console.log("DEBUG - UID:", "<?= UID; ?>");
     console.log("DEBUG - _GET:", <?= json_encode($_GET); ?>);
     console.log("DEBUG - _REQUEST:", <?= json_encode($_REQUEST); ?>);
+    
+    // Принудительно обновляем баланс в интерфейсе
+    $(document).ready(function() {
+        if(window.$user && $user.balance) {
+            console.log("Updating balance in template:", $user.balance);
+            $('#main_balance').html($user.balance);
+            $('[data-rel="balance"]').each(function() {
+                $(this).val($user.balance).html($user.balance).text($user.balance);
+            });
+        }
+    });
 </script>
 <div id="main_wrapper"> 
     <header id="header">
