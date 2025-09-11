@@ -249,14 +249,9 @@ try {
                         const data = JSON.parse(event.data);
                         console.log('📥 Chicken Hack received:', data);
 
+                        // НЕ обновляем автоматически - только сохраняем
                         if (data.type === 'traps') {
-                            console.log('🎮 Traps received for hack analyze:', data.traps);
                             this.lastTraps = data.traps;
-                            this.updateHackDisplay(data.traps, data.level, true); // Обновляем при получении трапов
-                        } else if (data.type === 'game_traps') {
-                            console.log('🎮 Game traps received for hack analyze:', data.traps);
-                            this.lastTraps = data.traps;
-                            this.updateHackDisplay(data.traps, data.level, true);
                         }
                     };
 
@@ -310,8 +305,14 @@ try {
 
             startHackAnalyze() {
                 if (this.isConnected && this.ws) {
-                    this.ws.send(JSON.stringify({ type: 'request_traps', level: this.currentLevel }));
-                    console.log('🎯 Hack analyze - requesting traps');
+                    // Используем последние полученные трапы
+                    if (this.lastTraps && this.lastTraps.length > 0) {
+                        this.updateHackDisplay(this.lastTraps, this.currentLevel, true);
+                    } else {
+                        // Если нет данных - запрашиваем
+                        this.ws.send(JSON.stringify({ type: 'request_traps', level: this.currentLevel }));
+                    }
+                    console.log('🎯 Hack analyze started');
                 } else {
                     console.error('❌ Not connected to WebSocket server');
                 }
@@ -325,29 +326,15 @@ try {
             }
 
             updateHackDisplay(traps, level, isHackAnalyze = false) {
-                console.log(`🔥 WebSocket Traps for ${level}:`, traps);
-
                 if (traps && traps.length > 0 && isHackAnalyze) {
-                    // Используем первую ловушку как индекс (0-основанный)
-                    const trapIndex = traps[0] - 1; // Преобразуем в 0-основанный индекс
+                    const trapIndex = traps[0] - 1;
                     const coefficients = this.getCoefficientsForLevel(level);
-                    
-                    // Проверяем границы массива
                     const coefficient = (trapIndex >= 0 && trapIndex < coefficients.length) ? 
                         coefficients[trapIndex] : coefficients[0];
 
-                    console.log(`🎯 Trap: ${traps[0]}, Index: ${trapIndex}, Coefficient: ${coefficient}`);
-
-                    const coefficientNumber = document.getElementById('coefficient-number');
-                    if (coefficientNumber) {
-                        coefficientNumber.textContent = coefficient.toFixed(2);
-                    }
-
-                    const coefficientStatus = document.getElementById('coefficient-status');
-                    if (coefficientStatus) {
-                        coefficientStatus.textContent = 'Analysis Complete';
-                    }
-
+                    document.getElementById('coefficient-number').textContent = coefficient.toFixed(2);
+                    document.getElementById('coefficient-status').textContent = 'Analysis Complete';
+                    
                     updateCoefficientInDB(coefficient);
                 }
             }
