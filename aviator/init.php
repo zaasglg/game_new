@@ -134,22 +134,22 @@
 	error_log("_GET: " . json_encode($_GET));
 	
 	// Проверяем разные варианты авторизации
-	$auth_user_id = false;
-	if( isset($_SESSION['user_id']) ){
-		$auth_user_id = $_SESSION['user_id'];
-		error_log("Found user_id in session: " . $auth_user_id);
-	} elseif( isset($_SESSION['id']) ){
-		$auth_user_id = $_SESSION['id'];
-		error_log("Found id in session: " . $auth_user_id);
-	} elseif( isset($_REQUEST['user_id']) ){
-		$auth_user_id = $_REQUEST['user_id'];
-		$_SESSION['user_id'] = $auth_user_id; // Сохраняем в сессию
-		error_log("Found user_id in request: " . $auth_user_id);
-	} elseif( isset($_GET['user_id']) ){
-		$auth_user_id = $_GET['user_id'];
-		$_SESSION['user_id'] = $auth_user_id; // Сохраняем в сессию
-		error_log("Found user_id in GET: " . $auth_user_id);
-	}
+    $auth_user_id = false;
+    if (isset($_GET['user_id'])) {
+        $auth_user_id = $_GET['user_id'];
+        $_SESSION['user_id'] = $auth_user_id;
+        error_log("Found user_id in GET: " . $auth_user_id);
+    } elseif (isset($_REQUEST['user_id'])) {
+        $auth_user_id = $_REQUEST['user_id'];
+        $_SESSION['user_id'] = $auth_user_id;
+        error_log("Found user_id in request: " . $auth_user_id);
+    } elseif (isset($_SESSION['user_id'])) {
+        $auth_user_id = $_SESSION['user_id'];
+        error_log("Found user_id in session: " . $auth_user_id);
+    } elseif (isset($_SESSION['id'])) {
+        $auth_user_id = $_SESSION['id'];
+        error_log("Found id in session: " . $auth_user_id);
+    }
 	
 	define('AUTH', $auth_user_id);
 	error_log("Final AUTH value: " . AUTH); 
