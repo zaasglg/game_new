@@ -1411,11 +1411,16 @@ $(document).ready(function() {
     // Initialize balance display
     if(window.$user && $user.balance) {
         console.log("Setting initial balance:", $user.balance);
-        $('[data-rel="balance"]').val($user.balance).html($user.balance);
+        // Принудительно обновляем все элементы с балансом
+        $('[data-rel="balance"]').each(function() {
+            $(this).val($user.balance).html($user.balance).text($user.balance);
+        });
+        $('#main_balance').html($user.balance);
     } else {
         // Fallback - set demo balance if user data is missing
         console.log("No user balance found, setting demo balance");
         $('[data-rel="balance"]').val(500).html(500);
+        $('#main_balance').html(500);
         if(!window.$user) {
             window.$user = {
                 uid: 'demo_' + Date.now(),
