@@ -150,14 +150,13 @@ class Game{
                                 <div class="border"></div>
                             </div>`); 
         var flameSegments = this.traps && this.traps.length > 0 ? this.traps : [];
-        // Используем WebSocket трапы или fallback к локальной генерации
+        // Используем только WebSocket трапы
         if (flameSegments.length > 0) {
             this.fire = flameSegments[0];
             console.log('🎯 Using WebSocket trap:', this.fire);
         } else {
-            // Fallback к локальной генерации если WebSocket недоступен
-            this.fire = Math.ceil(Math.random() * SETTINGS.chance[this.cur_lvl][Math.round(Math.random() * 100) > 95 ? 1 : 0]);
-            console.log('🎲 Using random trap:', this.fire);
+            this.fire = 0; // Нет огня если нет WebSocket трапов
+            console.log('⚠️ No WebSocket traps - no fire');
         }
         for( var $i=0; $i<$arr.length; $i++ ){
             if( $i == $arr.length - 1 ){
@@ -325,6 +324,12 @@ class Game{
     start(){ 
         this.current_bet = +$('#bet_size').val();
         if( this.balance && this.current_bet && this.current_bet <= this.balance ){ 
+            // Проверяем WebSocket подключение
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                alert('WebSocket not connected. Please wait and try again.');
+                return;
+            }
+            
             this.cur_status = 'game'; 
             this.stp = 0; 
             this.alife = 1; 
@@ -335,12 +340,11 @@ class Game{
             $('.sector').off().on('click', function(){ 
                 GAME.move(); 
             });
-            // Уведомляем сервер о начале игры
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                this.ws.send(JSON.stringify({type: 'game_start'}));
-            }
             
-            // Balance updated above
+            // Обязательно запрашиваем трапы от WebSocket
+            this.ws.send(JSON.stringify({type: 'game_start'}));
+            console.log('🎮 Game started - waiting for WebSocket traps');
+            
             this.move(); 
         }
     } 
