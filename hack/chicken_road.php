@@ -319,10 +319,10 @@ try {
                 }
             }
 
-            endHackAnalyze() {
+            endGame() {
                 if (this.isConnected && this.ws) {
-                    this.ws.send(JSON.stringify({ type: 'game_end' }));
-                    console.log('🏁 Hack analyze ended');
+                    this.ws.send(JSON.stringify({ type: 'end_game' }));
+                    console.log('🏁 Game ended - resuming broadcast');
                 }
             }
 
@@ -379,8 +379,9 @@ try {
             const coefficientStatus = document.getElementById('coefficient-status');
             const analyzeBtn = document.getElementById('analyze-btn');
 
-            // Если уже заблокирован - разблокируем (завершение игры)
+            // Если уже заблокирован - завершаем игру
             if (hackWebSocket && hackWebSocket.isLocked) {
+                hackWebSocket.endGame();
                 hackWebSocket.isLocked = false;
                 coefficientStatus.textContent = 'Ready to analyze';
                 analyzeBtn.textContent = 'Analyze Game';
