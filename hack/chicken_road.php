@@ -457,14 +457,19 @@ try {
 
         // Обновление коэффициента в базе данных
         function updateCoefficientInDB(coefficient) {
-            fetch('/hack/pe/db-chicken-api.php', {
+            fetch('../db.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: `action=update_chicken_coefficient&coefficient=${coefficient}&user_id=${userId}`
             })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
                 .then(data => {
                     console.log('Coefficient updated:', data);
                 })
