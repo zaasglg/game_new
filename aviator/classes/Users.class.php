@@ -253,6 +253,9 @@
 							
 							// Обновляем баланс в игровой базе данных
 							$this->edit(['uid' => UID, 'balance' => $balance]);
+							
+							// Обновляем сессию
+							$_SESSION['user']['balance'] = $balance;
 						} else {
 							$balance = $this->dbo->getField( "balance", TABLE_USERS, ['uid'=>UID] ); 
 							error_log("No main DB user, local balance: " . $balance);
@@ -265,11 +268,18 @@
 					$balance = $this->dbo->getField( "balance", TABLE_USERS, ['uid'=>UID] ); 
 					error_log("No AUTH, local balance: " . $balance);
 				}
-				$_SESSION['user']['balance'] = $balance; 
+				
+				// Убеждаемся, что баланс обновлен в сессии
+				if( !isset($_SESSION['user']['balance']) || $_SESSION['user']['balance'] != $balance ){
+					$_SESSION['user']['balance'] = $balance;
+				}
 			}
 			error_log("Final balance returned: " . $balance);
 			return $balance; 
 		}
+
+//
+//
 //
 //=================================== 
 
