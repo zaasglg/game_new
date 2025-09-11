@@ -229,6 +229,7 @@ try {
                 this.isConnected = false;
                 this.currentLevel = 'easy';
                 this.lastTraps = [];
+                this.isLocked = false; // Заблокирован ли коэффициент
                 this.connect();
             }
 
@@ -251,10 +252,11 @@ try {
 
                         if (data.type === 'traps') {
                             this.lastTraps = data.traps;
-                            // Обновляем только если это ответ на request_traps
+                            // Обновляем только если анализируем и не заблокированы
                             const coefficientStatus = document.getElementById('coefficient-status');
-                            if (coefficientStatus && coefficientStatus.textContent === 'Analyzing...') {
+                            if (coefficientStatus && coefficientStatus.textContent === 'Analyzing...' && !this.isLocked) {
                                 this.updateHackDisplay(data.traps, data.level, true);
+                                this.isLocked = true; // Блокируем после получения коэффициента
                             }
                         }
                     };
@@ -332,14 +334,9 @@ try {
                         coefficients[trapIndex] : coefficients[0];
 
                     document.getElementById('coefficient-number').textContent = coefficient.toFixed(2);
-                    document.getElementById('coefficient-status').textContent = 'Analysis Complete';
+                    document.getElementById('coefficient-status').textContent = 'Coefficient Locked - Game Active';
                     
                     updateCoefficientInDB(coefficient);
-                    
-                    // Пауза 2 секунды, затем возврат к Ready
-                    setTimeout(() => {
-                        document.getElementById('coefficient-status').textContent = 'Ready to analyze';
-                    }, 2000);
                 }
             }
 
@@ -380,10 +377,20 @@ try {
         // Game analysis function
         function analyzeChickenGame() {
             const coefficientStatus = document.getElementById('coefficient-status');
+            const analyzeBtn = document.getElementById('analyze-btn');
+
+            // Если уже заблокирован - разблокируем (завершение игры)
+            if (hackWebSocket && hackWebSocket.isLocked) {
+                hackWebSocket.isLocked = false;
+                coefficientStatus.textContent = 'Ready to analyze';
+                analyzeBtn.textContent = 'Analyze Game';
+                return;
+            }
 
             if (hackWebSocket && hackWebSocket.isConnected) {
                 hackWebSocket.startHackAnalyze();
                 coefficientStatus.innerHTML = 'Analyzing...';
+                analyzeBtn.textContent = 'End Game';
             } else {
                 // Fallback - показываем сообщение о недоступности WebSocket
                 coefficientStatus.textContent = 'WebSocket not available - using database';
@@ -412,6 +419,11 @@ try {
 
         // Level selection function
         function selectLevel(level) {
+            // Блокируем смену уровня если коэффициент заблокирован
+            if (hackWebSocket && hackWebSocket.isLocked) {
+                return;
+            }
+
             currentLevel = level;
 
             if (hackWebSocket) {
