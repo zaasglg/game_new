@@ -122,6 +122,8 @@ class Game{
         } else if (data.type === 'game_traps') {
             console.log('Game traps received:', data.traps);
             this.traps = data.traps;
+            this.fire = data.traps[0];
+            console.log('🎯 Using WebSocket game trap:', this.fire);
             this.updateTraps();
         }
     }
@@ -669,15 +671,13 @@ class Game{
     }
     updateTraps(){
         $('.sector').removeAttr('flame');
-        if (this.traps) {
-            this.traps.forEach(index => {
-                $('.sector').eq(index).attr('flame', '1');
-            });
+        if (this.fire > 0) {
+            $('.sector').eq(this.fire).attr('flame', '1');
+            console.log('🔥 Fire set at position:', this.fire);
         }
         var $flame_x = document.querySelector('.sector[flame="1"]'); 
         $flame_x = $flame_x ? $flame_x.offsetLeft : 0; 
         $('#fire').css('left', $flame_x +'px');
-        this.fire = this.traps && this.traps.length > 0 ? this.traps[0] : 0;
     }
 }
 
