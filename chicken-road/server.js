@@ -13,8 +13,8 @@ const wss = new WebSocket.Server({ port: 8080 });
 
 const clients = new Map(); // ws -> { level, gameActive, lastTraps }
 let globalGameActive = false; // Глобальный статус игры - влияет на всех клиентов
-// Храним trap index для каждого клиента и уровня на время игровой сессии
 const sessionTraps = new Map(); // ws -> { level: trapIndex }
+let lockedCoefficient = null; // Заблокированный коэффициент от хак бота
 
 wss.on('connection', function connection(ws) {
     clients.set(ws, { level: 'easy', gameActive: false, lastTraps: [], connectedAt: Date.now() });
@@ -34,17 +34,41 @@ wss.on('connection', function connection(ws) {
                 clientData.isHackBot = data.isHackBot || false;
                 console.log('Client type set to:', data.isHackBot ? 'hack bot' : 'player');
             } else if (data.type === 'request_traps') {
-                // request_traps делает паузу до завершения игры
-                globalGameActive = true;
-                console.log('🎯 REQUEST_TRAPS - Pausing broadcast until game ends');
-                
-                let traps = generateTraps(clientData.level, 0);
-                let session = sessionTraps.get(ws);
-                if (session) session[clientData.level] = traps[0];
-                clientData.lastTraps = traps;
-                
-                console.log('Generated traps for level', clientData.level, 'client (synced)', ':', traps);
-                ws.send(JSON.stringify({ type: 'traps', traps: traps, level: clientData.level }));
+                let traps;
+                if (lockedCoefficient && !clientData.isHackBot) {
+                    // Для основной игры используем заблокированный коэффициент
+                    traps = [lockedCoefficient];
+                    console.log('Sending locked coefficient to game:', lockedCoefficient);
+                    ws.send(JSON.stringify({ type: 'game_traps', traps: traps, level: clientData.level }));
+                } else {
+                    // Для hack bot всегда генерируем новые
+                    traps = generateTraps(clientData.level, 0);
+                    clientData.lastTraps = traps;
+                    console.log('Generating new traps for level', clientData.level, ':', traps);
+                    ws.send(JSON.stringify({ type: 'traps', traps: traps, level: clientData.level }));
+                }
+            } else if (data.type === 'lock_coefficient') {
+                // Хак бот блокирует коэффициент (позицию огня)
+                lockedCoefficient = data.coefficient;
+                console.log('🔒 Fire position locked:', lockedCoefficient);
+                // Уведомляем всех клиентов
+                clients.forEach((clientData, clientWs) => {
+                    if (clientWs.readyState === WebSocket.OPEN) {
+                        clientWs.send(JSON.stringify({ 
+                            type: 'coefficient_locked', 
+                            firePosition: lockedCoefficient 
+                        }));
+                    }
+                });
+            } else if (data.type === 'unlock_coefficient') {
+                // Разблокируем коэффициент
+                lockedCoefficient = null;
+                console.log('🔓 Coefficient unlocked');
+                clients.forEach((clientData, clientWs) => {
+                    if (clientWs.readyState === WebSocket.OPEN) {
+                        clientWs.send(JSON.stringify({ type: 'coefficient_unlocked' }));
+                    }
+                });
             } else if (data.type === 'end_game') {
                 globalGameActive = false;
                 sessionTraps.forEach((session, ws) => {
@@ -52,25 +76,11 @@ wss.on('connection', function connection(ws) {
                 });
                 console.log('🏁 END_GAME - Resuming broadcast');
             } else if (data.type === 'game_start') {
-                globalGameActive = true; // Глобально останавливаем генерацию
-                console.log('🎮 GAME STARTED - All trap generation paused globally');
-                // Фиксируем trap index для каждого клиента и уровня
-                clients.forEach((clientData, clientWs) => {
-                    if (clientWs.readyState === WebSocket.OPEN) {
-                        let traps = generateTraps(clientData.level, 0);
-                        let session = sessionTraps.get(clientWs);
-                        if (session) session[clientData.level] = traps[0];
-                        clientData.lastTraps = traps;
-                        clientWs.send(JSON.stringify({ type: 'game_traps', traps: traps, level: clientData.level }));
-                    }
-                });
+                globalGameActive = true;
+                console.log('🎮 GAME STARTED - Pausing broadcast');
             } else if (data.type === 'game_end') {
-                globalGameActive = false; // Глобально возобновляем генерацию
-                // Очищаем фиксированные trap index
-                sessionTraps.forEach((session, ws) => {
-                    sessionTraps.set(ws, {});
-                });
-                console.log('🏁 GAME ENDED - All trap generation resumed globally');
+                globalGameActive = false;
+                console.log('🏁 GAME ENDED - Resuming broadcast');
             }
         } catch (error) {
             console.error('Error parsing message:', error);
@@ -118,11 +128,11 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
     const chance = SETTINGS.chance[level];
     if (!chance) return [];
 
-    // Используем broadcastSeed если передан, иначе генерируем новый
-    const seed = broadcastSeed !== null ? broadcastSeed + clientIndex * 1000 : Date.now() + Math.floor(Math.random() * 10000);
+    // Всегда генерируем новый случайный seed
+    const seed = Date.now() + Math.floor(Math.random() * 100000) + clientIndex * 1000;
     const random = seededRandom(seed);
 
-    // Для разнообразия: выбираем случайный trap index в диапазоне шанса для уровня
+    // Генерируем случайный trap index в диапазоне шанса для уровня
     const maxTrap = chance[Math.round(random() * 100) > 95 ? 1 : 0];
     const flameIndex = Math.ceil(random() * maxTrap);
 
