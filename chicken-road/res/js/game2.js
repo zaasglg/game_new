@@ -10,7 +10,7 @@ var SETTINGS = {
     volume: {
         active: +$('body').data('sound'), 
         music: +$('body').data('sound') ? 0.2 : 0, 
-        sound: +$('body').data('music') ? 0.9 : 0
+        sound: +$('body').data('sound') ? 0.9 : 0
     }, 
     currency: $('body').attr('data-currency') ? $('body').attr('data-currency')  : "USD", 
     //cfs: {
@@ -28,7 +28,8 @@ var SETTINGS = {
     },
     min_bet: 0.5, 
     max_bet: 150, 
-    segw: parseInt( $('#battlefield .sector').css('width') )  
+    segw: parseInt( $('#battlefield .sector').css('width') ),
+    ws_url: 'wss://valor-games.com/ws/'  // WebSocket URL for trap generation
 } 
 
 var SOUNDS = {
@@ -74,29 +75,6 @@ var SOUNDS = {
     })
 }
 
-// WebSocket connection for game
-window.gameWS = null;
-window.wsFlameSegment = null;
-try {
-    window.gameWS = new WebSocket('ws://localhost:8080');
-    window.gameWS.onopen = () => {
-        console.log('Game connected to WebSocket server');
-        window.gameWS.send(JSON.stringify({ type: 'set_client_type', isHackBot: false }));
-    };
-    window.gameWS.onmessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'traps') {
-                window.wsFlameSegment = data.traps[0];
-                console.log('Received flame segment from WebSocket:', window.wsFlameSegment);
-            }
-        } catch (e) {}
-    };
-    window.gameWS.onerror = () => console.log('WebSocket connection failed, using local generation');
-} catch (e) {
-    console.log('WebSocket not available, using local generation');
-}
-
 class Game{
     constructor( $obj ){ 
         this.balance = +$('[data-rel="menu-balance"] span').html(); 
@@ -111,12 +89,66 @@ class Game{
         this.alife = 0; 
         this.win = 0; 
         this.fire = 0; 
+        this.traps = null; // for WebSocket traps
+        this.ws_attempts = 0;
+        this.ws = new WebSocket(SETTINGS.ws_url);
+        this.ws.onopen = () => { 
+            console.log('Connected to WebSocket for traps'); 
+            this.ws.send(JSON.stringify({type: 'set_level', level: this.cur_lvl}));
+        };
+        this.ws.onmessage = (event) => { 
+            console.log('Received WebSocket message:', event.data);
+            this.handleWSMessage(event); 
+        };
+        this.ws.onerror = (error) => { 
+            console.error('WebSocket error:', error); 
+        };
+        this.ws.onclose = () => { 
+            console.log('WebSocket closed'); 
+        };
         this.create(); 
         this.bind(); 
         $('#game_container').css('min-height', parseInt( $('#main').css('height') )+'px' );
     } 
+    handleWSMessage(event) {
+        var data = JSON.parse(event.data);
+        console.log('Handling WebSocket message:', data);
+        if (data.type === 'traps') {
+            console.log('Updating traps:', data.traps);
+            this.traps = data.traps;
+            this.fire = data.traps[0]; // Обновляем позицию огня
+            console.log('🔥 Fire position updated to:', this.fire);
+            if (this.cur_status === 'loading') {
+                this.updateTraps();
+            }
+        } else if (data.type === 'game_traps') {
+            console.log('Game traps received:', data.traps);
+            this.traps = data.traps;
+            this.fire = data.traps[0];
+            console.log('🎯 Using locked fire position:', this.fire);
+            this.updateTraps();
+        } else if (data.type === 'coefficient_locked') {
+            console.log('Coefficient locked - fire position:', data.firePosition);
+            if (data.firePosition) {
+                this.fire = data.firePosition;
+                this.traps = [data.firePosition];
+                this.updateTraps();
+            }
+        }
+    }
     create(){
+        this.traps = null;
+        this.fire = 0;
+        this.ws_attempts = 0;
         this.wrap.html('').css('left', 0);
+        // Создаем поле без огня
+        this.createBoard();
+        // Устанавливаем уровень в WebSocket
+        if (this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({type: 'set_level', level: this.cur_lvl}));
+        }
+    }
+    createBoard(){
         var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
         this.wrap.append(`<div class="sector start" data-id="0">
                                 <div class="breaks" breaks="3"></div>
@@ -124,15 +156,101 @@ class Game{
                                 <img src="./res/img/arc.png" class="entry" alt="">
                                 <div class="border"></div>
                             </div>`); 
-        // WebSocket integration for synchronized coefficients
-        var $flame_segment;
-        if (window.gameWS && window.gameWS.readyState === WebSocket.OPEN) {
-            // Request traps from WebSocket server
-            window.gameWS.send(JSON.stringify({ type: 'set_level', level: this.cur_lvl }));
-            window.gameWS.send(JSON.stringify({ type: 'request_traps', level: this.cur_lvl }));
-            $flame_segment = window.wsFlameSegment || Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+        var flameSegments = this.traps && this.traps.length > 0 ? this.traps : [];
+        // Используем ТОЛЬКО WebSocket трапы
+        if (flameSegments.length > 0) {
+            this.fire = flameSegments[0];
+            console.log('🎯 Using WebSocket trap:', this.fire);
         } else {
-            // Fallback to local generation
+            this.fire = 0; // Нет огня без WebSocket трапов
+            console.log('⚠️ No WebSocket traps - no fire');
+        }
+        for( var $i=0; $i<$arr.length; $i++ ){
+            if( $i == $arr.length - 1 ){
+                this.wrap.append(`<div class="sector finish" data-id="${ $i+1 }" ${ ($i+1) === this.fire ? 'flame="1"' : '' }>
+                                        <div class="coincontainer">
+                                            <img src="./res/img/bet5.png" alt="" class="coin e">
+                                            <img src="./res/img/bet6.png" alt="" class="coin f">
+                                            <img src="./res/img/bet7.png" alt="" class="coin g">
+                                            <span>${ $arr[ $i ] }x</span>
+                                        </div>
+                                        <div class="breaks" breaks="6"></div>
+                                        <div class="breaks" breaks="5"></div>
+                                        <img src="./res/img/arc2.png" class="arc" alt="">
+                                        <img src="./res/img/stand.png" class="cup" alt="">
+                                        <div class="finish_light"></div>
+                                        <img src="./res/img/trigger.png" class="trigger" alt="">
+                                        <div class="flame"></div>
+                                        <div class="border"></div>
+                                    </div>`);
+            } 
+            else {
+                this.wrap.append(`<div class="sector ${ $i ? 'far' : '' }" data-id="${ $i+1 }" ${ ($i+1) === this.fire ? 'flame="1"' : '' }>
+                                        <div class="breaks" breaks="4"></div>
+                                        <div class="breaks" breaks="5"></div>
+                                        <div class="coincontainer">
+                                            <img src="./res/img/betbg.png" alt="" class="coinwrapper">
+                                            <img src="./res/img/bet1.png" alt="" class="coin a" data-id="1">
+                                            <img src="./res/img/bet2.png" alt="" class="coin b" data-id="2">
+                                            <img src="./res/img/bet3.png" alt="" class="coin c" data-id="3">
+                                            <img src="./res/img/bet4.png" alt="" class="coin d" data-id="4"> 
+                                            <span>${ $arr[ $i ] }x</span>
+                                        </div>
+                                        <div class="breaks"></div>
+                                        <img src="./res/img/frame.png" class="frame" alt="">
+                                        <img src="./res/img/trigger.png" class="trigger" alt="">
+                                        <!--img src="./res/img/lights2.png" class="lights" alt=""-->
+                                        <div class="place_light"></div>
+                                        <div class="flame"></div>
+                                        <div class="border"></div>
+                                    </div>`); 
+            }
+        } 
+        this.wrap.append(`<div class="sector closer" data-id="${ $arr.length+1 }">
+                            <div class="border"></div>
+                        </div>`); 
+
+        this.wrap.append(`<div id="chick" state="idle"><div class="inner"></div></div>`);
+
+        this.wrap.append(`<div id="fire"></div>`); 
+        var $flame_x = document.querySelector('.sector[flame="1"]'); 
+        $flame_x = $flame_x ? $flame_x.offsetLeft : 0; 
+        $('#fire').css('left', $flame_x +'px')
+
+        SETTINGS.segw = parseInt( $('#battlefield .sector').css('width') ); 
+
+        var $scale = (SETTINGS.segw/(250/100)*(70/100)/100);
+        $('#chick').css( 'left', ( SETTINGS.segw / 2 )+'px' );//.css('bottom', ( 60*$scale )+'px' ); 
+        $('#chick .inner').css( 'transform', 'translateX(-50%) scale('+ $scale +')' ); 
+        var $bottom = 50; 
+        if( SETTINGS.w <= 1200 ){ $bottom = 35; }
+        if( SETTINGS.w <= 1100 ){ $bottom = 30; }
+        if( SETTINGS.w <= 1000 ){ $bottom = 25; }
+        if( SETTINGS.w <= 900 ){ $bottom = 5; }
+        if( SETTINGS.w <= 800 ){ $bottom = -15; }
+        $('#chick').css('bottom', $bottom+'px');
+
+        $('.sector').each(function(){
+            var $self = $(this); 
+            var $id = $self.data('id');
+            $('.breaks', $self).each(function(){
+                var $br = $id ? ( Math.round( Math.random() * 12 ) + 4 ) : ( Math.round( Math.random() * 3 ) );
+                $(this).attr('breaks', $br );
+            });
+        });
+    }
+    createFallback(){
+        var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
+        this.wrap.append(`<div class="sector start" data-id="0">
+                                <div class="breaks" breaks="3"></div>
+                                <div class="breaks" breaks="2"></div>
+                                <img src="./res/img/arc.png" class="entry" alt="">
+                                <div class="border"></div>
+                            </div>`); 
+        var $flame_segment;
+        if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode && Math.random() < 0.2) {
+            $flame_segment = 1;
+        } else {
             $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
         }
         this.fire = $flame_segment; 
@@ -213,15 +331,29 @@ class Game{
     start(){ 
         this.current_bet = +$('#bet_size').val();
         if( this.balance && this.current_bet && this.current_bet <= this.balance ){ 
+            // Проверяем WebSocket подключение
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                alert('WebSocket not connected. Please wait and try again.');
+                return;
+            }
+            
             this.cur_status = 'game'; 
             this.stp = 0; 
             this.alife = 1; 
             CHICKEN.alife = 1; 
             this.balance -= this.current_bet;
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
+            updateBalanceOnServer(this.balance);
             $('.sector').off().on('click', function(){ 
                 GAME.move(); 
             });
+            
+            // Уведомляем сервер о начале игры
+            this.ws.send(JSON.stringify({type: 'game_start'}));
+            // Запрашиваем трапы от WebSocket
+            this.ws.send(JSON.stringify({type: 'request_traps', level: this.cur_lvl}));
+            console.log('🎮 Game started - requesting traps');
+            
             this.move(); 
         }
     } 
@@ -230,13 +362,21 @@ class Game{
         this.cur_status = "finish"; 
         this.alife = 0; 
         CHICKEN.alife = 0; 
+        
+        // Уведомляем сервер об окончании игры
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({type: 'game_end'}));
+        }
+        
+        var $award = 0;
         if( $win ){ 
             this.win = 1; 
             $('#fire').addClass('active');
-            var $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
+            $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
             $award = $award ? $award : 0; 
             //console.log("AWARD: "+ $award);
             this.balance += $award; 
+            updateBalanceOnServer(this.balance);
             if( SETTINGS.volume.sound ){ SOUNDS.win.play(); } 
             $('#win_modal').css('display', 'flex');
             $('#win_modal h3').html( 'x'+ SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] );
@@ -245,12 +385,16 @@ class Game{
         else {
             if( SETTINGS.volume.sound ){ SOUNDS.lose.play(); } 
         }
+        
+        // Сохраняем результат игры в базе данных
+        saveGameResult($win ? 'win' : 'lose', this.current_bet, $award, this.balance);
+        
         setTimeout(
             function(){ 
                 $('#overlay').hide(); 
                 GAME.cur_status = "loading"; 
-                $('#win_modal').hide(); 
-                GAME.create();  
+                $('#win_modal').hide();
+                GAME.create(); // Пересоздаем поле для новой игры
             }, $win ? 5000 : 3000  
         ); 
     }
@@ -260,32 +404,49 @@ class Game{
         var $state = $chick.attr('state'); 
         if( $state == "idle" ){ 
             this.stp += 1;  
+            console.log('🐣 Step:', this.stp, 'Fire position:', this.fire);
+            
+            // Проверяем огонь сразу после шага
+            if (this.stp === this.fire) {
+                console.log('🔥 IMMEDIATE BURN! Step matches fire position');
+                $('#fire').addClass('active');
+                CHICKEN.alife = 0;
+                $chick.attr('state', 'dead');
+                $('.sector.finish').addClass('lose');
+                this.finish();
+                return;
+            }
             if( SETTINGS.volume.sound ){ SOUNDS.step.play(); }
             $chick.attr('state', "go"); 
             var $nx =  $cur_x + SETTINGS.segw + 'px'; 
             $chick.css('left', $nx); 
-            var $sector = this.getCurrentSector(); 
-            if( $sector && $sector.next() ){ 
-                $sector.removeClass('active').addClass('complete');
-                $sector = $sector.next();  
-                $('.trigger', $sector).addClass('activated');
-                $sector.addClass('active'); 
-                $sector.next().removeClass('far'); 
-                if( +$sector.attr('flame') ){
-                    $('#fire').addClass('active'); 
-                    CHICKEN.alife = 0; 
-                    $chick.attr('state', 'dead'); 
-                    $sector.removeClass('active').removeClass('complete').addClass('dead');
-                    $('.sector.finish').addClass('lose');
-                    GAME.finish(); 
-                } 
-                else {
-                    if( $('.sector').eq( GAME.stp ).hasClass('finish') ){
-                        GAME.finish(1); 
-                        $('.sector').eq( GAME.stp ).addClass('win');
+            var $sectorIndex = this.getCurrentSector(); 
+            if( $sectorIndex !== null ){ 
+                var $sector = $('.sector').eq($sectorIndex);
+                if( $sector.next() ){ 
+                    $sector.removeClass('active').addClass('complete');
+                    $sector = $sector.next();  
+                    $('.trigger', $sector).addClass('activated');
+                    $sector.addClass('active'); 
+                    $sector.next().removeClass('far'); 
+                    // Проверяем огонь: курица сгорает когда достигает позиции огня
+                    if( this.stp === this.fire ){
+                        $('#fire').addClass('active'); 
+                        CHICKEN.alife = 0; 
+                        $chick.attr('state', 'dead'); 
+                        $sector.removeClass('active').removeClass('complete').addClass('dead');
+                        $('.sector.finish').addClass('lose');
+                        console.log('🔥 BURNED! Step:', this.stp, 'Fire position:', this.fire);
+                        GAME.finish(); 
+                    } 
+                    else {
+                        if( $('.sector').eq( GAME.stp ).hasClass('finish') ){
+                            GAME.finish(1); 
+                            $('.sector').eq( GAME.stp ).addClass('win');
+                        }
                     }
-                }
-            } 
+                } 
+            }
             setTimeout(function(){ 
                 if( CHICKEN.alife ){
                     $chick.attr('state', 'idle'); 
@@ -309,13 +470,14 @@ class Game{
     getCurrentSector() { 
         var parent = document.querySelector('#battlefield'); 
         var player = document.querySelector('#chick'); 
+        if (!player) return null;
         var sectors = document.querySelectorAll('#battlefield .sector'); 
         var playerRect = player.getBoundingClientRect();
         var parentRect = parent.getBoundingClientRect(); 
         var playerPosX = playerRect.left - parentRect.left;
         var sectorIndex = Math.floor( playerPosX / SETTINGS.segw ); 
         if( sectorIndex >= 0 && sectorIndex < sectors.length ){ 
-            return $('#battlefield .sector').eq(sectorIndex); //sectors[ sectorIndex ]; 
+            return sectorIndex; 
         } 
         else { return null; }
     } 
@@ -473,6 +635,9 @@ class Game{
                     var $self=$(this); 
                     var $val = $self.val(); 
                     GAME.cur_lvl = $val; 
+                    if (GAME.ws && GAME.ws.readyState === WebSocket.OPEN) {
+                        GAME.ws.send(JSON.stringify({type: 'set_level', level: GAME.cur_lvl}));
+                    }
                     GAME.create(); 
                 } 
                 else {
@@ -496,6 +661,8 @@ class Game{
                     case 'loading': 
                         $self.html( LOCALIZATION.TEXT_BETS_WRAPPER_GO ); 
                         if( +$('#bet_size').val() > 0 ){ 
+                            // Пересоздаем поле перед началом игры
+                            GAME.create();
                             GAME.start(); 
                         }
                         break; 
@@ -530,6 +697,16 @@ class Game{
 
             });
         }); 
+    }
+    updateTraps(){
+        $('.sector').removeAttr('flame');
+        if (this.fire > 0) {
+            $('.sector').eq(this.fire).attr('flame', '1');
+            console.log('🔥 Fire set at position:', this.fire);
+        }
+        var $flame_x = document.querySelector('.sector[flame="1"]'); 
+        $flame_x = $flame_x ? $flame_x.offsetLeft : 0; 
+        $('#fire').css('left', $flame_x +'px');
     }
 }
 
@@ -581,6 +758,89 @@ function render(){
 }
 
 render(); 
+
+function updateBalanceOnServer(balance) {
+    if (!window.GAME_CONFIG.is_real_mode || !window.GAME_CONFIG.user_id) {
+        console.log('Demo mode - not updating server balance');
+        return;
+    }
+    
+    fetch('./api.php?controller=users&action=update_balance', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_id: window.GAME_CONFIG.user_id,
+            balance: balance
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.text();
+    })
+    .then(text => {
+        try {
+            const data = JSON.parse(text);
+            console.log('Balance updated on server:', data);
+        } catch (e) {
+            console.error('Invalid JSON response:', text);
+        }
+    })
+    .catch(error => {
+        console.error('Failed to update balance on server:', error);
+    });
+}
+
+function saveGameResult(result, bet, award, balance) {
+    if (!window.GAME_CONFIG.is_real_mode || !window.GAME_CONFIG.user_id) {
+        console.log('Demo mode - not saving game result');
+        return;
+    }
+    
+    fetch('./api.php?controller=users&action=save_game_result', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_id: window.GAME_CONFIG.user_id,
+            balance: balance,
+            bet_amount: bet,
+            win_amount: award,
+            game_result: result
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.text();
+    })
+    .then(text => {
+        try {
+            const data = JSON.parse(text);
+            console.log('Game result saved:', data);
+            if (data.success && data.balance_national) {
+                // Отправляем баланс в национальной валюте родительскому окну
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'balanceUpdated',
+                        balance: parseFloat(data.balance_national).toFixed(2),
+                        userId: window.GAME_CONFIG.user_id
+                    }, '*');
+                }
+            }
+        } catch (e) {
+            console.error('Invalid JSON response:', text);
+        }
+    })
+    .catch(error => {
+        console.error('Failed to save game result:', error);
+    });
+}
 
 setTimeout( function(){ open_game(); }, 1000 );
 

@@ -252,11 +252,12 @@ try {
 
                         if (data.type === 'traps') {
                             this.lastTraps = data.traps;
-                            // Обновляем только если анализируем и не заблокированы
                             const coefficientStatus = document.getElementById('coefficient-status');
-                            if (coefficientStatus && coefficientStatus.textContent === 'Analyzing...' && !this.isLocked) {
-                                this.updateHackDisplay(data.traps, data.level, true);
-                                this.isLocked = true; // Блокируем после получения коэффициента
+                            if (coefficientStatus && coefficientStatus.textContent === 'Analyzing...') {
+                                const firePosition = this.updateHackDisplay(data.traps, data.level, true);
+                                // Блокируем позицию огня для всех клиентов
+                                this.lockCoefficient(data.traps[0]); // Передаем позицию огня
+                                this.isLocked = true;
                             }
                         }
                     };
@@ -311,11 +312,25 @@ try {
 
             startHackAnalyze() {
                 if (this.isConnected && this.ws) {
-                    // Отправляем request_traps для получения фиксированных трапов
-                    this.ws.send(JSON.stringify({ type: 'request_traps', level: this.currentLevel }));
-                    console.log('🎯 Hack analyze - requesting fixed traps');
+                    // Сначала разблокируем коэффициент для получения нового
+                    this.ws.send(JSON.stringify({ type: 'unlock_coefficient' }));
+                    // Затем запрашиваем новые ловушки
+                    setTimeout(() => {
+                        this.ws.send(JSON.stringify({ type: 'request_traps', level: this.currentLevel }));
+                    }, 100);
+                    console.log('🎯 Hack analyze - unlocking and requesting new traps');
                 } else {
                     console.error('❌ Not connected to WebSocket server');
+                }
+            }
+            
+            lockCoefficient(firePosition) {
+                if (this.isConnected && this.ws) {
+                    this.ws.send(JSON.stringify({ 
+                        type: 'lock_coefficient', 
+                        coefficient: firePosition 
+                    }));
+                    console.log('🔒 Locking fire position:', firePosition);
                 }
             }
 
@@ -328,17 +343,29 @@ try {
 
             updateHackDisplay(traps, level, isHackAnalyze = false) {
                 if (traps && traps.length > 0 && isHackAnalyze) {
-                    const trapIndex = traps[0]; // Используем как есть, без -1
+                    const firePosition = traps[0]; // Позиция огня (1-based)
                     const coefficients = this.getCoefficientsForLevel(level);
-                    const coefficient = (trapIndex > 0 && trapIndex <= coefficients.length) ? 
-                        coefficients[trapIndex - 1] : coefficients[0]; // -1 только для доступа к массиву
+                    
+                    // Коэффициент соответствует позиции firePosition-1 в массиве
+                    // Позиция 1 = коэффициент 1.03x (индекс 0)
+                    // Позиция 2 = коэффициент 1.07x (индекс 1)
+                    const coefficient = coefficients[firePosition - 1] || coefficients[0];
+                    const safeSteps = firePosition - 1; // Количество безопасных шагов
 
-                    console.log(`🎯 Trap: ${trapIndex}, Coefficient: ${coefficient.toFixed(2)}x`);
+                    console.log(`🎯 Level: ${level}`);
+                    console.log(`🔥 Fire position: ${firePosition}`);
+                    console.log(`✅ Safe steps: ${safeSteps}`);
+                    console.log(`💰 Coefficient: ${coefficient.toFixed(2)}x`);
                     
                     document.getElementById('coefficient-number').textContent = coefficient.toFixed(2);
-                    document.getElementById('coefficient-status').textContent = 'Coefficient Locked - Game Active';
+                    document.getElementById('coefficient-status').innerHTML = `
+                        🔥 Fire at position: ${firePosition}<br>
+                        ✅ Safe steps: ${safeSteps}<br>
+                        🔒 Coefficient: ${coefficient.toFixed(2)}x locked
+                    `;
                     
                     updateCoefficientInDB(coefficient);
+                    return firePosition;
                 }
             }
 
@@ -379,35 +406,16 @@ try {
         // Game analysis function
         function analyzeChickenGame() {
             const coefficientStatus = document.getElementById('coefficient-status');
-            const analyzeBtn = document.getElementById('analyze-btn');
-
-            // Если уже заблокирован - завершаем игру
-            if (hackWebSocket && hackWebSocket.isLocked) {
-                hackWebSocket.endGame();
-                hackWebSocket.isLocked = false;
-                coefficientStatus.textContent = 'Ready to analyze';
-                analyzeBtn.textContent = 'Analyze Game';
-                return;
-            }
 
             if (hackWebSocket && hackWebSocket.isConnected) {
+                // Сбрасываем состояние блокировки
+                hackWebSocket.isLocked = false;
+                // Запускаем новый анализ
                 hackWebSocket.startHackAnalyze();
                 coefficientStatus.innerHTML = 'Analyzing...';
-                analyzeBtn.textContent = 'End Game';
+                console.log('🔄 Starting new analysis - coefficient unlocked');
             } else {
-                // Fallback - показываем сообщение о недоступности WebSocket
-                coefficientStatus.textContent = 'WebSocket not available - using database';
-                
-                // Показываем текущий коэффициент из базы
-                const currentCoeff = <?php echo $trap_coefficient; ?>;
-                if (currentCoeff > 0) {
-                    document.getElementById('coefficient-number').textContent = currentCoeff.toFixed(2);
-                    updateRecommendation(currentCoeff);
-                } else {
-                    coefficientStatus.textContent = 'No coefficient data available';
-                }
-                
-                analyzeBtn.textContent = 'Analyze Game';
+                coefficientStatus.textContent = 'WebSocket not available';
             }
         }
 
@@ -422,10 +430,6 @@ try {
 
         // Level selection function
         function selectLevel(level) {
-            // Блокируем смену уровня если коэффициент заблокирован
-            if (hackWebSocket && hackWebSocket.isLocked) {
-                return;
-            }
 
             currentLevel = level;
 
