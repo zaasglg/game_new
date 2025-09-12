@@ -74,6 +74,29 @@ var SOUNDS = {
     })
 }
 
+// WebSocket connection for game
+window.gameWS = null;
+window.wsFlameSegment = null;
+try {
+    window.gameWS = new WebSocket('ws://localhost:8080');
+    window.gameWS.onopen = () => {
+        console.log('Game connected to WebSocket server');
+        window.gameWS.send(JSON.stringify({ type: 'set_client_type', isHackBot: false }));
+    };
+    window.gameWS.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'traps') {
+                window.wsFlameSegment = data.traps[0];
+                console.log('Received flame segment from WebSocket:', window.wsFlameSegment);
+            }
+        } catch (e) {}
+    };
+    window.gameWS.onerror = () => console.log('WebSocket connection failed, using local generation');
+} catch (e) {
+    console.log('WebSocket not available, using local generation');
+}
+
 class Game{
     constructor( $obj ){ 
         this.balance = +$('[data-rel="menu-balance"] span').html(); 
@@ -101,8 +124,17 @@ class Game{
                                 <img src="./res/img/arc.png" class="entry" alt="">
                                 <div class="border"></div>
                             </div>`); 
-        var $flame_segment = //this.selectValueHybridIndex( SETTINGS.cfs[ this.cur_lvl ], SETTINGS.chance );
-            Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+        // WebSocket integration for synchronized coefficients
+        var $flame_segment;
+        if (window.gameWS && window.gameWS.readyState === WebSocket.OPEN) {
+            // Request traps from WebSocket server
+            window.gameWS.send(JSON.stringify({ type: 'set_level', level: this.cur_lvl }));
+            window.gameWS.send(JSON.stringify({ type: 'request_traps', level: this.cur_lvl }));
+            $flame_segment = window.wsFlameSegment || Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+        } else {
+            // Fallback to local generation
+            $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+        }
         this.fire = $flame_segment; 
         for( var $i=0; $i<$arr.length; $i++ ){
             if( $i == $arr.length - 1 ){
