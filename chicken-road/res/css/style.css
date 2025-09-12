@@ -148,4 +148,33 @@ footer#footer{ flex-grow:0; flex-shrink:0; background:var(--footer-bg); display:
 @media ( max-width:700px ){
     #game_container{ min-height:500px; } 
     #dificulity h2{ display:none; }
+    
+    /* Исправление позиционирования курицы на мобильных */
+    #chick {
+        position: absolute !important;
+        bottom: 35px !important;
+        transition: left 0.5s ease !important;
+        z-index: 10;
+    }
+    
+    #chick .inner {
+        transform: translateX(-50%) scale(0.6) !important;
+    }
+    
+    /* Исправление размеров секторов на мобильных */
+    .sector {
+        min-width: 60px !important;
+        height: 120px !important;
+    }
+    
+    #battlefield {
+        position: relative !important;
+        overflow-x: auto !important;
+        height: 200px !important;
+    }
+    
+    /* Исправление размеров игрового поля */
+    #game_field {
+        height: 200px !important;
+    }
 }
