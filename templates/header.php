@@ -69,7 +69,7 @@
             			<div class="_info_z3cl7_14">
               				<span>Bonificaciones</span>
               				<span class="_count_z3cl7_20">
-                				$<?= htmlspecialchars( SYS_BONUS ); ?>
+                				<?= htmlspecialchars( SYS_BONUS ); ?> COP
               				</span>
             			</div>
           			</div>

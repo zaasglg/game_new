@@ -631,7 +631,7 @@ header('Content-Type: text/html; charset=UTF-8');
             <div class="_info_z3cl7_14">
               <span data-translate="header.bonuses">Bonificaciones</span>
               <span class="_count_z3cl7_20">
-                $<?php echo htmlspecialchars($bonificaciones); ?>
+                <?php echo htmlspecialchars($bonificaciones); ?> COP
               </span>
             </div>
           </div>
