@@ -10,7 +10,7 @@ if (defined('SYS_BALANCE') && SYS_BALANCE > 0 && defined('SYS_COUNTRY')) {
     $balance_usd = 0;
 }
 
-if (IS_MOBILE) { ?>
+if (true) { ?>
 	<style>
 		.casino {
 			display: block;
