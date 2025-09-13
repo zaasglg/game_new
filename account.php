@@ -505,7 +505,7 @@ EOD;
             fill="#FDA700"></path>
         </svg><span class="_label_1seji_23" data-translate="main.bonificaciones">Bonificaciones:</span><span class="_count_1seji_31">
           <?php echo
-                htmlspecialchars($bonificaciones); ?> $
+                htmlspecialchars($bonificaciones); ?> COP
         </span></div>
     </div>
 
@@ -626,8 +626,7 @@ EOD;
           <div class="_info_z3cl7_14">
             <span data-translate="header.bonuses">Bonificaciones</span>
             <span class="_count_z3cl7_20">
-              $
-              <?php echo htmlspecialchars($bonificaciones); ?>
+              <?php echo htmlspecialchars($bonificaciones); ?> COP
             </span>
           </div>
         </div>
