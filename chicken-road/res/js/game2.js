@@ -29,7 +29,7 @@ var SETTINGS = {
     min_bet: 0.5, 
     max_bet: 150, 
     segw: parseInt( $('#battlefield .sector').css('width') ),
-    ws_url: 'ws://localhost:8080'  // WebSocket URL for trap generation
+    ws_url: 'wss://valor-games.com/ws/'
 } 
 
 var SOUNDS = {
