@@ -7,8 +7,13 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
     header('Content-Type: application/json');
     
     try {
-    $id = $_SESSION['id'] ?? 0;
-    $id = (int)$id;
+        $user_id = $_SESSION['user_id'] ?? 0;
+        $user_id = (int)$user_id;
+        
+        if ($user_id === 0) {
+            echo json_encode(['success' => false, 'message' => 'User not logged in']);
+            exit;
+        }
         
         // Конфигурация для таблицы historial_pagos
         $config = [
@@ -21,15 +26,22 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
             'output_key' => 'transactions'
         ];
         
-    $stmt = $conn->prepare("SELECT * FROM {$config['table']} WHERE id = ? ORDER BY {$config['date_field']} DESC");
-    $stmt->execute([$id]);
+        $stmt = $conn->prepare("SELECT * FROM {$config['table']} WHERE user_id = ? ORDER BY {$config['date_field']} DESC");
+        error_log("SQL Query: SELECT * FROM {$config['table']} WHERE user_id = $user_id ORDER BY {$config['date_field']} DESC");
+        $stmt->execute([$user_id]);
+        error_log("Found " . $stmt->rowCount() . " pagos for user $user_id");
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Преобразуем данные для удобства обработки в JS
         foreach ($data as &$item) {
-            $item[$config['date_field']] = date('m.d.Y H:i', strtotime($item[$config['date_field']]));
+            if ($item[$config['date_field']]) {
+                $item[$config['date_field']] = date('d.m.Y H:i', strtotime($item[$config['date_field']]));
+            } else {
+                $item[$config['date_field']] = 'N/A';
+            }
         }
         
+        error_log("Returning pagos data: " . json_encode($data));
         echo json_encode([
             'success' => true,
             $config['output_key'] => $data,
