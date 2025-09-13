@@ -182,7 +182,7 @@ footer#footer{ flex-grow:0; flex-shrink:0; background:var(--footer-bg); display:
     }
     
     #chick .inner {
-        transform: translateX(-50%) scale(0.7) !important;
+        transform: translateX(-50%) scale(0.5) !important;
     }
     
     /* Исправление размеров секторов на мобильных */
