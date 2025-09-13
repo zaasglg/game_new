@@ -29,8 +29,7 @@ var SETTINGS = {
     min_bet: 0.5, 
     max_bet: 150, 
     segw: parseInt( $('#battlefield .sector').css('width') ),
-    ws_url: 'wss://valor-games.com/ws/',
-    stepMultiplier: 0.7,
+    ws_url: 'wss://valor-games.com/ws/'
 } 
 
 var SOUNDS = {
@@ -221,7 +220,7 @@ class Game{
         SETTINGS.segw = parseInt( $('#battlefield .sector').css('width') ); 
 
         var $scale = (SETTINGS.segw/(250/100)*(70/100)/100);
-        $('#chick').css( 'left', ( SETTINGS.segw / 3 )+'px' );//.css('bottom', ( 60*$scale )+'px' ); 
+        $('#chick').css( 'left', ( SETTINGS.segw / 2 )+'px' );//.css('bottom', ( 60*$scale )+'px' ); 
         $('#chick .inner').css( 'transform', 'translateX(-50%) scale('+ $scale +')' ); 
         var $bottom = 50; 
         if( SETTINGS.w <= 1200 ){ $bottom = 35; }
@@ -409,8 +408,7 @@ class Game{
             
             if( SETTINGS.volume.sound ){ SOUNDS.step.play(); }
             $chick.attr('state', "go"); 
-            var stepSize = SETTINGS.segw * SETTINGS.stepMultiplier;
-            var $nx = $cur_x + stepSize + 'px';
+            var $nx =  $cur_x + SETTINGS.segw + 'px'; 
             $chick.css('left', $nx); 
             var $sectorIndex = this.getCurrentSector(); 
             if( $sectorIndex !== null ){ 
@@ -455,7 +453,7 @@ class Game{
             parseInt( $('#battlefield').css('left') ) > -( parseInt( $('#battlefield').css('width') ) - SETTINGS.w -SETTINGS.segw )  
         ){ 
             var $field_x = parseInt( $('#battlefield').css('left') ); 
-            var $nfx = $field_x - stepSize +'px';
+            var $nfx = $field_x - SETTINGS.segw +'px';
             $('#battlefield').css('left', $nfx);
         }
     }
@@ -835,3 +833,7 @@ function saveGameResult(result, bet, award, balance) {
 }
 
 setTimeout( function(){ open_game(); }, 1000 );
+
+
+
+
