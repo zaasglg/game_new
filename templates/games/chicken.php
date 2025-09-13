@@ -10,7 +10,7 @@ if (defined('SYS_BALANCE') && SYS_BALANCE > 0 && defined('SYS_COUNTRY')) {
     $balance_usd = 0;
 }
 
-if (true) { ?>
+if (IS_MOBILE) { ?>
 	<style>
 		.casino {
 			display: block;
@@ -57,8 +57,8 @@ if (true) { ?>
 
 			#aviator_frame {
 				width: 100%;
-				aspect-ratio:4/3;
-				height: 100%;
+				/*aspect-ratio:4/3;*/
+				height: calc(100vh - 65px);
 			}
 		</style>
 		<iframe
