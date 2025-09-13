@@ -453,25 +453,20 @@ class Game{
     updateCamera(){
         var $chick = $('#chick');
         var $cur_x = parseInt($chick.css('left'));
-        var $battlefield = $('#battlefield');
-        var $field_width = parseInt($battlefield.css('width'));
-        var $screen_center = SETTINGS.w / 2;
         
-        // Вычисляем новую позицию камеры
-        var $target_offset = $screen_center - $cur_x;
-        var $current_offset = parseInt($battlefield.css('left')) || 0;
-        
-        // Ограничиваем движение камеры границами поля
-        var $max_offset = 0;
-        var $min_offset = -(($field_width - SETTINGS.w) + SETTINGS.segw);
-        
-        if ($target_offset > $max_offset) $target_offset = $max_offset;
-        if ($target_offset < $min_offset) $target_offset = $min_offset;
-        
-        // Плавная анимация камеры
-        $battlefield.animate({
-            left: $target_offset + 'px'
-        }, 400, 'swing');
+        // Проверяем нужно ли двигать камеру (когда курица за пределами центральной трети экрана)
+        if ($cur_x > SETTINGS.w / 2) {
+            var $battlefield = $('#battlefield');
+            var $field_x = parseInt($battlefield.css('left')) || 0;
+            var $field_width = parseInt($battlefield.css('width'));
+            var $min_left = -(($field_width - SETTINGS.w));
+            
+            // Двигаем поле влево на один сегмент
+            var $new_x = $field_x - SETTINGS.segw;
+            if ($new_x >= $min_left) {
+                $battlefield.css('left', $new_x + 'px');
+            }
+        }
     }
     getCurrentSector() { 
         var parent = document.querySelector('#battlefield'); 
