@@ -24,6 +24,9 @@
     .basic_radio .gray_input{ padding:0; }
 }
 
+* {
+    display: none;
+}
 
 
 #main_wrapper{ background:#394265; }
