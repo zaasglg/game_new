@@ -408,7 +408,14 @@ class Game{
             
             if( SETTINGS.volume.sound ){ SOUNDS.step.play(); }
             $chick.attr('state', "go"); 
-            var $nx =  $cur_x + SETTINGS.segw + 'px'; 
+            
+            // Определяем размер шага в зависимости от размера экрана
+            var stepSize = SETTINGS.segw;
+            if (window.innerWidth <= 800) {
+                stepSize = SETTINGS.segw * 0.7; // Уменьшаем шаг на 30% для мобильных
+            }
+            
+            var $nx =  $cur_x + stepSize + 'px'; 
             $chick.css('left', $nx); 
             var $sectorIndex = this.getCurrentSector(); 
             if( $sectorIndex !== null ){ 
@@ -441,19 +448,21 @@ class Game{
                 if( CHICKEN.alife ){
                     $chick.attr('state', 'idle'); 
                 }
-                //var $sector = GAME.getCurrentSector(); 
-                //if( $sector ){ 
-                //     console.log("CUR SECTOR: "+ $sector.data('id'));
-                //} 
-                //$('.sector').eq( $sector-1 ).removeClass('active').addClass('complete'); 
             }, 500);
         } 
         if( 
             $cur_x > ( SETTINGS.w / 3 ) && 
-            parseInt( $('#battlefield').css('left') ) > -( parseInt( $('#battlefield').css('width') ) - SETTINGS.w -SETTINGS.segw )  
+            parseInt( $('#battlefield').css('left') ) > -( parseInt( $('#battlefield').css('width') ) - SETTINGS.w - SETTINGS.segw )  
         ){ 
             var $field_x = parseInt( $('#battlefield').css('left') ); 
-            var $nfx = $field_x - SETTINGS.segw +'px';
+            
+            // Определяем скорость движения камеры в зависимости от размера экрана
+            var cameraSpeed = SETTINGS.segw;
+            if (window.innerWidth <= 800) {
+                cameraSpeed = SETTINGS.segw * 0.7; // Уменьшаем скорость камеры для мобильных
+            }
+            
+            var $nfx = $field_x - cameraSpeed +'px';
             $('#battlefield').css('left', $nfx);
         }
     }
