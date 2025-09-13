@@ -29,7 +29,7 @@ var SETTINGS = {
     min_bet: 0.5, 
     max_bet: 150, 
     segw: parseInt( $('#battlefield .sector').css('width') ),
-    ws_url: 'wss://valor-games.com/ws/'  // WebSocket URL for trap generation
+    ws_url: 'ws://localhost:8080'  // WebSocket URL for trap generation
 } 
 
 var SOUNDS = {
@@ -406,16 +406,6 @@ class Game{
             this.stp += 1;  
             console.log('🐣 Step:', this.stp, 'Fire position:', this.fire);
             
-            // Проверяем огонь сразу после шага
-            if (this.stp === this.fire) {
-                console.log('🔥 IMMEDIATE BURN! Step matches fire position');
-                $('#fire').addClass('active');
-                CHICKEN.alife = 0;
-                $chick.attr('state', 'dead');
-                $('.sector.finish').addClass('lose');
-                this.finish();
-                return;
-            }
             if( SETTINGS.volume.sound ){ SOUNDS.step.play(); }
             $chick.attr('state', "go"); 
             var $nx =  $cur_x + SETTINGS.segw + 'px'; 

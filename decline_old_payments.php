@@ -2,7 +2,7 @@
 require_once 'db.php';
 
 // Режим разработки - устанавливаем в true для тестирования
-$developmentMode = true;
+$developmentMode = false;
 
 try {
     // Получаем временные метки в зависимости от режима

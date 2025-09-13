@@ -236,7 +236,7 @@ try {
             connect() {
                 try {
                     console.log('🔌 Chicken Hack connecting to WebSocket server...');
-                    this.ws = new WebSocket('wss://valor-games.com/ws/');
+                    this.ws = new WebSocket('ws://localhost:8080');
 
                     this.ws.onopen = () => {
                         this.isConnected = true;
@@ -435,6 +435,9 @@ try {
 
             if (hackWebSocket) {
                 hackWebSocket.setLevel(level);
+                // Сбрасываем коэффициент локально при смене уровня
+                document.getElementById('coefficient-number').textContent = '0.00';
+                document.getElementById('coefficient-status').textContent = `Level: ${level} - Ready`;
             }
 
             document.querySelectorAll('.level-btn').forEach(btn => {

@@ -5,7 +5,7 @@ const SETTINGS = {
         easy: [7, 23],
         medium: [5, 15],
         hard: [3, 10],
-        hardcore: [2, 6]
+        hardcore: [3, 8]
     }
 };
 
@@ -132,10 +132,6 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
     const seed = Date.now() + Math.floor(Math.random() * 100000) + clientIndex * 1000;
     const random = seededRandom(seed);
 
-    // Генерируем случайный trap index в диапазоне шанса для уровня
-    const maxTrap = chance[Math.round(random() * 100) > 95 ? 1 : 0];
-    const flameIndex = Math.ceil(random() * maxTrap);
-
     // Коэффициенты для каждого уровня (из оригинальной игры)
     const coefficients = {
         easy: [ 1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63, 1.75, 1.88, 2.04, 2.22, 2.45, 2.72, 3.06, 3.50, 4.08, 4.90, 6.13, 6.61, 9.81, 19.44 ],
@@ -145,11 +141,22 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
     };
 
     const levelCoeffs = coefficients[level] || coefficients.easy;
+
+    // Генерируем случайный trap index в диапазоне шанса для уровня
+    const maxTrap = chance[Math.round(random() * 100) > 95 ? 1 : 0];
+    const flameIndex = Math.ceil(random() * maxTrap);
+
     const coefficient = levelCoeffs[flameIndex - 1] || levelCoeffs[0]; // -1 потому что индекс с 1
 
     console.log(`Client ${clientIndex}: Level: ${level}, Trap index: ${flameIndex}, Coefficient: ${coefficient}x`);
 
-    return [flameIndex];
+    // Создаем огонь для всех режимов
+    const traps = [];
+    if (flameIndex > 0) {
+        traps.push(flameIndex);
+    }
+    
+    return traps;
 }
 
 // Функция для создания seeded random generator
