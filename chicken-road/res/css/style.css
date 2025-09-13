@@ -176,13 +176,13 @@ footer#footer{ flex-grow:0; flex-shrink:0; background:var(--footer-bg); display:
     /* Исправление позиционирования курицы на мобильных */
     #chick {
         position: absolute !important;
-        bottom: 15px !important;
-        transition: left 0.5s ease !important;
+        bottom: 20px !important;
+        transition: left 0.2s linear !important;
         z-index: 10;
     }
     
     #chick .inner {
-        transform: translateX(-50%) translateY(-10px) scale(0.5) !important;
+        transform: translateX(-50%) scale(0.6) !important;
     }
     
     /* Исправление размеров секторов на мобильных */
