@@ -36,8 +36,8 @@
     #dificulity .radio_buttons{ height:40px; }
 }
 
-#battlefield{ height:100%; width:auto; position:absolute; top:0; left:0; bottom:0; display:flex; flex-flow:row nowrap; justify-content:start; align-items:start; gap:0; transition:all 0.5s linear; }
-#battlefield .sector{ width:clamp( 120px, 20vw, 250px ); height:100%; position:relative; display:flex; flex-flow:column nowrap; justify-content:flex-end; align-items:stretch; gap:0; background:transparent url('../img/border.png') right center repeat-y; background-size:5px auto; cursor:pointer; }
+#battlefield{ height:100%; width:auto; position:absolute; top:0; left:0; bottom:0; display:flex; flex-flow:row nowrap; justify-content:start; align-items:stretch; gap:0; transition:all 0.5s linear; }
+#battlefield .sector{ width:clamp( 220px, 20vw, 250px ); height:100%; position:relative; display:flex; flex-flow:column nowrap; justify-content:flex-end; align-items:stretch; gap:0; background:transparent url('../img/border.png') right center repeat-y; background-size:5px auto; cursor:pointer; }
 #battlefield .sector:first-child{ background:#2d324d; }
 #battlefield .sector *{ user-select: none; }
 #battlefield .sector.closer{ background:#2d324d; background-image:none; }
@@ -132,7 +132,7 @@
 }
 
 #chick{ width:0px; height:0px; background:red; position:absolute; bottom:50px; left:125px; transition:all 0.2s linear; }
-#chick .inner{ content:""; width:302px; aspect-ratio: 1/1; position:absolute; bottom:-65px; left:50%; transform:translateX(-50%) scale(0.7); border:solid 0px #fff; image-rendering: crisp-edges; }
+#chick .inner{ content:""; width:302px; aspect-ratio: 1/1; position:absolute; bottom:-95px; left:50%; transform:translateX(-50%) scale(0.7); border:solid 0px #fff; image-rendering: crisp-edges; }
 #chick[state="idle"] .inner{ background: transparent url('../img/chicken_idle.png') 0% 0% no-repeat; background-size:1510px 1510px; animation:chicken-idle 4s steps(1) infinite; image-rendering: pixelated; }
 #chick[state="go"] .inner{ background: transparent url('../img/chicken_go.png') 0% 0% no-repeat; background-size:1208px 1208px; animation:chicken-go 0.5s steps(1); image-rendering: pixelated; } 
 #chick[state="dead"] .inner{ background: transparent url('../img/chicken_dead.png') center bottom no-repeat; background-size:100%; image-rendering: pixelated; } 
