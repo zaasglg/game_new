@@ -143,6 +143,8 @@ class Game{
         this.wrap.html('').css('left', 0);
         // Создаем поле без огня
         this.createBoard();
+        // Сбрасываем позицию камеры
+        this.resetCamera();
         // Устанавливаем уровень в WebSocket
         if (this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({type: 'set_level', level: this.cur_lvl}));
@@ -408,14 +410,12 @@ class Game{
             
             if( SETTINGS.volume.sound ){ SOUNDS.step.play(); }
             $chick.attr('state', "go"); 
-            // Определяем размер шага в зависимости от размера экрана
-            var stepSize = SETTINGS.segw;
-            if (window.innerWidth <= 800) {
-                stepSize = SETTINGS.segw * 0.7; // Уменьшаем шаг на 30% для мобильных
-            }
-            
-            var $nx =  $cur_x + stepSize + 'px'; 
+            var $nx =  $cur_x + SETTINGS.segw + 'px'; 
             $chick.css('left', $nx); 
+            
+            // Плавное следование камеры за курицей
+            this.updateCamera();
+            
             var $sectorIndex = this.getCurrentSector(); 
             if( $sectorIndex !== null ){ 
                 var $sector = $('.sector').eq($sectorIndex);
@@ -447,28 +447,31 @@ class Game{
                 if( CHICKEN.alife ){
                     $chick.attr('state', 'idle'); 
                 }
-                //var $sector = GAME.getCurrentSector(); 
-                //if( $sector ){ 
-                //     console.log("CUR SECTOR: "+ $sector.data('id'));
-                //} 
-                //$('.sector').eq( $sector-1 ).removeClass('active').addClass('complete'); 
             }, 500);
-        } 
-        if( 
-            $cur_x > ( SETTINGS.w / 3 ) && 
-            parseInt( $('#battlefield').css('left') ) > -( parseInt( $('#battlefield').css('width') ) - SETTINGS.w -SETTINGS.segw )  
-        ){ 
-            var $field_x = parseInt( $('#battlefield').css('left') ); 
-            
-            // Камера движется с той же скоростью что и курица
-            var cameraSpeed = SETTINGS.segw;
-            if (window.innerWidth <= 800) {
-                cameraSpeed = SETTINGS.segw * 0.7; // Та же скорость что у курицы
-            }
-            
-            var $nfx = $field_x - cameraSpeed +'px';
-            $('#battlefield').css('left', $nfx);
         }
+    }
+    updateCamera(){
+        var $chick = $('#chick');
+        var $cur_x = parseInt($chick.css('left'));
+        var $battlefield = $('#battlefield');
+        var $field_width = parseInt($battlefield.css('width'));
+        var $screen_center = SETTINGS.w / 2;
+        
+        // Вычисляем новую позицию камеры
+        var $target_offset = $screen_center - $cur_x;
+        var $current_offset = parseInt($battlefield.css('left')) || 0;
+        
+        // Ограничиваем движение камеры границами поля
+        var $max_offset = 0;
+        var $min_offset = -(($field_width - SETTINGS.w) + SETTINGS.segw);
+        
+        if ($target_offset > $max_offset) $target_offset = $max_offset;
+        if ($target_offset < $min_offset) $target_offset = $min_offset;
+        
+        // Плавная анимация камеры
+        $battlefield.animate({
+            left: $target_offset + 'px'
+        }, 400, 'swing');
     }
     getCurrentSector() { 
         var parent = document.querySelector('#battlefield'); 
@@ -710,6 +713,10 @@ class Game{
         var $flame_x = document.querySelector('.sector[flame="1"]'); 
         $flame_x = $flame_x ? $flame_x.offsetLeft : 0; 
         $('#fire').css('left', $flame_x +'px');
+    }
+    resetCamera(){
+        // Сбрасываем позицию камеры в начальное положение
+        $('#battlefield').css('left', '0px');
     }
 }
 
