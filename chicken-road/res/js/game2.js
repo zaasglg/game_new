@@ -10,7 +10,7 @@ var SETTINGS = {
     volume: {
         active: +$('body').data('sound'), 
         music: +$('body').data('sound') ? 0.2 : 0, 
-        sound: +$('body').data('sound') ? 0.9 : 0
+        sound: +$('body').data('music') ? 0.9 : 0
     }, 
     currency: $('body').attr('data-currency') ? $('body').attr('data-currency')  : "USD", 
     //cfs: {
@@ -91,64 +91,83 @@ class Game{
         this.fire = 0; 
         this.traps = null; // for WebSocket traps
         this.ws_attempts = 0;
+        
+        // Initialize WebSocket
+        this.initWebSocket();
+        
+        this.create(); 
+        this.bind(); 
+        $('#game_container').css('min-height', parseInt( $('#main').css('height') )+'px' );
+    }
+    
+    initWebSocket() {
+        if (!SETTINGS.ws_url) return;
+        
         this.ws = new WebSocket(SETTINGS.ws_url);
+        
         this.ws.onopen = () => { 
             console.log('Connected to WebSocket for traps'); 
             this.ws.send(JSON.stringify({type: 'set_level', level: this.cur_lvl}));
         };
+        
         this.ws.onmessage = (event) => { 
             console.log('Received WebSocket message:', event.data);
             this.handleWSMessage(event); 
         };
+        
         this.ws.onerror = (error) => { 
             console.error('WebSocket error:', error); 
         };
+        
         this.ws.onclose = () => { 
             console.log('WebSocket closed'); 
+            // Attempt to reconnect after a delay
+            if (this.ws_attempts < 3) {
+                setTimeout(() => {
+                    this.ws_attempts++;
+                    this.initWebSocket();
+                }, 2000);
+            }
         };
-        this.create(); 
-        this.bind(); 
-        $('#game_container').css('min-height', parseInt( $('#main').css('height') )+'px' );
-    } 
+    }
+    
     handleWSMessage(event) {
-        var data = JSON.parse(event.data);
-        console.log('Handling WebSocket message:', data);
-        if (data.type === 'traps') {
-            console.log('Updating traps:', data.traps);
-            this.traps = data.traps;
-            this.fire = data.traps[0]; // Обновляем позицию огня
-            console.log('🔥 Fire position updated to:', this.fire);
-            if (this.cur_status === 'loading') {
+        try {
+            var data = JSON.parse(event.data);
+            console.log('Handling WebSocket message:', data);
+            
+            if (data.type === 'traps') {
+                console.log('Updating traps:', data.traps);
+                this.traps = data.traps;
+                this.fire = data.traps[0]; // Update fire position
+                console.log('Fire position updated to:', this.fire);
+                if (this.cur_status === 'loading') {
+                    this.updateTraps();
+                }
+            } else if (data.type === 'game_traps') {
+                console.log('Game traps received:', data.traps);
+                this.traps = data.traps;
+                this.fire = data.traps[0];
+                console.log('Using locked fire position:', this.fire);
                 this.updateTraps();
+            } else if (data.type === 'coefficient_locked') {
+                console.log('Coefficient locked - fire position:', data.firePosition);
+                if (data.firePosition) {
+                    this.fire = data.firePosition;
+                    this.traps = [data.firePosition];
+                    this.updateTraps();
+                }
             }
-        } else if (data.type === 'game_traps') {
-            console.log('Game traps received:', data.traps);
-            this.traps = data.traps;
-            this.fire = data.traps[0];
-            console.log('🎯 Using locked fire position:', this.fire);
-            this.updateTraps();
-        } else if (data.type === 'coefficient_locked') {
-            console.log('Coefficient locked - fire position:', data.firePosition);
-            if (data.firePosition) {
-                this.fire = data.firePosition;
-                this.traps = [data.firePosition];
-                this.updateTraps();
-            }
+        } catch (e) {
+            console.error('Error parsing WebSocket message:', e);
         }
     }
+    
     create(){
         this.traps = null;
         this.fire = 0;
-        this.ws_attempts = 0;
         this.wrap.html('').css('left', 0);
-        // Создаем поле без огня
-        this.createBoard();
-        // Устанавливаем уровень в WebSocket
-        if (this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify({type: 'set_level', level: this.cur_lvl}));
-        }
-    }
-    createBoard(){
+        
         var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
         this.wrap.append(`<div class="sector start" data-id="0">
                                 <div class="breaks" breaks="3"></div>
@@ -156,15 +175,19 @@ class Game{
                                 <img src="./res/img/arc.png" class="entry" alt="">
                                 <div class="border"></div>
                             </div>`); 
-        var flameSegments = this.traps && this.traps.length > 0 ? this.traps : [];
-        // Используем ТОЛЬКО WebSocket трапы
-        if (flameSegments.length > 0) {
-            this.fire = flameSegments[0];
-            console.log('🎯 Using WebSocket trap:', this.fire);
+        
+        // Use WebSocket traps if available, otherwise fallback to random
+        var $flame_segment;
+        if (this.traps && this.traps.length > 0) {
+            $flame_segment = this.traps[0];
+            console.log('Using WebSocket trap:', $flame_segment);
         } else {
-            this.fire = 0; // Нет огня без WebSocket трапов
-            console.log('⚠️ No WebSocket traps - no fire');
+            $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+            console.log('Using random trap (WebSocket not available):', $flame_segment);
         }
+        
+        this.fire = $flame_segment; 
+        
         for( var $i=0; $i<$arr.length; $i++ ){
             if( $i == $arr.length - 1 ){
                 this.wrap.append(`<div class="sector finish" data-id="${ $i+1 }" ${ ($i+1) === this.fire ? 'flame="1"' : '' }>
@@ -238,104 +261,30 @@ class Game{
                 $(this).attr('breaks', $br );
             });
         });
-    }
-    createFallback(){
-        var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
-        this.wrap.append(`<div class="sector start" data-id="0">
-                                <div class="breaks" breaks="3"></div>
-                                <div class="breaks" breaks="2"></div>
-                                <img src="./res/img/arc.png" class="entry" alt="">
-                                <div class="border"></div>
-                            </div>`); 
-        var $flame_segment;
-        if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode && Math.random() < 0.2) {
-            $flame_segment = 1;
-        } else {
-            $flame_segment = Math.ceil( Math.random() * SETTINGS.chance[ this.cur_lvl ][ Math.round( Math.random() * 100  ) > 95 ? 1 : 0 ] );
+        
+        // Request traps from WebSocket if connected
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({type: 'set_level', level: this.cur_lvl}));
         }
-        this.fire = $flame_segment; 
-        for( var $i=0; $i<$arr.length; $i++ ){
-            if( $i == $arr.length - 1 ){
-                this.wrap.append(`<div class="sector finish" data-id="${ $i+1 }" ${ $i == $flame_segment ? 'flame="1"' : '' }>
-                                        <div class="coincontainer">
-                                            <img src="./res/img/bet5.png" alt="" class="coin e">
-                                            <img src="./res/img/bet6.png" alt="" class="coin f">
-                                            <img src="./res/img/bet7.png" alt="" class="coin g">
-                                            <span>${ $arr[ $i ] }x</span>
-                                        </div>
-                                        <div class="breaks" breaks="6"></div>
-                                        <div class="breaks" breaks="5"></div>
-                                        <img src="./res/img/arc2.png" class="arc" alt="">
-                                        <img src="./res/img/stand.png" class="cup" alt="">
-                                        <div class="finish_light"></div>
-                                        <img src="./res/img/trigger.png" class="trigger" alt="">
-                                        <div class="flame"></div>
-                                        <div class="border"></div>
-                                    </div>`);
-            } 
-            else {
-                this.wrap.append(`<div class="sector ${ $i ? 'far' : '' }" data-id="${ $i+1 }" ${ $i == $flame_segment ? 'flame="1"' : '' }>
-                                        <div class="breaks" breaks="4"></div>
-                                        <div class="breaks" breaks="5"></div>
-                                        <div class="coincontainer">
-                                            <img src="./res/img/betbg.png" alt="" class="coinwrapper">
-                                            <img src="./res/img/bet1.png" alt="" class="coin a" data-id="1">
-                                            <img src="./res/img/bet2.png" alt="" class="coin b" data-id="2">
-                                            <img src="./res/img/bet3.png" alt="" class="coin c" data-id="3">
-                                            <img src="./res/img/bet4.png" alt="" class="coin d" data-id="4"> 
-                                            <span>${ $arr[ $i ] }x</span>
-                                        </div>
-                                        <div class="breaks"></div>
-                                        <img src="./res/img/frame.png" class="frame" alt="">
-                                        <img src="./res/img/trigger.png" class="trigger" alt="">
-                                        <!--img src="./res/img/lights2.png" class="lights" alt=""-->
-                                        <div class="place_light"></div>
-                                        <div class="flame"></div>
-                                        <div class="border"></div>
-                                    </div>`); 
-            }
-        } 
-        this.wrap.append(`<div class="sector closer" data-id="${ $arr.length+1 }">
-                            <div class="border"></div>
-                        </div>`); 
-
-        this.wrap.append(`<div id="chick" state="idle"><div class="inner"></div></div>`);
-
-        this.wrap.append(`<div id="fire"></div>`); 
-        var $flame_x = document.querySelector('.sector[flame="1"]'); 
-        $flame_x = $flame_x ? $flame_x.offsetLeft : 0; 
-        $('#fire').css('left', $flame_x +'px')
-
-        SETTINGS.segw = parseInt( $('#battlefield .sector').css('width') ); 
-
-        var $scale = (SETTINGS.segw/(250/100)*(70/100)/100);
-        $('#chick').css( 'left', ( SETTINGS.segw / 2 )+'px' );//.css('bottom', ( 60*$scale )+'px' ); 
-        $('#chick .inner').css( 'transform', 'translateX(-50%) scale('+ $scale +')' ); 
-        var $bottom = 50; 
-        if( SETTINGS.w <= 1200 ){ $bottom = 35; }
-        if( SETTINGS.w <= 1100 ){ $bottom = 30; }
-        if( SETTINGS.w <= 1000 ){ $bottom = 25; }
-        if( SETTINGS.w <= 900 ){ $bottom = 5; }
-        if( SETTINGS.w <= 800 ){ $bottom = -15; }
-        $('#chick').css('bottom', $bottom+'px');
-
-        $('.sector').each(function(){
-            var $self = $(this); 
-            var $id = $self.data('id');
-            $('.breaks', $self).each(function(){
-                var $br = $id ? ( Math.round( Math.random() * 12 ) + 4 ) : ( Math.round( Math.random() * 3 ) );
-                $(this).attr('breaks', $br );
-            });
-        });
     }
+    
     start(){ 
         this.current_bet = +$('#bet_size').val();
         if( this.balance && this.current_bet && this.current_bet <= this.balance ){ 
-            // Проверяем WebSocket подключение
-            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-                alert('WebSocket not connected. Please wait and try again.');
-                return;
-            }
+            // Send bet info to server (keeping original AJAX)
+            $.ajax({
+                url:"/api/bets/add", type:"json", method:"post", 
+                data: { 
+                    lvl: this.cur_lvl, 
+                    fire: this.fire, 
+                    bet: this.current_bet 
+                }, 
+                error: function( $e ){ console.error( $e ); }, 
+                success: function( $r ){
+                    var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
+                    console.log( $r ); 
+                }
+            });
             
             this.cur_status = 'game'; 
             this.stp = 0; 
@@ -343,40 +292,49 @@ class Game{
             CHICKEN.alife = 1; 
             this.balance -= this.current_bet;
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
-            updateBalanceOnServer(this.balance);
             $('.sector').off().on('click', function(){ 
                 GAME.move(); 
             });
             
-            // Уведомляем сервер о начале игры
-            this.ws.send(JSON.stringify({type: 'game_start'}));
-            // Запрашиваем трапы от WebSocket
-            this.ws.send(JSON.stringify({type: 'request_traps', level: this.cur_lvl}));
-            console.log('🎮 Game started - requesting traps');
+            // Notify WebSocket about game start
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({type: 'game_start'}));
+                this.ws.send(JSON.stringify({type: 'request_traps', level: this.cur_lvl}));
+                console.log('Game started - requesting traps via WebSocket');
+            }
             
             this.move(); 
         }
     } 
+    
     finish( $win ){
         $('#overlay').show(); 
         this.cur_status = "finish"; 
         this.alife = 0; 
         CHICKEN.alife = 0; 
         
-        // Уведомляем сервер об окончании игры
+        // Notify WebSocket about game end
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({type: 'game_end'}));
         }
         
-        var $award = 0;
+        $.ajax({
+            url:"/api/bets/close", type:"json", method:"post", 
+            data:{ stp: GAME.stp }, 
+            error: function( $e ){ console.error( $e ); }, 
+            success: function( $r ){
+                var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
+                console.log( $r ); 
+            }
+        });
+        
         if( $win ){ 
             this.win = 1; 
             $('#fire').addClass('active');
-            $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
+            var $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
             $award = $award ? $award : 0; 
             //console.log("AWARD: "+ $award);
             this.balance += $award; 
-            updateBalanceOnServer(this.balance);
             if( SETTINGS.volume.sound ){ SOUNDS.win.play(); } 
             $('#win_modal').css('display', 'flex');
             $('#win_modal h3').html( 'x'+ SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] );
@@ -385,67 +343,68 @@ class Game{
         else {
             if( SETTINGS.volume.sound ){ SOUNDS.lose.play(); } 
         }
-        
-        // Сохраняем результат игры в базе данных
-        saveGameResult($win ? 'win' : 'lose', this.current_bet, $award, this.balance);
-        
         setTimeout(
             function(){ 
                 $('#overlay').hide(); 
                 GAME.cur_status = "loading"; 
-                $('#win_modal').hide();
-                GAME.create(); // Пересоздаем поле для новой игры
+                $('#win_modal').hide(); 
+                GAME.create();  
             }, $win ? 5000 : 3000  
         ); 
     }
+    
     move(){
         var $chick = $('#chick'); 
         var $cur_x = parseInt( $chick.css('left') );
         var $state = $chick.attr('state'); 
         if( $state == "idle" ){ 
             this.stp += 1;  
-            console.log('🐣 Step:', this.stp, 'Fire position:', this.fire);
+            
+            $.ajax({
+                url:"/api/bets/move", type:"json", method:"post", 
+                data:{ stp: GAME.stp }, 
+                error: function( $e ){ console.error( $e ); }, 
+                success: function( $r ){
+                    var $obj = typeof $r == "string" ? eval('('+$r+')') : $r; 
+                    console.log( $r ); 
+                }
+            });
+            
+            console.log('Step:', this.stp, 'Fire position:', this.fire);
             
             if( SETTINGS.volume.sound ){ SOUNDS.step.play(); }
             $chick.attr('state', "go"); 
             var $nx =  $cur_x + SETTINGS.segw + 'px'; 
             $chick.css('left', $nx); 
-            var $sectorIndex = this.getCurrentSector(); 
-            if( $sectorIndex !== null ){ 
-                var $sector = $('.sector').eq($sectorIndex);
-                if( $sector.next() ){ 
-                    $sector.removeClass('active').addClass('complete');
-                    $sector = $sector.next();  
-                    $('.trigger', $sector).addClass('activated');
-                    $sector.addClass('active'); 
-                    $sector.next().removeClass('far'); 
-                    // Проверяем огонь: курица сгорает когда достигает позиции огня
-                    if( this.stp === this.fire ){
-                        $('#fire').addClass('active'); 
-                        CHICKEN.alife = 0; 
-                        $chick.attr('state', 'dead'); 
-                        $sector.removeClass('active').removeClass('complete').addClass('dead');
-                        $('.sector.finish').addClass('lose');
-                        console.log('🔥 BURNED! Step:', this.stp, 'Fire position:', this.fire);
-                        GAME.finish(); 
-                    } 
-                    else {
-                        if( $('.sector').eq( GAME.stp ).hasClass('finish') ){
-                            GAME.finish(1); 
-                            $('.sector').eq( GAME.stp ).addClass('win');
-                        }
-                    }
+            var $sector = this.getCurrentSector(); 
+            if( $sector && $sector.next() ){ 
+                $sector.removeClass('active').addClass('complete');
+                $sector = $sector.next();  
+                $('.trigger', $sector).addClass('activated');
+                $sector.addClass('active'); 
+                $sector.next().removeClass('far'); 
+                
+                // Check fire: chicken burns when reaching fire position
+                if( this.stp === this.fire ){
+                    $('#fire').addClass('active'); 
+                    CHICKEN.alife = 0; 
+                    $chick.attr('state', 'dead'); 
+                    $sector.removeClass('active').removeClass('complete').addClass('dead');
+                    $('.sector.finish').addClass('lose');
+                    console.log('BURNED! Step:', this.stp, 'Fire position:', this.fire);
+                    GAME.finish(); 
                 } 
-            }
+                else {
+                    if( $('.sector').eq( GAME.stp ).hasClass('finish') ){
+                        GAME.finish(1); 
+                        $('.sector').eq( GAME.stp ).addClass('win');
+                    }
+                }
+            } 
             setTimeout(function(){ 
                 if( CHICKEN.alife ){
                     $chick.attr('state', 'idle'); 
                 }
-                //var $sector = GAME.getCurrentSector(); 
-                //if( $sector ){ 
-                //     console.log("CUR SECTOR: "+ $sector.data('id'));
-                //} 
-                //$('.sector').eq( $sector-1 ).removeClass('active').addClass('complete'); 
             }, 500);
         } 
         if( 
@@ -457,20 +416,32 @@ class Game{
             $('#battlefield').css('left', $nfx);
         }
     }
+    
     getCurrentSector() { 
         var parent = document.querySelector('#battlefield'); 
         var player = document.querySelector('#chick'); 
-        if (!player) return null;
         var sectors = document.querySelectorAll('#battlefield .sector'); 
         var playerRect = player.getBoundingClientRect();
         var parentRect = parent.getBoundingClientRect(); 
         var playerPosX = playerRect.left - parentRect.left;
         var sectorIndex = Math.floor( playerPosX / SETTINGS.segw ); 
         if( sectorIndex >= 0 && sectorIndex < sectors.length ){ 
-            return sectorIndex; 
+            return $('#battlefield .sector').eq(sectorIndex); //sectors[ sectorIndex ]; 
         } 
         else { return null; }
     } 
+    
+    updateTraps(){
+        $('.sector').removeAttr('flame');
+        if (this.fire > 0) {
+            $('.sector').eq(this.fire).attr('flame', '1');
+            console.log('Fire set at position:', this.fire);
+        }
+        var $flame_x = document.querySelector('.sector[flame="1"]'); 
+        $flame_x = $flame_x ? $flame_x.offsetLeft : 0; 
+        $('#fire').css('left', $flame_x +'px');
+    }
+    
     random_str( length = 8 ){
         var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         var result = '';
@@ -479,6 +450,7 @@ class Game{
         }
         return result;
     } 
+    
     random_bet(){
         var $user_id = Math.ceil( Math.random() * 70 ); 
         var $user_name = this.random_str(); 
@@ -491,6 +463,7 @@ class Game{
         $('#random_bet').html( $tmps ).css('height', '40px'); 
         setTimeout( function(){ $('#random_bet').html('').css('height', '0px'); }, 6000 );
     } 
+    
     selectValue(mainArray, chanceArray) {
         var randomChance = Math.random();
         var limit = randomChance <= 0.1 ? chanceArray[1] : chanceArray[0];
@@ -501,6 +474,7 @@ class Game{
         var randomIndex = Math.floor( Math.random() * filteredArray.length );
         return randomIndex;
     } 
+    
     selectValueHybridIndex(mainArray, chanceArray) {
         var limit = Math.random() <= 0.1 ? chanceArray[1] : chanceArray[0]; 
         var filteredIndices = mainArray
@@ -514,6 +488,7 @@ class Game{
         console.log( filteredIndices[ Math.floor( Math.random() * filteredIndices.length ) ] );
         return filteredIndices[ Math.floor( Math.random() * filteredIndices.length ) ];
     }
+    
     update(){
         switch( this.cur_status ){
             case 'loading': 
@@ -559,6 +534,7 @@ class Game{
             GAME.random_bet(); 
         } 
     }
+    
     bind(){
         $(document).ready(function(){ 
             // переключение звука 
@@ -567,7 +543,9 @@ class Game{
                 var $val = $self.is(':checked'); 
                 if( !$val ){ SETTINGS.volume.sound = 0; } 
                 else { SETTINGS.volume.music = 0.9; } 
-                $.post('./api.php', { action: 'save_sound_settings', sound: $val ? 1 : 0 });
+                $.ajax({
+                    url:"/api/settings", type:"json", method:"post", data:{ play_sounds: $val ? 1 : 0 }
+                });
             });
             $('#switch_music').off().on('change', function(){
                 var $self=$(this); 
@@ -580,7 +558,9 @@ class Game{
                     SOUNDS.music.play(); 
                     SETTINGS.volume.music = 0.2;
                 } 
-                $.post('./api.php', { action: 'save_music_settings', music: $val ? 1 : 0 });
+                $.ajax({
+                    url:"/api/settings", type:"json", method:"post", data:{ play_music: $val ? 1 : 0 }
+                });
             });
             // установка ставки в инпуте
             $('#bet_size').off().on('change', function(){ 
@@ -625,9 +605,12 @@ class Game{
                     var $self=$(this); 
                     var $val = $self.val(); 
                     GAME.cur_lvl = $val; 
+                    
+                    // Notify WebSocket about level change
                     if (GAME.ws && GAME.ws.readyState === WebSocket.OPEN) {
                         GAME.ws.send(JSON.stringify({type: 'set_level', level: GAME.cur_lvl}));
                     }
+                    
                     GAME.create(); 
                 } 
                 else {
@@ -651,8 +634,6 @@ class Game{
                     case 'loading': 
                         $self.html( LOCALIZATION.TEXT_BETS_WRAPPER_GO ); 
                         if( +$('#bet_size').val() > 0 ){ 
-                            // Пересоздаем поле перед началом игры
-                            GAME.create();
                             GAME.start(); 
                         }
                         break; 
@@ -684,19 +665,8 @@ class Game{
                 if( SETTINGS.w <= 900 ){ $bottom = 5; }
                 if( SETTINGS.w <= 800 ){ $bottom = -15; }
                 $('#chick').css('bottom', $bottom+'px');
-
             });
         }); 
-    }
-    updateTraps(){
-        $('.sector').removeAttr('flame');
-        if (this.fire > 0) {
-            $('.sector').eq(this.fire).attr('flame', '1');
-            console.log('🔥 Fire set at position:', this.fire);
-        }
-        var $flame_x = document.querySelector('.sector[flame="1"]'); 
-        $flame_x = $flame_x ? $flame_x.offsetLeft : 0; 
-        $('#fire').css('left', $flame_x +'px');
     }
 }
 
@@ -749,91 +719,4 @@ function render(){
 
 render(); 
 
-function updateBalanceOnServer(balance) {
-    if (!window.GAME_CONFIG.is_real_mode || !window.GAME_CONFIG.user_id) {
-        console.log('Demo mode - not updating server balance');
-        return;
-    }
-    
-    fetch('./api.php?controller=users&action=update_balance', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            user_id: window.GAME_CONFIG.user_id,
-            balance: balance
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.text();
-    })
-    .then(text => {
-        try {
-            const data = JSON.parse(text);
-            console.log('Balance updated on server:', data);
-        } catch (e) {
-            console.error('Invalid JSON response:', text);
-        }
-    })
-    .catch(error => {
-        console.error('Failed to update balance on server:', error);
-    });
-}
-
-function saveGameResult(result, bet, award, balance) {
-    if (!window.GAME_CONFIG.is_real_mode || !window.GAME_CONFIG.user_id) {
-        console.log('Demo mode - not saving game result');
-        return;
-    }
-    
-    fetch('./api.php?controller=users&action=save_game_result', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            user_id: window.GAME_CONFIG.user_id,
-            balance: balance,
-            bet_amount: bet,
-            win_amount: award,
-            game_result: result
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.text();
-    })
-    .then(text => {
-        try {
-            const data = JSON.parse(text);
-            console.log('Game result saved:', data);
-            if (data.success && data.balance_national) {
-                // Отправляем баланс в национальной валюте родительскому окну
-                if (window.parent && window.parent !== window) {
-                    window.parent.postMessage({
-                        type: 'balanceUpdated',
-                        balance: parseFloat(data.balance_national).toFixed(2),
-                        userId: window.GAME_CONFIG.user_id
-                    }, '*');
-                }
-            }
-        } catch (e) {
-            console.error('Invalid JSON response:', text);
-        }
-    })
-    .catch(error => {
-        console.error('Failed to save game result:', error);
-    });
-}
-
 setTimeout( function(){ open_game(); }, 1000 );
-
-
-
-
