@@ -408,7 +408,6 @@ class Game{
             
             if( SETTINGS.volume.sound ){ SOUNDS.step.play(); }
             $chick.attr('state', "go"); 
-            
             // Определяем размер шага в зависимости от размера экрана
             var stepSize = SETTINGS.segw;
             if (window.innerWidth <= 800) {
@@ -427,7 +426,7 @@ class Game{
                     $sector.addClass('active'); 
                     $sector.next().removeClass('far'); 
                     // Проверяем огонь: курица сгорает когда достигает позиции огня
-                    if( this.stp === this.fire ){
+                    if( this.stp === this.fire ) {
                         $('#fire').addClass('active'); 
                         CHICKEN.alife = 0; 
                         $chick.attr('state', 'dead'); 
@@ -448,18 +447,23 @@ class Game{
                 if( CHICKEN.alife ){
                     $chick.attr('state', 'idle'); 
                 }
+                //var $sector = GAME.getCurrentSector(); 
+                //if( $sector ){ 
+                //     console.log("CUR SECTOR: "+ $sector.data('id'));
+                //} 
+                //$('.sector').eq( $sector-1 ).removeClass('active').addClass('complete'); 
             }, 500);
         } 
         if( 
             $cur_x > ( SETTINGS.w / 3 ) && 
-            parseInt( $('#battlefield').css('left') ) > -( parseInt( $('#battlefield').css('width') ) - SETTINGS.w - SETTINGS.segw )  
+            parseInt( $('#battlefield').css('left') ) > -( parseInt( $('#battlefield').css('width') ) - SETTINGS.w -SETTINGS.segw )  
         ){ 
             var $field_x = parseInt( $('#battlefield').css('left') ); 
             
-            // Определяем скорость движения камеры в зависимости от размера экрана
+            // Камера движется с той же скоростью что и курица
             var cameraSpeed = SETTINGS.segw;
             if (window.innerWidth <= 800) {
-                cameraSpeed = SETTINGS.segw * 0.7; // Уменьшаем скорость камеры для мобильных
+                cameraSpeed = SETTINGS.segw * 0.7; // Та же скорость что у курицы
             }
             
             var $nfx = $field_x - cameraSpeed +'px';
