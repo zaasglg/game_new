@@ -149,6 +149,29 @@ footer#footer{ flex-grow:0; flex-shrink:0; background:var(--footer-bg); display:
     #game_container{ min-height:500px; } 
     #dificulity h2{ display:none; }
     
+    /* Вертикальный скролл для мобильных */
+    html, body {
+        overflow-y: auto !important;
+        height: auto !important;
+        min-height: 100vh;
+    }
+    
+    #main_wrapper {
+        height: auto !important;
+        min-height: 100vh;
+    }
+    
+    main {
+        flex-flow: column nowrap !important;
+        height: auto !important;
+    }
+    
+    #game_container {
+        height: auto !important;
+        min-height: 60vh;
+        overflow-y: visible !important;
+    }
+    
     /* Исправление позиционирования курицы на мобильных */
     #chick {
         position: absolute !important;
