@@ -145,7 +145,7 @@ footer#footer{ flex-grow:0; flex-shrink:0; background:var(--footer-bg); display:
 
 
 @media (max-width:1150px){
-    #main_wrapper{ height:auto; }
+    #main_wrapper{ height: 1000px; }
     /*main{ flex-flow:column nowrap; justify-content:start; }*/
     #bets_wrapper{ width:100%; height:100vh; order:2; }
     #game_field{ width:100%; aspect-ratio:4/3; }
