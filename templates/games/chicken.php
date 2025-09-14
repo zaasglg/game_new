@@ -58,7 +58,7 @@ if (IS_MOBILE) { ?>
 			#aviator_frame {
 				width: 100%;
 				/*aspect-ratio:4/3;*/
-				height: calc(100vh - 65px);
+				height: 100vh;
 			}
 		</style>
 		<iframe
