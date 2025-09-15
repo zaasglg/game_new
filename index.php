@@ -262,9 +262,6 @@ header('Content-Type: text/html; charset=UTF-8');
     }
     
     .owl-carousel .owl-item img {
-      height: 100% !important;
-      max-height: 400px !important;
-      min-height: 400px !important;
       object-fit: cover !important;
       object-position: center center !important;
       display: block !important;
