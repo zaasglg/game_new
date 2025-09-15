@@ -11,7 +11,7 @@
 
 
 
-#main_wrapper{ background:#394265; height: fit-content; min-height: 100px; }
+#main_wrapper{ background:#394265; height: fit-content; min-height: 120vh; }
 #game_container{ position:relative; }
 /*#game_container{ min-height:calc( 100vh - 236px ); } */
 
