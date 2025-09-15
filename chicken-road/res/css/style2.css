@@ -21,7 +21,8 @@
 @media ( max-width:700px ){
     #game_container{ min-height:500px; }
     #main_wrapper {
-        min-height: calc(100dvh - 120px);;
+          min-height: 100dvh; /* вместо 100vh — учитывает высоту без панели браузера */
+  box-sizing: border-box;
         /* min-height: 100vh;  */
         /* overflow-y: scroll; */
         /* padding-top: 20%;
