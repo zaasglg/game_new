@@ -11,7 +11,7 @@
 
 
 
-#main_wrapper{ background:#394265; height: fit-content; min-height: 150vh; padding-bottom: 100%; }
+#main_wrapper{ background:#394265; height: fit-content; }
 #game_container{ position:relative; }
 /*#game_container{ min-height:calc( 100vh - 236px ); } */
 
@@ -20,6 +20,9 @@
 }
 @media ( max-width:700px ){
     /*#game_container{ min-height:500px; } */
+    #main_wrapper {
+        min-height: 150vh; padding-bottom: 100%;
+    }
 }
 @media ( max-width:400px ){
     #game_container{ min-height:375px; }  
