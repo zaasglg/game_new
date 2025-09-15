@@ -16,15 +16,15 @@
 /*#game_container{ min-height:calc( 100vh - 236px ); } */
 
 @media ( max-width:1110px ){
-    /*#game_container{ min-height:calc( 100vh - 435px ); } */
+    #game_container{ min-height:calc( 100vh - 435px ); }
 }
 @media ( max-width:700px ){
-    /*#game_container{ min-height:500px; } */
-    #main_wrapper {
+    #game_container{ min-height:500px; }
+    /* #main_wrapper {
         min-height: 100vh; 
         padding-top: 20%;
         padding-bottom: 50%;
-    }
+    } */
 }
 @media ( max-width:400px ){
     #game_container{ min-height:375px; }  
