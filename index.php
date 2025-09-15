@@ -347,20 +347,18 @@ header('Content-Type: text/html; charset=UTF-8');
     /* Стили для больших экранов */
     @media (min-width: 769px) {
       .owl-carousel {
-        height: 400px !important;
+        height: 600px !important;
       }
-      
       .owl-carousel .owl-item {
-        height: 400px !important;
+        height: 600px !important;
         display: flex !important;
         align-items: stretch !important;
       }
-      
       .owl-carousel .owl-item img {
         height: 100% !important;
         object-fit: cover !important;
         object-position: center center !important;
-        min-height: 400px !important;
+        min-height: 600px !important;
         transform: none !important;
       }
     }
@@ -368,9 +366,9 @@ header('Content-Type: text/html; charset=UTF-8');
     @media (max-width: 768px) {
       /* Принудительные стили для баннера на мобильных */
       ._banner_o6otq_1 {
-        height: 200px !important;
-        max-height: 200px !important;
-        min-height: 200px !important;
+        height: 300px !important;
+        max-height: 300px !important;
+        min-height: 300px !important;
         overflow: hidden !important;
         display: block !important;
         visibility: visible !important;
@@ -378,12 +376,11 @@ header('Content-Type: text/html; charset=UTF-8');
         width: 100% !important;
         position: relative !important;
       }
-      
       .owl-carousel,
       .owl-carousel.owl-loaded {
-        height: 150px !important;
-        max-height: 150px !important;
-        min-height: 150px !important;
+        height: 300px !important;
+        max-height: 300px !important;
+        min-height: 300px !important;
         overflow: hidden !important;
         display: block !important;
         visibility: visible !important;
@@ -392,24 +389,22 @@ header('Content-Type: text/html; charset=UTF-8');
         width: 100% !important;
         position: relative !important;
       }
-      
       .owl-carousel .owl-item,
       .owl-carousel.owl-loaded .owl-item {
-        height: 150px !important;
-        max-height: 150px !important;
-        min-height: 150px !important;
+        height: 300px !important;
+        max-height: 300px !important;
+        min-height: 300px !important;
         overflow: hidden !important;
         display: flex !important;
         align-items: stretch !important;
         visibility: visible !important;
         opacity: 1 !important;
       }
-      
       .owl-carousel .owl-item img,
       .owl-carousel.owl-loaded .owl-item img {
         height: 100% !important;
         max-height: none !important;
-        min-height: 150px !important;
+        min-height: 300px !important;
         object-fit: cover !important;
         object-position: center center !important;
         overflow: hidden !important;
@@ -417,19 +412,17 @@ header('Content-Type: text/html; charset=UTF-8');
         visibility: visible !important;
         opacity: 1 !important;
       }
-      
       .owl-carousel .owl-stage-outer,
       .owl-carousel .owl-stage,
       .owl-carousel.owl-loaded .owl-stage-outer,
       .owl-carousel.owl-loaded .owl-stage {
-        height: 150px !important;
-        max-height: 150px !important;
+        height: 300px !important;
+        max-height: 300px !important;
         overflow: hidden !important;
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
       }
-      
       /* Дополнительная фиксация */
       .owl-carousel * {
         max-height: 200px !important;
