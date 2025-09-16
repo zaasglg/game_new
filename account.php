@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once 'stage_balance_updater.php';
+require_once 'auth_check.php';
 
 // Подключаем файл с подключением к базе данных
 require 'db.php';
