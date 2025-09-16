@@ -1019,7 +1019,7 @@ header('Content-Type: text/html; charset=UTF-8');
         });
         </script>
 
-        <!-- <div class="_row_14oe3_1" bis_skin_checked="1">
+        <div class="_row_14oe3_1" bis_skin_checked="1">
           <div class="_column_14oe3_6" bis_skin_checked="1">
             <div class="_showCase_780w6_1" bis_skin_checked="1">
               <div class="_header_780w6_10" bis_skin_checked="1">
@@ -1751,7 +1751,7 @@ header('Content-Type: text/html; charset=UTF-8');
               </div>
             </div>
           </div>
-        </div> -->
+        </div>
       </div>
     </main>
 
@@ -2356,7 +2356,7 @@ header('Content-Type: text/html; charset=UTF-8');
         </div>
         <div data-cy="register-modal" class="_body_fyyq9_1">
           <div class="_banner_1191g_1" style="
-                background-image: url('/images/banner_register.png');
+                background-image: url('https://static.valor.bet/banners/thumbs/desktop/qJRuZ6Q1qSBK1KH9Tj42XZQTeTxQBI5XrlhdkKUk.jpg');
               "></div>
           <div class="_box_fyyq9_16">
             <div>
