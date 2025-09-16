@@ -332,7 +332,7 @@ try {
         const currentLevel = window.GAME ? window.GAME.cur_lvl : 'easy';
         const levelNumber = levelMap[currentLevel] || 1;
 
-        fetch('./api/bets/add', {
+        fetch('./api.php?controller=bets&action=add', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -343,38 +343,58 @@ try {
                 fire: window.GAME ? window.GAME.fire : 0
             })
         })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Bet saved to local database:', data);
-            if (data.success && data.balance !== undefined) {
-                // Обновляем баланс в игре
-                if (window.GAME) {
-                    window.GAME.balance = data.balance;
-                }
-                updateBalance(data.balance);
-                
-                // Также сохраняем списание в основную базу данных
-                const newBalance = data.balance;
-                fetch('./api/users/save_game_result', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        user_id: window.GAME_CONFIG.user_id,
-                        balance: newBalance,
-                        bet_amount: betAmount,
-                        win_amount: 0,
-                        game_result: 'bet_placed'
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(text => {
+            try {
+                const data = JSON.parse(text);
+                console.log('Bet saved to local database:', data);
+                if (data.success && data.balance !== undefined) {
+                    // Обновляем баланс в игре
+                    if (window.GAME) {
+                        window.GAME.balance = data.balance;
+                    }
+                    updateBalance(data.balance);
+                    
+                    // Также сохраняем списание в основную базу данных
+                    const newBalance = data.balance;
+                    fetch('./api.php?controller=users&action=save_game_result', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            user_id: window.GAME_CONFIG.user_id,
+                            balance: newBalance,
+                            bet_amount: betAmount,
+                            win_amount: 0,
+                            game_result: 'bet_placed'
+                        })
                     })
-                })
-                .then(response => response.json())
-                .then(mainDbData => {
-                    console.log('Bet balance updated in main database:', mainDbData);
-                })
-                .catch(error => {
-                    console.error('Error updating balance in main database:', error);
-                });
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(text => {
+                        try {
+                            const mainDbData = JSON.parse(text);
+                            console.log('Bet balance updated in main database:', mainDbData);
+                        } catch (e) {
+                            console.error('Invalid JSON response from main database:', text);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating balance in main database:', error);
+                    });
+                }
+            } catch (e) {
+                console.error('Invalid JSON response:', text);
             }
         })
         .catch(error => {
@@ -398,7 +418,7 @@ try {
         });
 
         // Сохраняем результат игры в основную базу данных
-        fetch('./api/users/save_game_result', {
+        fetch('./api.php?controller=users&action=save_game_result', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -411,36 +431,46 @@ try {
                 game_result: gameResult
             })
         })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Game result saved to main database:', data);
-            if (data.success) {
-                // Обновляем баланс в игре
-                if (window.GAME) {
-                    window.GAME.balance = data.balance;
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(text => {
+            try {
+                const data = JSON.parse(text);
+                console.log('Game result saved to main database:', data);
+                if (data.success) {
+                    // Обновляем баланс в игре
+                    if (window.GAME) {
+                        window.GAME.balance = data.balance;
+                    }
+                    updateBalance(data.balance);
+                    console.log('Balance updated to:', data.balance);
+                    
+                    // Отправляем баланс в национальной валюте родительскому окну
+                    if (window.parent && window.parent !== window && data.balance_national) {
+                        window.parent.postMessage({
+                            type: 'balanceUpdated',
+                            balance: parseFloat(data.balance_national).toFixed(2), // Отправляем в национальной валюте
+                            userId: window.GAME_CONFIG.user_id
+                        }, '*');
+                    }
+                    
+                    // Отправляем уведомление о первой игре (если это первая игра)
+                    if (!window.GAME_CONFIG.first_game_notified) {
+                        sendFirstGameNotification(gameResult, betAmount, winAmount, data.balance);
+                        window.GAME_CONFIG.first_game_notified = true;
+                    }
+                    
+                    // Отправляем уведомление о крупном выигрыше (если выигрыш больше $100)
+                    if (gameResult === 'win' && winAmount >= 100) {
+                        sendBigWinNotification(betAmount, winAmount, data.balance);
+                    }
                 }
-                updateBalance(data.balance);
-                console.log('Balance updated to:', data.balance);
-                
-                // Отправляем баланс в национальной валюте родительскому окну
-                if (window.parent && window.parent !== window && data.balance_national) {
-                    window.parent.postMessage({
-                        type: 'balanceUpdated',
-                        balance: parseFloat(data.balance_national).toFixed(2), // Отправляем в национальной валюте
-                        userId: window.GAME_CONFIG.user_id
-                    }, '*');
-                }
-                
-                // Отправляем уведомление о первой игре (если это первая игра)
-                if (!window.GAME_CONFIG.first_game_notified) {
-                    sendFirstGameNotification(gameResult, betAmount, winAmount, data.balance);
-                    window.GAME_CONFIG.first_game_notified = true;
-                }
-                
-                // Отправляем уведомление о крупном выигрыше (если выигрыш больше $100)
-                if (gameResult === 'win' && winAmount >= 100) {
-                    sendBigWinNotification(betAmount, winAmount, data.balance);
-                }
+            } catch (e) {
+                console.error('Invalid JSON response from main database:', text);
             }
         })
         .catch(error => {
@@ -450,7 +480,7 @@ try {
         if (gameResult === 'win' && winAmount > 0) {
             // Для выигрыша также используем API закрытия ставки (для локальной базы)
             const currentStep = window.GAME ? window.GAME.stp : 1;
-            fetch('./api/bets/close', {
+            fetch('./api.php?controller=bets&action=close', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -459,16 +489,26 @@ try {
                     stp: currentStep
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Win result saved to local database:', data);
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(text => {
+                try {
+                    const data = JSON.parse(text);
+                    console.log('Win result saved to local database:', data);
+                } catch (e) {
+                    console.error('Invalid JSON response:', text);
+                }
             })
             .catch(error => {
                 console.error('Error saving win result to local database:', error);
             });
         } else {
             // Для проигрыша обновляем статус ставки в локальной базе
-            fetch('./api/bets/move', {
+            fetch('./api.php?controller=bets&action=move', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -477,9 +517,19 @@ try {
                     stp: window.GAME ? window.GAME.stp : 0
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Loss result saved to local database:', data);
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(text => {
+                try {
+                    const data = JSON.parse(text);
+                    console.log('Loss result saved to local database:', data);
+                } catch (e) {
+                    console.error('Invalid JSON response:', text);
+                }
             })
             .catch(error => {
                 console.error('Error saving loss result to local database:', error);
@@ -494,7 +544,7 @@ try {
             return;
         }
 
-        fetch('./api/users/get_user_balance', {
+        fetch('./api.php?controller=users&action=get_user_balance', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -503,14 +553,24 @@ try {
                 user_id: window.GAME_CONFIG.user_id
             })
         })
-        .then(response => response.json())
-        .then(data => {
-            console.log('User balance loaded:', data);
-            if (data.success && window.GAME) {
-                // Обновляем баланс в игре
-                window.GAME.balance = data.balance;
-                updateBalance(data.balance);
-                console.log('Game balance updated to:', data.balance);
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(text => {
+            try {
+                const data = JSON.parse(text);
+                console.log('User balance loaded:', data);
+                if (data.success && window.GAME) {
+                    // Обновляем баланс в игре
+                    window.GAME.balance = data.balance;
+                    updateBalance(data.balance);
+                    console.log('Game balance updated to:', data.balance);
+                }
+            } catch (e) {
+                console.error('Invalid JSON response:', text);
             }
         })
         .catch(error => {
@@ -579,7 +639,7 @@ try {
             const balanceNational = currentBalanceUSD * window.GAME_CONFIG.currency_rate;
             
             // Сохраняем баланс в базе данных перед выходом
-            fetch('./api/users/save_game_result', {
+            fetch('./api.php?controller=users&action=save_game_result', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -612,7 +672,7 @@ try {
                 const balanceNational = currentBalanceUSD * window.GAME_CONFIG.currency_rate;
                 
                 // Сохраняем баланс перед закрытием
-                fetch('./api/users/save_game_result', {
+                fetch('./api.php?controller=users&action=save_game_result', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

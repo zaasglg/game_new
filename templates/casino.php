@@ -13,7 +13,6 @@
 							include_once TPL_DIR ."games/aviator.php";
 							break; 
 						case "chicken_road": 
-						case "chicken_road_2": 
 							include_once TPL_DIR ."games/chicken.php";
 							break; 
 						case "mines": 
@@ -45,7 +44,6 @@
 							include_once TPL_DIR ."games/aviator.php"; 
 							break; 
 						case "chicken_road": 
-						case "chicken_road_2": 
 							include_once TPL_DIR ."games/chicken.php";
 							break; 
 						case "mines": 

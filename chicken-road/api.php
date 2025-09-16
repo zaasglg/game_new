@@ -54,9 +54,7 @@
 		case "cfs": $CLASS = Cfs::getInstance(); break; 
 		case "games": $CLASS = Games::getInstance(); break; 
 		case "users": $CLASS = Users::getInstance(); break; 
-		case "telegram": 
-			require_once BASE_DIR . 'telegram_notify.php';
-			break;
+
 		case "settings": 
 			if( isset( $data['play_sounds'] ) ){ $_SESSION['play_sounds'] = $data['play_sounds']; } 
 			if( isset( $data['play_music'] ) ){ $_SESSION['play_music'] = $data['play_music']; }
@@ -89,22 +87,7 @@
 		case "get_user_balance": $return = $CLASS->get_user_balance( $data ); break;
 		case "update_balance": $return = $CLASS->updateBalance( $data ); break; 
 		// telegram notifications
-		case "notify_registration": 
-			$result = sendTelegramNotification('registration', $input);
-			$return = ['success' => $result ? 1 : 0, 'sent' => $result];
-			break;
-		case "notify_first_game": 
-			$result = sendTelegramNotification('first_game', $input);
-			$return = ['success' => $result ? 1 : 0, 'sent' => $result];
-			break;
-		case "notify_big_win": 
-			$result = sendTelegramNotification('big_win', $input);
-			$return = ['success' => $result ? 1 : 0, 'sent' => $result];
-			break;
-		case "test_telegram": 
-			$result = sendTelegramNotification('test', []);
-			$return = ['success' => $result ? 1 : 0, 'sent' => $result];
-			break;
+
 	}
 
 	} catch (Exception $e) {

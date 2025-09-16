@@ -308,7 +308,7 @@
                           		</svg>
                           	</div>
                       	</div>
-                      	<img src="./images/games/defaultDesktop (5).jpg" alt="Chicken Road 2" width="240" height="320" style="display: unset;">
+
                     </div>
                 </div>
             </div>
@@ -1346,7 +1346,7 @@
                     </div>
                   </div>
                   <div aria-hidden="true" class="_hoverBox_1jj5g_41">
-                    <p class="_name_1jj5g_59">Chicken Road 2</p><svg width="24" height="24" viewBox="0 0 24 24"
+
                       fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path fill-rule="evenodd" clip-rule="evenodd"
                         d="m13.789 1.578 9.764 19.528A2 2 0 0 1 21.763 24H2.237a2 2 0 0 1-1.789-2.894l9.764-19.528a2 2 0 0 1 3.578 0z"

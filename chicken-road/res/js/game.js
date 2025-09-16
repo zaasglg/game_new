@@ -457,11 +457,13 @@ class Segment {
     }
     move(){ 
         if( this.x > this.new_x ){
-            //var $dist = ( this.new_x - this.x ) / 100;
-            //var $stp = this.distance / 100 * ( 30 * GAME.delta / 1000 );
-            //this.x += $dist * ( 60 * GAME.delta / 1000 ); 
-            //var $shift = SETTINGS.segw / 100 * ( 60 * GAME.delta / 1000 ); 
-            this.x -= 5; //$shift; 
+            // Определяем скорость движения камеры в зависимости от размера экрана
+            var moveSpeed = 5;
+            if (window.innerWidth <= 800) {
+                moveSpeed = 3; // Уменьшаем скорость для мобильных устройств
+            }
+            
+            this.x -= moveSpeed;
             if( this.fire ){
                 this.fire.x = this.x + ( this.x * 0.05 ); 
             } 
@@ -477,7 +479,6 @@ class Segment {
             GAME.segment = 0; 
             //console.log("STOP FROM SEGMENT "+this.id);
         }
-        //this.x -= SETTINGS.segw; 
     }
     update(){ 
         this.move(); 
@@ -982,7 +983,13 @@ class Chicken {
     }
     move( ){
         if( this.x < this.new_x && GAME.chicken ){ 
-            this.x += 5; 
+            // Определяем скорость движения курицы в зависимости от размера экрана
+            var moveSpeed = 5;
+            if (window.innerWidth <= 800) {
+                moveSpeed = 3; // Уменьшаем скорость для мобильных устройств
+            }
+            
+            this.x += moveSpeed; 
             if( this.x >= this.new_x ){
                 this.x = this.new_x;  
                 GAME.moving = 0; 
