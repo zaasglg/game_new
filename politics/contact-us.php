@@ -1044,7 +1044,7 @@ require_once '..//auth_check.php';
         </div>
         <div data-cy="register-modal" class="_body_fyyq9_1">
           <div class="_banner_1191g_1" style="
-                background-image: url('https://static.valor.bet/banners/thumbs/desktop/qJRuZ6Q1qSBK1KH9Tj42XZQTeTxQBI5XrlhdkKUk.jpg');
+                background-image: url('/images/banner_register.png');
               "></div>
           <div class="_box_fyyq9_16">
             <div>
