@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once 'stage_balance_updater.php';
+require_once 'auth_check.php';
 require 'db.php';
  // Получаем IP-адрес клиента
  $ip = $_SERVER['REMOTE_ADDR'];
