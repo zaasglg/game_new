@@ -21,45 +21,41 @@ if ($text === '+' || $text === '-') {
     
     if ($replyToMessage && isset($replyToMessage['caption'])) {
         $caption = $replyToMessage['caption'];
-        
         if (preg_match('/N° Transacción:\s*(№\d+)/', $caption, $matches)) {
             $transactionNumber = $matches[1];
             $newStatus = ($text === '+') ? 'completed' : 'declined';
-            
             try {
-                // Получаем данные транзакции
-                $txStmt = $conn->prepare("SELECT user_id, amount_usd FROM historial WHERE transacción_number = ?");
+                // Получаем данные транзакции, включая процент бонуса
+                $txStmt = $conn->prepare("SELECT user_id, amount_usd, bonus_percent FROM historial WHERE transacción_number = ?");
                 $txStmt->execute([$transactionNumber]);
                 $transaction = $txStmt->fetch(PDO::FETCH_ASSOC);
-                
                 // Обновляем статус
                 $stmt = $conn->prepare("UPDATE historial SET estado = ? WHERE transacción_number = ?");
                 $result = $stmt->execute([$newStatus, $transactionNumber]);
-                
                 if ($result && $stmt->rowCount() > 0) {
                     $confirmText = ($text === '+') ? "✅ Транзакция $transactionNumber одобрена" : "❌ Транзакция $transactionNumber отклонена";
-                    
                     // Если одобрено и транзакция найдена
                     if ($text === '+' && $transaction) {
                         $userId = $transaction['user_id'];
-                        
                         // Получаем полные данные транзакции
-                        $txStmt = $conn->prepare("SELECT transacciones_monto, currency FROM historial WHERE transacción_number = ?");
+                        $txStmt = $conn->prepare("SELECT transacciones_monto, currency, bonus_percent FROM historial WHERE transacción_number = ?");
                         $txStmt->execute([$transactionNumber]);
                         $txData = $txStmt->fetch(PDO::FETCH_ASSOC);
-                        
                         if ($txData) {
                             $amount = $txData['transacciones_monto'];
                             $currency = $txData['currency'];
-                            
+                            $bonusPercent = isset($txData['bonus_percent']) ? (int)$txData['bonus_percent'] : 0;
                             // Пополняем баланс в оригинальной валюте
                             $balanceStmt = $conn->prepare("UPDATE users SET deposit = deposit + ? WHERE user_id = ?");
                             $balanceUpdated = $balanceStmt->execute([$amount, $userId]);
-                            
-                            // Баланс пополнен, но не показываем сумму в Telegram
+                            // Начисляем бонус, если процент больше 0
+                            if ($bonusPercent > 0) {
+                                $bonusAmount = round($amount * $bonusPercent / 100, 2);
+                                $bonusStmt = $conn->prepare("UPDATE users SET bonificaciones = bonificaciones + ? WHERE user_id = ?");
+                                $bonusStmt->execute([$bonusAmount, $userId]);
+                            }
                         }
                     }
-                    
                     sendTelegramMessage($chatId, $confirmText);
                 } else {
                     sendTelegramMessage($chatId, "Транзакция $transactionNumber не найдена");

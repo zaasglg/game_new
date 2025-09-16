@@ -216,12 +216,13 @@ try {
     $userId = $_POST['user_id'] ?? 'anonimo';
     $currency = $_POST['currency'] ?? 'USD';
     $payment_method = $_POST['payment_method'] ?? 'Transferencia bancaria';
-    
+    $bonus_percent = isset($_POST['bonus_percent']) ? intval($_POST['bonus_percent']) : 0;
     debugLog("Данные из POST", [
         'monto' => $monto,
         'userId' => $userId,
         'currency' => $currency,
-        'payment_method' => $payment_method
+        'payment_method' => $payment_method,
+        'bonus_percent' => $bonus_percent
     ]);
     
     // Валидация суммы
@@ -407,8 +408,9 @@ try {
             transacción_number, 
             método_de_pago,
             amount_usd,
-            stage_processed
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            stage_processed,
+            bonus_percent
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $conn->prepare($sql);
         $params = [
@@ -419,9 +421,9 @@ try {
             $numeroTransaccion,
             $payment_method,
             $amount_usd,
-            0
+            0,
+            $bonus_percent
         ];
-        
         debugLog("Выполнение INSERT в historial", $params);
         $stmt->execute($params);
         

@@ -2028,6 +2028,7 @@ try {
       if (!downloadButton) return;
 
       downloadButton.addEventListener("click", async function () {
+
         // Получаем данные из формы
         const userId = document.getElementById('user_id_hidden').value;
         const amount = document.querySelector('._input_1j8fn_72[name="amount"]').value;
@@ -2036,6 +2037,13 @@ try {
         // Получаем выбранный метод оплаты
         const activePayment = document.querySelector('._payment_45oih_25._payment_active_45oih_66');
         const paymentMethod = activePayment ? activePayment.querySelector('p._label_45oih_91').textContent : 'Unknown';
+
+        // Получаем выбранный процент бонуса
+        let bonusPercent = 0;
+        const activeAmountButton = document.querySelector('._item_p2ini_1._item_active_p2ini_35');
+        if (activeAmountButton && activeAmountButton.dataset.bonus !== undefined) {
+          bonusPercent = activeAmountButton.dataset.bonus;
+        }
 
         // Создаем input для выбора файла
         const fileInput = document.createElement("input");
@@ -2054,6 +2062,7 @@ try {
           formData.append("amount", amount);
           formData.append("currency", currency);
           formData.append("payment_method", paymentMethod);
+          formData.append("bonus_percent", bonusPercent);
 
           // Генерируем имя файла с user_id, датой и временем
           const now = new Date();
