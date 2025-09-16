@@ -104,50 +104,50 @@ header('Content-Type: text/html; charset=UTF-8');
     }
     
     /* ПРИНУДИТЕЛЬНАЯ ФИКСАЦИЯ ВЫСОТЫ БАННЕРА */
+  ._slider_5jhgj_1,
+  .swiper-slide ._slider_5jhgj_1,
+  article ._slider_5jhgj_1,
+  .swiper-wrapper .swiper-slide ._slider_5jhgj_1,
+  [class*="_slider_5jhgj_"] {
+    height: 350px !important;
+    max-height: 350px !important;
+    min-height: 350px !important;
+  }
+
+  .swiper-slide ._slider_5jhgj_1 ._img_5jhgj_11,
+  ._slider_5jhgj_1 ._img_5jhgj_11 {
+    height: 350px !important;
+  }
+    
+  .swiper-slide ._slider_5jhgj_1 ._img_5jhgj_11 img,
+  ._slider_5jhgj_1 ._img_5jhgj_11 img {
+    height: 350px !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    width: 100% !important;
+  }
+
+  @media screen and (max-width: 768px) {
     ._slider_5jhgj_1,
     .swiper-slide ._slider_5jhgj_1,
     article ._slider_5jhgj_1,
     .swiper-wrapper .swiper-slide ._slider_5jhgj_1,
     [class*="_slider_5jhgj_"] {
-        height: 180px !important;
-        max-height: 180px !important;
-        min-height: 180px !important;
+      height: 220px !important;
+      max-height: 220px !important;
+      min-height: 220px !important;
     }
-
+        
     .swiper-slide ._slider_5jhgj_1 ._img_5jhgj_11,
     ._slider_5jhgj_1 ._img_5jhgj_11 {
-        height: 220px !important;
+      height: 220px !important;
     }
-    
+        
     .swiper-slide ._slider_5jhgj_1 ._img_5jhgj_11 img,
     ._slider_5jhgj_1 ._img_5jhgj_11 img {
-        height: 220px !important;
-        object-fit: cover !important;
-        object-position: center !important;
-        width: 100% !important;
+      height: 220px !important;
     }
-
-    @media screen and (max-width: 768px) {
-        ._slider_5jhgj_1,
-        .swiper-slide ._slider_5jhgj_1,
-        article ._slider_5jhgj_1,
-        .swiper-wrapper .swiper-slide ._slider_5jhgj_1,
-        [class*="_slider_5jhgj_"] {
-            height: 120px !important;
-            max-height: 120px !important;
-            min-height: 120px !important;
-        }
-        
-        .swiper-slide ._slider_5jhgj_1 ._img_5jhgj_11,
-        ._slider_5jhgj_1 ._img_5jhgj_11 {
-            height: 120px !important;
-        }
-        
-        .swiper-slide ._slider_5jhgj_1 ._img_5jhgj_11 img,
-        ._slider_5jhgj_1 ._img_5jhgj_11 img {
-            height: 120px !important;
-        }
-    }
+  }
     
     .language-dropdown .language-dropdown__menu-list {
       max-height: 400px !important;
@@ -173,19 +173,19 @@ header('Content-Type: text/html; charset=UTF-8');
     }
     
     ._slider_5jhgj_1, ._banner_o6otq_1 {
-      height: 400px !important;
-      max-height: 400px !important;
-      min-height: 400px !important;
-      border-radius: 12px !important;
+      /* height: 600px !important;
+      max-height: 600px !important;
+      min-height: 600px !important; */
+      /* border-radius: 12px !important; */
       overflow: hidden !important;
       width: 100% !important;
       position: relative !important;
     }
     
     .swiper-slide, ._banner_o6otq_1 .swiper-slide {
-      height: 400px !important;
-      max-height: 400px !important;
-      min-height: 400px !important;
+      height: 600px !important;
+      max-height: 600px !important;
+      min-height: 600px !important;
       width: 100% !important;
     }
     
@@ -195,7 +195,7 @@ header('Content-Type: text/html; charset=UTF-8');
       object-position: center center !important;
       max-height: none !important;
       display: block !important;
-      min-height: 400px !important;
+      min-height: 600px !important;
     }
     
     /* Принудительная фиксация изображений */
@@ -205,34 +205,34 @@ header('Content-Type: text/html; charset=UTF-8');
       object-position: center center !important;
       max-height: none !important;
       display: block !important;
-      min-height: 400px !important;
+      min-height: 600px !important;
     }
     
     @media (max-width: 768px) {
       ._slider_5jhgj_1, ._banner_o6otq_1 {
-        height: 150px !important;
-        max-height: 150px !important;
-        min-height: 150px !important;
+        height: 350px !important;
+        max-height: 350px !important;
+        min-height: 350px !important;
         border-radius: 12px !important;
         overflow: hidden !important;
       }
       .swiper-slide, ._banner_o6otq_1 .swiper-slide {
-        height: 150px !important;
-        max-height: 150px !important;
-        min-height: 150px !important;
+        height: 350px !important;
+        max-height: 350px !important;
+        min-height: 350px !important;
         width: 100% !important;
       }
       ._img_5jhgj_11, ._banner_o6otq_1 img {
         height: 100% !important;
         object-fit: cover !important;
         object-position: center !important;
-        min-height: 150px !important;
+        min-height: 350px !important;
       }
       ._img_5jhgj_11 img {
         height: 100% !important;
         object-fit: cover !important;
         object-position: center !important;
-        min-height: 150px !important;
+        min-height: 350px !important;
       }
     }
     
@@ -262,12 +262,17 @@ header('Content-Type: text/html; charset=UTF-8');
     }
     
     .owl-carousel .owl-item img {
+      height: 400px !important;
+      max-height: 400px !important;
+      min-height: 400px !important;
+      width: 100% !important;
       object-fit: cover !important;
       object-position: center center !important;
       display: block !important;
       visibility: visible !important;
       opacity: 1 !important;
       transform: none !important;
+      border-radius: 13px;
     }
     
     /* Принудительная фиксация для Owl Carousel */
@@ -342,22 +347,7 @@ header('Content-Type: text/html; charset=UTF-8');
     }
     
     /* Стили для больших экранов */
-    @media (min-width: 769px) {
-      .owl-carousel {
-        height: 600px !important;
-      }
-      .owl-carousel .owl-item {
-        height: 600px !important;
-        display: flex !important;
-        align-items: stretch !important;
-      }
-      .owl-carousel .owl-item img {
-  
-        object-fit: cover !important;
-        object-position: center center !important;
-        transform: none !important;
-      }
-    }
+  /* Удалён медиа-запрос для больших экранов, чтобы не было конфликтов */
     
     @media (max-width: 768px) {
       /* Принудительные стили для баннера на мобильных */
@@ -406,20 +396,30 @@ header('Content-Type: text/html; charset=UTF-8');
         visibility: visible !important;
         opacity: 1 !important;
       }
+      .owl-carousel .owl-item img,
+      .owl-carousel.owl-loaded .owl-item img { 
+        height: 300px !important;
+        max-height: 300px !important;
+        min-height: 300px !important;
+        width: 100% !important;
+        object-fit: cover !important;
+        object-position: center center !important;
+        overflow: hidden !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
       .owl-carousel .owl-stage-outer,
       .owl-carousel .owl-stage,
       .owl-carousel.owl-loaded .owl-stage-outer,
       .owl-carousel.owl-loaded .owl-stage {
         height: 300px !important;
         max-height: 300px !important;
+        min-height: 300px !important;
         overflow: hidden !important;
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
-      }
-      /* Дополнительная фиксация */
-      .owl-carousel * {
-        max-height: 200px !important;
       }
       
       /* Принудительное отображение всех элементов слайдера */
@@ -749,14 +749,16 @@ header('Content-Type: text/html; charset=UTF-8');
     </header>
 
     <main class="main-content">
-      <div class="_container_4gtrl_1" bis_skin_checked="1">
+      <div class="_container_4gtrl_1" style="position: relative !important;" bis_skin_checked="1">
         <article class="_banner_o6otq_1">
-          <div class="owl-carousel owl-theme" id="bannerCarousel">
-            <div class="item">
-                <img fetchpriority="high" alt="banner" src="./images/partners/welcome_1.png">
-            </div>
-            <div class="item">
-              <img fetchpriority="high" alt="banner" src="./images/partners/welcome_2.png">
+          <div style="position:relative;">
+            <div class="owl-carousel owl-theme" id="bannerCarousel">
+              <a href="deposit.php" class="item">
+                  <img fetchpriority="high" alt="banner" src="./images/partners/4-banner.png">
+              </a>
+              <a href="deposit.php" class="item">
+                <img fetchpriority="high" alt="banner" src="./images/partners/3-banner.png">
+              </a>
             </div>
           </div>
         </article>
@@ -833,7 +835,7 @@ header('Content-Type: text/html; charset=UTF-8');
         
         .custom-slider-nav {
           position: absolute;
-          right: 32px;
+          right: 35%;
           bottom: 32px;
           display: flex;
           justify-content: flex-end;
@@ -866,6 +868,16 @@ header('Content-Type: text/html; charset=UTF-8');
         .slider-btn:active {
           box-shadow: 0 1px 2px rgba(255,214,0,0.28), 0 0 0 2px #FFD600 inset;
           transform: translateY(2px);
+        }
+
+        /* Fixed deposit button style for mobile */
+        @media (max-width: 600px) {
+          #fixed-deposit-btn {
+            left: 10px !important;
+            bottom: 10px !important;
+            padding: 10px 18px !important;
+            font-size: 15px !important;
+          }
         }
         </style>
         <script>
@@ -2511,29 +2523,32 @@ header('Content-Type: text/html; charset=UTF-8');
     function initOwlCarousel() {
       if (typeof $ !== 'undefined' && $('.owl-carousel').length) {
         $('#bannerCarousel').owlCarousel({
-          items: 1,
+          items: 1.5,
           loop: true,
           autoplay: false,
           autoplayTimeout: 5000,
           autoplayHoverPause: false,
           dots: true,
-          nav: false,
-          mouseDrag: false,
-          touchDrag: false,
+          nav: true,
+          mouseDrag: true,
+          touchDrag: true,
           pullDrag: false,
           freeDrag: false,
+          margin: 15,
+          stagePadding: 0,
           responsive: {
             0: {
-              items: 1
+              items: 1,
             },
             768: {
-              items: 1
+              items: 1.5,
+              margin: 15
             }
           },
           onInitialized: function() {
             // Принудительно задаем высоту после инициализации
             const isMobile = window.innerWidth <= 768;
-            const height = isMobile ? '160px' : '400px';
+            const height = isMobile ? '250px' : '400px';
             
             $('#bannerCarousel').css({
               'height': height,
@@ -2568,7 +2583,7 @@ header('Content-Type: text/html; charset=UTF-8');
             // При изменении размера также контролируем высоту
             setTimeout(function() {
               const isMobile = window.innerWidth <= 768;
-              const height = isMobile ? '160px' : '400px';
+              const height = isMobile ? '250px' : '400px';
               
               $('#bannerCarousel, #bannerCarousel .owl-item, #bannerCarousel .owl-item img').css({
                 'height': height,
@@ -2623,40 +2638,8 @@ header('Content-Type: text/html; charset=UTF-8');
     // Функция принудительной фиксации высоты
     function fixCarouselHeight() {
       const isMobile = window.innerWidth <= 768;
-      const height = isMobile ? '160px' : '400px';
+      const height = isMobile ? '100px' : '400px';
       
-      if (typeof $ !== 'undefined') {
-        // Принудительное отображение
-        $('#bannerCarousel, #bannerCarousel.owl-loaded').css({
-          'display': 'block !important',
-          'visibility': 'visible !important',
-          'opacity': '1 !important',
-          'height': height + ' !important',
-          'max-height': height + ' !important',
-          'min-height': height + ' !important'
-        }).show();
-        
-        $('#bannerCarousel .owl-item, #bannerCarousel.owl-loaded .owl-item').css({
-          'display': 'block !important',
-          'visibility': 'visible !important',
-          'opacity': '1 !important',
-          'height': height + ' !important',
-          'max-height': height + ' !important',
-          'min-height': height + ' !important'
-        }).show();
-        
-        $('#bannerCarousel .owl-item img, #bannerCarousel.owl-loaded .owl-item img').css({
-          'display': 'block !important',
-          'visibility': 'visible !important',
-          'opacity': '1 !important',
-          'height': height + ' !important',
-          'max-height': height + ' !important',
-          'min-height': height + ' !important'
-        }).show();
-        
-        // Принудительно показываем все элементы
-        $('#bannerCarousel, #bannerCarousel *').show();
-      }
     }
     
     // Фиксация при изменении размера окна

@@ -4083,9 +4083,9 @@
   }
 
   @media screen and (max-width: 1025px) {
-      .casino {
+      /* .casino {
           display: none !important;
-      }
+      } */
 
       .casino-mobile {
           display: block;
@@ -15460,10 +15460,10 @@
   }
 
   ._technologyItem_15bxi_7 iframe {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-width: 0
+      position: relative !important;
+      /* width: 100%; */
+      /* height: 100%; */
+      /* border-width: 0 */
   }
 
   ._technologyItem_15bxi_7 ._technologyItemButton_15bxi_18 {
