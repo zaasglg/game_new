@@ -117,7 +117,7 @@ footer#footer{ flex-grow:0; flex-shrink:0; background:var(--footer-bg); display:
 
 
 @media ( max-width:1110px ){
-    #bet_wrapper{ height:385px; border-radius:12px; flex-flow:column nowrap; }
+    #bet_wrapper{ border-radius:12px; flex-flow:column nowrap; }
 }
 
 
