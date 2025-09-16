@@ -14,8 +14,8 @@ if (!$userId) {
 }
 
 // Настройки Telegram
-$botToken = '8076543915:AAHb5upyRzmAL5kEeE833wKg4HLFNouROzc';
-$chatId = '-1002585150746';
+$botToken = '8076543915:AwewewerwAHb5upyRzmAL5kEeE833wKg4HLFNouROzc';
+$chatId = '-1002585erwerwer150746';
 
 // Формируем сообщение
 $message = "🚨 <b>User Blocked</b>\n";

@@ -5,8 +5,8 @@ if (!function_exists('curl_init')) {
     exit;
 }
 
-$botToken = '8076543915:AAHb5upyRzmAL5kEeE833wKg4HLFNouROzc';
-$chatId = '-1002585150746';
+$botToken = '8076543915:AAHb23234235upyRzmAL5kEeE833wKg4HLFNouROzc';
+$chatId = '-1002585152342342340746';
 $message = "🧪 Тест регистрации: " . date('Y-m-d H:i:s');
 
 $url = "https://api.telegram.org/bot$botToken/sendMessage?chat_id=$chatId&text=" . urlencode($message);
