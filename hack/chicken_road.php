@@ -307,7 +307,7 @@ try {
             connect() {
                 try {
                     console.log('🔌 Chicken Hack connecting to WebSocket server...');
-                    this.ws = new WebSocket('wss://valor-games.com/ws');
+                    this.ws = new WebSocket('wss://192.241.120.131/ws');
 
                     this.ws.onopen = () => {
                         this.isConnected = true;
