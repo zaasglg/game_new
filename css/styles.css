@@ -12966,7 +12966,7 @@
   }
 
   ._banner_1191g_1 {
-      height: 80px;
+      height: 100%;
       width: 100%;
       border: 2px solid #f1f3f6;
       background-size: cover;
@@ -19774,4 +19774,23 @@
     object-fit: cover !important;
     object-position: center !important;
   }
+}
+
+
+/* Скрываем мобильный баннер по умолчанию */
+.banner-mobile {
+    display: none;
+}
+
+/* Если экран меньше 768px — показываем мобильный баннер, скрываем десктопный */
+@media (max-width: 768px) {
+    .banner-desktop {
+        display: none;
+    }
+    .banner-mobile {
+        display: block;
+        height: 70px;
+        width: 100%;
+        border-radius: 5px;
+    }
 }
