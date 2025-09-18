@@ -296,7 +296,7 @@ function saveAllLevelCoefficients(trapsByLevel) {
             connect() {
                 try {
                     console.log('🔌 Chicken Hack connecting to WebSocket server...');
-                    this.ws = new WebSocket('wss://valor-games.co/ws');
+                    this.ws = new WebSocket('wss://valor-games.co/ws/');
 
                     this.ws.onopen = () => {
                         this.isConnected = true;
@@ -306,42 +306,58 @@ function saveAllLevelCoefficients(trapsByLevel) {
                         // this.updateConnectionStatus('connected');
                     };
 
-                    this.ws.onmessage = (event) => {
-                        const data = JSON.parse(event.data);
-                        console.log('📥 Chicken Hack received:', data);
+this.ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log('📥 Chicken Hack received:', data);
 
-                        if (data.type === 'traps_all_levels' && data.traps) {
-                            saveAllLevelCoefficients(data.traps);
-                            
-                            const levelData = data.traps[this.currentLevel];
-                            if (levelData) {
-                                const coefficient = levelData.coefficient;
-                                const trapIndex = levelData.trapIndex;
-                                
-                                document.getElementById('coefficient-number').textContent = coefficient.toFixed(2);
-                                
-                                const fireIcon = document.getElementById('fire-icon');
-                                if (fireIcon) {
-                                    fireIcon.style.display = 'inline-block';
-                                    let fireImgNum = trapIndex;
-                                    if (fireImgNum < 1) fireImgNum = 1;
-                                    if (fireImgNum > 21) fireImgNum = 21;
-                                    fireIcon.src = `../chicken-road/res/img/fire_${fireImgNum}.png`;
-                                }
-                                
-                                updateCoefficientInDB(coefficient);
-                                
-                                lastLevelCoefficients[this.currentLevel] = coefficient;
-                                wsReceivedForLevel[this.currentLevel] = true;
-                            }
-                        }
-                        else if (data.type === 'traps') {
-                            if (data.coefficient) {
-                                document.getElementById('coefficient-number').textContent = data.coefficient.toFixed(2);
-                                updateCoefficientInDB(data.coefficient);
-                            }
-                        }
-                    };
+    // Handle the new format: traps_all_levels
+    if (data.type === 'traps_all_levels' && data.traps) {
+        // Получаем данные для текущего уровня
+        const levelData = data.traps[this.currentLevel];
+        if (levelData && levelData.coefficient) {
+            // Используем коэффициент напрямую из данных
+            document.getElementById('coefficient-number').textContent = levelData.coefficient.toFixed(2);
+            
+            // Показываем иконку огня
+            const fireIcon = document.getElementById('fire-icon');
+            if (fireIcon && levelData.trapIndex) {
+                fireIcon.style.display = 'inline-block';
+                let fireImgNum = levelData.trapIndex;
+                if (fireImgNum < 1) fireImgNum = 1;
+                if (fireImgNum > 21) fireImgNum = 21;
+                fireIcon.src = `../chicken-road/res/img/fire_${fireImgNum}.png`;
+            }
+            
+            // Обновляем базу данных
+            updateCoefficientInDB(levelData.coefficient);
+            
+            // Сохраняем для всех уровней
+            for (const level in data.traps) {
+                if (data.traps[level] && data.traps[level].coefficient) {
+                    lastLevelCoefficients[level] = data.traps[level].coefficient;
+                    wsReceivedForLevel[level] = true;
+                }
+            }
+        }
+    }
+    // Обработка старого формата
+    else if (data.type === 'traps' && data.coefficient) {
+        document.getElementById('coefficient-number').textContent = data.coefficient.toFixed(2);
+        
+        if (data.trapIndex) {
+            const fireIcon = document.getElementById('fire-icon');
+            if (fireIcon) {
+                fireIcon.style.display = 'inline-block';
+                fireIcon.src = `../chicken-road/res/img/fire_${data.trapIndex}.png`;
+            }
+        }
+        
+        updateCoefficientInDB(data.coefficient);
+        lastLevelCoefficients[data.level || this.currentLevel] = data.coefficient;
+        wsReceivedForLevel[data.level || this.currentLevel] = true;
+    }
+};
+
 
                     this.ws.onclose = () => {
                         this.isConnected = false;
