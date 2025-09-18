@@ -29,7 +29,7 @@ var SETTINGS = {
     min_bet: 0.5, 
     max_bet: 150, 
     segw: parseInt( $('#battlefield .sector').css('width') ),
-    ws_url: 'wss://valor-games.co/ws'  // WebSocket URL for trap generation
+    ws_url: 'ws://localhost:8080'  // WebSocket URL for trap generation
 } 
 
 var SOUNDS = {
@@ -116,22 +116,25 @@ class Game{
         if (data.type === 'traps_all_levels' && data.traps) {
             // traps: { easy: [n], medium: [n], ... }
             var trapsForLevel = data.traps[this.cur_lvl];
-            if (trapsForLevel && trapsForLevel.length > 0) {
+            if (trapsForLevel) {
+                console.log('Received traps for level', this.cur_lvl, ':', trapsForLevel);
                 this.traps = trapsForLevel;
-                // Always update board with new traps
-                this.createBoard();
-                this.updateTraps();
+                if (this.cur_status === 'loading') {
+                    this.updateTraps();
+                }
             }
         } else if (data.type === 'traps') {
             console.log('Updating traps:', data.traps);
             this.traps = data.traps;
-            this.createBoard();
-            this.updateTraps();
+            if (this.cur_status === 'loading') {
+                this.updateTraps();
+            }
         } else if (data.type === 'game_traps') {
             console.log('Game traps received:', data.traps);
             this.traps = data.traps;
-            this.createBoard();
-            this.updateTraps();
+            if (this.cur_status === 'loading') {
+                this.updateTraps();
+            }
         }
     }
     create(){
@@ -145,7 +148,7 @@ class Game{
             this.ws.send(JSON.stringify({type: 'set_level', level: this.cur_lvl}));
         }
     }
-    createBoard(){
+    createBoard() {
         var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
         this.stp = 0; // Reset step on new board
         this.alife = 0;
@@ -164,9 +167,11 @@ class Game{
         var flameSegments = this.traps && this.traps.length > 0 ? this.traps : [];
         this.fire = flameSegments.length > 0 ? flameSegments[0] : 0;
         for( var $i=0; $i<$arr.length; $i++ ){
-            // Determine if this sector is a flame
-            var isFlame = flameSegments.includes($i+1);
+            // Determine if this sector is a flame - сектора нумеруются с 1, но массив с 0
+            var sectorId = $i + 1;
+            var isFlame = flameSegments.includes(sectorId);
             var coeff = $arr[$i];
+            console.log('Sector', sectorId, 'isFlame:', isFlame, 'coeff:', coeff);
             this.wrap.append(`<div class="sector${ $i == $arr.length-1 ? ' finish' : ($i ? ' far' : '') }" data-id="${ $i+1 }"${ isFlame ? ' flame="1"' : '' }>
                 <div class="coincontainer">
                     ${$i == $arr.length-1 ? `
@@ -684,10 +689,16 @@ class Game{
         }); 
     }
     updateTraps(){
+        console.log('Updating traps:', this.traps);
         $('.sector').removeAttr('flame');
-        if (this.traps) {
-            this.traps.forEach(index => {
-                $('.sector').eq(index).attr('flame', '1');
+        if (this.traps && this.traps.length > 0) {
+            this.traps.forEach(trapIndex => {
+                // Ловушки приходят как индексы секторов (1-основанные)
+                var $sector = $('.sector[data-id="' + trapIndex + '"]');
+                if ($sector.length > 0) {
+                    $sector.attr('flame', '1');
+                    console.log('Applied flame to sector', trapIndex);
+                }
             });
         }
         var $flame_x = document.querySelector('.sector[flame="1"]'); 
