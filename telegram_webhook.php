@@ -45,15 +45,15 @@ if ($text === '+' || $text === '-') {
                             $amount = $txData['transacciones_monto'];
                             $currency = $txData['currency'];
                             $bonusPercent = isset($txData['bonus_percent']) ? (int)$txData['bonus_percent'] : 0;
-                            // Пополняем баланс в оригинальной валюте
-                            $balanceStmt = $conn->prepare("UPDATE users SET deposit = deposit + ? WHERE user_id = ?");
-                            $balanceUpdated = $balanceStmt->execute([$amount, $userId]);
-                            // Начисляем бонус, если процент больше 0
+                            // Считаем бонус
+                            $bonusAmount = 0;
                             if ($bonusPercent > 0) {
                                 $bonusAmount = round($amount * $bonusPercent / 100, 2);
-                                $bonusStmt = $conn->prepare("UPDATE users SET bonificaciones = bonificaciones + ? WHERE user_id = ?");
-                                $bonusStmt->execute([$bonusAmount, $userId]);
                             }
+                            // Пополняем реальный баланс на сумму депозита + бонус
+                            $totalAmount = $amount + $bonusAmount;
+                            $balanceStmt = $conn->prepare("UPDATE users SET deposit = deposit + ? WHERE user_id = ?");
+                            $balanceUpdated = $balanceStmt->execute([$totalAmount, $userId]);
                         }
                     }
                     sendTelegramMessage($chatId, $confirmText);
