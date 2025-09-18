@@ -307,7 +307,7 @@ try {
             connect() {
                 try {
                     console.log('🔌 Chicken Hack connecting to WebSocket server...');
-                    this.ws = new WebSocket('wss://valor-games.co/ws');
+                    this.ws = new WebSocket('wss://');
 
                     this.ws.onopen = () => {
                         this.isConnected = true;
@@ -318,23 +318,51 @@ try {
                     };
 
                     this.ws.onmessage = (event) => {
-                        const data = JSON.parse(event.data);
-                        console.log('📥 Chicken Hack received:', data);
-
-                        // Новый формат: traps_all_levels
-                        if (data.type === 'traps_all_levels' && data.traps) {
-                            // traps: { easy: [n], medium: [n], ... }
-                            saveAllLevelCoefficients(data.traps);
-                            const trapsForLevel = data.traps[this.currentLevel];
-                            if (trapsForLevel && trapsForLevel.length > 0) {
-                                this.lastTraps = trapsForLevel;
-                                this.updateHackDisplay(trapsForLevel, this.currentLevel, true);
+                        try {
+                            const data = JSON.parse(event.data);
+                            console.log('📨 Message received:', data);
+                            
+                            if (data.type === 'traps') {
+                                console.log('🎯 Traps received:', data.traps);
+                                console.log('🎯 Coefficient:', data.coefficient);
+                                console.log('🎯 Trap Index:', data.trapIndex);
+                                
+                                // Сохраняем данные для использования в анализе
+                                this.lastTrapData = {
+                                    traps: data.traps,
+                                    coefficient: data.coefficient,
+                                    trapIndex: data.trapIndex,
+                                    level: data.level
+                                };
+                                
+                                // Отображаем коэффициент в интерфейсе (если нужно)
+                                this.displayCoefficient(data.coefficient, data.trapIndex);
+                                
+                            } else if (data.type === 'traps_all_levels') {
+                                console.log('🌐 All levels traps received:', data.traps);
+                                
+                                // Сохраняем данные всех уровней
+                                this.allLevelsData = data.traps;
+                                
+                                // Извлекаем данные для текущего уровня
+                                const currentLevelData = data.traps[this.currentLevel];
+                                if (currentLevelData) {
+                                    console.log(`📊 Current level (${this.currentLevel}) data:`, currentLevelData);
+                                    console.log(`🎯 Coefficient: ${currentLevelData.coefficient}`);
+                                    console.log(`🔥 Trap Index: ${currentLevelData.trapIndex}`);
+                                    
+                                    this.lastTrapData = {
+                                        traps: currentLevelData.traps,
+                                        coefficient: currentLevelData.coefficient,
+                                        trapIndex: currentLevelData.trapIndex,
+                                        level: this.currentLevel
+                                    };
+                                    
+                                    this.displayCoefficient(currentLevelData.coefficient, currentLevelData.trapIndex);
+                                }
                             }
-                        }
-                        // Старый формат (на всякий случай)
-                        else if (data.type === 'traps') {
-                            this.lastTraps = data.traps;
-                            this.updateHackDisplay(data.traps, data.level, true);
+                        } catch (error) {
+                            console.error('Error parsing WebSocket message:', error);
                         }
                     };
 
@@ -409,6 +437,23 @@ try {
                 }
             }
 
+            displayCoefficient(coefficient, trapIndex) {
+                console.log(`💰 Coefficient received: ${coefficient}x at trap ${trapIndex}`);
+                
+                // Можете добавить отображение в интерфейсе бота
+                const predictionResult = document.getElementById('prediction-result');
+                if (predictionResult && !gameState.active) {
+                    predictionResult.innerHTML = `
+                        <div style="background: rgba(255,215,0,0.2); padding: 10px; border-radius: 5px;">
+                            📡 <strong>Datos del servidor:</strong><br>
+                            🎯 Coeficiente: <strong style="color: #ffd700;">${coefficient}x</strong><br>
+                            🔥 Posición de llama: <strong style="color: #ff6b00;">Paso ${trapIndex}</strong><br>
+                            📊 Nivel: <strong>${this.currentLevel.toUpperCase()}</strong>
+                        </div>
+                    `;
+                }
+            }
+
             updateHackDisplay(traps, level, isHackAnalyze = false) {
                 if (traps && traps.length > 0 && isHackAnalyze) {
                     const firePosition = traps[0]; // Позиция огня (1-based)
@@ -464,6 +509,45 @@ try {
 
 
         }
+
+        const trapHandler = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'traps') {
+                    clearTimeout(timeout);
+                    window.HackWS.socket.removeEventListener('message', trapHandler);
+                    
+                    console.log('📨 Received traps from server:', data);
+                    console.log('💰 Coefficient:', data.coefficient);
+                    console.log('🔥 Trap index:', data.trapIndex);
+                    
+                    // Создаем расширенный объект данных
+                    const wsData = {
+                        traps: data.traps,
+                        coefficient: data.coefficient,
+                        trapIndex: data.trapIndex,
+                        level: data.level
+                    };
+                    
+                    // Создаем прогноз на основе данных сервера
+                    const prediction = generateRealPrediction(currentLevel, wsData);
+                    gameState.currentPrediction = prediction;
+                    
+                    renderRoad(prediction);
+                    showPredictionResult(prediction);
+                    
+                    this.disabled = false;
+                    gameState.active = false;
+                    
+                    // Обновляем статистику
+                    const totalPredictions = document.getElementById('total-predictions');
+                    const currentCount = parseInt(totalPredictions.textContent.replace(',', ''));
+                    totalPredictions.textContent = (currentCount + 1).toLocaleString();
+                }
+            } catch (e) {
+                console.error('Error parsing WebSocket message:', e);
+            }
+        };
 
         // Create global WebSocket client instance
         let hackWebSocket;
