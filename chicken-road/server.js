@@ -46,7 +46,7 @@ wss.on('connection', function connection(ws) {
                 const traps = generateTraps(clientData.level, 0);
                 clientData.lastTraps = traps;
                 // No log
-                ws.send(JSON.stringify({ type: 'traps', traps: traps, level: clientData.level }));
+                ws.send(JSON.stringify({ type: 'traps', traps: traps, level: clientData.level, coefficient: coefficient,  trapIndex: flameIndex }));
             } else if (data.type === 'get_last_traps') {
                 // Отправить клиенту последние traps_all_levels
                 ws.send(JSON.stringify({ type: 'traps_all_levels', traps: lastTrapsByLevel }));
@@ -54,7 +54,7 @@ wss.on('connection', function connection(ws) {
                 sessionTraps.forEach((session, ws) => {
                     sessionTraps.set(ws, {});
                 });
-                // No log
+                
             } else if (data.type === 'game_start') {
                 activeGames.add(ws);
                 clientData.gameActive = true;
