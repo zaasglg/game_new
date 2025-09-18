@@ -2356,7 +2356,7 @@ header('Content-Type: text/html; charset=UTF-8');
         </div>
         <div data-cy="register-modal" class="_body_fyyq9_1">
           <div class="_banner_1191g_1" style="
-                background-image: url('/images/banner_register.png');
+                background-image: url('/images/banner_register.png?v=2');
               "></div>
           <div class="_box_fyyq9_16">
             <div>
