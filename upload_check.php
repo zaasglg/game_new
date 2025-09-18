@@ -431,22 +431,7 @@ try {
         debugLog("Запись в БД успешно создана", ['id' => $insertedId]);
 
         // Если есть бонус, начисляем его на реальный баланс пользователя
-        if ($bonus_percent > 0) {
-            $bonusAmount = $monto * ($bonus_percent / 100);
-            debugLog("Начисление бонуса к депозиту", [
-                'userId' => $userId,
-                'bonusAmount' => $bonusAmount
-            ]);
-            $updateDeposit = $conn->prepare("UPDATE users SET deposit = deposit + :bonus WHERE user_id = :userId");
-            $updateDeposit->execute([
-                ':bonus' => $bonusAmount,
-                ':userId' => $userId
-            ]);
-            debugLog("Бонус успешно начислен на депозит", [
-                'userId' => $userId,
-                'bonusAmount' => $bonusAmount
-            ]);
-        }
+        // Бонус НЕ начисляется на этом этапе. Он будет начислен только после подтверждения через Telegram.
 
         $conn->commit();
         debugLog("Транзакция в БД завершена успешно");
