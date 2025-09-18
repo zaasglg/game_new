@@ -476,7 +476,9 @@ class Game{
             console.log('Step:', currentSectorId, 'Traps:', this.traps, 'TrapsArray:', trapsArray, 'Is flame:', isFlame);
             
             if( isFlame ){
-                $('#fire').addClass('active');
+                // Позиционируем огонь на текущем секторе
+                var $flame_x = $sector[0].offsetLeft;
+                $('#fire').css('left', $flame_x + 'px').addClass('active');
                 CHICKEN.alife = 0;
                 $chick.attr('state', 'dead');
                 $sector.removeClass('active').removeClass('complete').addClass('dead');
