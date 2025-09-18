@@ -560,6 +560,14 @@ EOD;
             </div>
           </li>
           <li class="_item_1992l_14" aria-hidden="true">
+              <a href="/all_games.php?game=chicken_road" style="padding-bottom: 5px;" type="link" class="_link_p19s5_1  _link_mobile_p19s5_45"
+                aria-current="page">
+                <img src="/images/icons/chicken_m.svg" alt="">
+                <img src="/images/icons/chicken_bm.svg" alt="">
+
+              </a>
+            </li>
+          <li class="_item_1992l_14" aria-hidden="true">
             <a href="/games.php" type="link" class="_link_p19s5_1 _link_mobile_p19s5_45"><svg width="22" height="20"
                 viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
@@ -589,7 +597,7 @@ EOD;
               <p data-translate="header.bonuses" class="_label_p19s5_35">Bonificaciones</p>
             </a>
           </li>
-          <li class="_item_1992l_14" aria-hidden="true">
+          <!-- <li class="_item_1992l_14" aria-hidden="true">
             <a href="/all_games.php?categorías=live" type="link" class="_link_p19s5_1 _link_mobile_p19s5_45"><svg
                 width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
@@ -598,7 +606,7 @@ EOD;
               </svg>
               <p data-translate="header.live_games" class="_label_p19s5_35">Juegos en vivo</p>
             </a>
-          </li>
+          </li> -->
         </ul>
       </nav>
     </menu>
