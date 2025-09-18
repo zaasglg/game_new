@@ -283,9 +283,12 @@ try {
                 const traps = trapsByLevel[level];
                 if (traps && traps.length > 0) {
                     const firePosition = traps[0];
-                    const coeff = coefficients[level][firePosition - 1] || coefficients[level][0];
+                    // firePosition это индекс сектора (1-based), коэффициент находится по индексу firePosition-1
+                    const coeffIndex = firePosition - 1;
+                    const coeff = coefficients[level][coeffIndex] || coefficients[level][0];
                     lastLevelCoefficients[level] = coeff;
                     wsReceivedForLevel[level] = true;
+                    console.log(`Level ${level}: trap at sector ${firePosition}, coeff index ${coeffIndex}, coeff ${coeff}x`);
                 }
             }
         }
@@ -304,7 +307,7 @@ try {
             connect() {
                 try {
                     console.log('🔌 Chicken Hack connecting to WebSocket server...');
-                    this.ws = new WebSocket('wss://valor-games.co/ws');
+                    this.ws = new WebSocket('ws://localhost:8080');
 
                     this.ws.onopen = () => {
                         this.isConnected = true;
@@ -410,8 +413,11 @@ try {
                 if (traps && traps.length > 0 && isHackAnalyze) {
                     const firePosition = traps[0]; // Позиция огня (1-based)
                     const coefficients = this.getCoefficientsForLevel(level);
-                    const coefficient = coefficients[firePosition - 1] || coefficients[0];
+                    // firePosition это индекс сектора (1-based), коэффициент находится по индексу firePosition-1
+                    const coeffIndex = firePosition - 1;
+                    const coefficient = coefficients[coeffIndex] || coefficients[0];
                     const safeSteps = firePosition - 1;
+                    console.log(`updateHackDisplay: firePosition=${firePosition}, coeffIndex=${coeffIndex}, coefficient=${coefficient}x`);
 
                     // Сохраняем последний коэффициент для уровня
                     lastLevelCoefficients[level] = coefficient;
@@ -438,9 +444,11 @@ try {
                     // Если просто пришли новые ловушки (например, при смене уровня), тоже обновим коэффициент
                     const firePosition = traps[0];
                     const coefficients = this.getCoefficientsForLevel(level);
-                    const coefficient = coefficients[firePosition - 1] || coefficients[0];
+                    const coeffIndex = firePosition - 1;
+                    const coefficient = coefficients[coeffIndex] || coefficients[0];
                     lastLevelCoefficients[level] = coefficient;
                     wsReceivedForLevel[level] = true;
+                    console.log(`updateHackDisplay (level change): firePosition=${firePosition}, coeffIndex=${coeffIndex}, coefficient=${coefficient}x`);
                 }
             }
 

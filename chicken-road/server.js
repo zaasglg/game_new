@@ -23,6 +23,7 @@ let lastTrapsByLevel = {
 const clients = new Map(); // ws -> { level, gameActive, lastTraps }
 let globalGameActive = false; // Глобальный статус игры - влияет на всех клиентов
 const sessionTraps = new Map(); // ws -> { level: trapIndex }
+const activeGames = new Set(); // Множество активных игр (WebSocket соединений)
 
 
 wss.on('connection', function connection(ws) {
@@ -55,9 +56,13 @@ wss.on('connection', function connection(ws) {
                 });
                 // No log
             } else if (data.type === 'game_start') {
-                // No log
+                activeGames.add(ws);
+                clientData.gameActive = true;
+                console.log(`Game started for client. Active games: ${activeGames.size}`);
             } else if (data.type === 'game_end') {
-                // No log
+                activeGames.delete(ws);
+                clientData.gameActive = false;
+                console.log(`Game ended for client. Active games: ${activeGames.size}`);
             }
         } catch (error) {
             console.error('Error parsing message:', error);
@@ -67,7 +72,8 @@ wss.on('connection', function connection(ws) {
     ws.on('close', function() {
     clients.delete(ws);
     sessionTraps.delete(ws);
-    console.log('Client disconnected, total clients:', clients.size);
+    activeGames.delete(ws);
+    console.log('Client disconnected, total clients:', clients.size, 'active games:', activeGames.size);
     });
 
     ws.on('error', function(error) {
@@ -79,6 +85,12 @@ wss.on('connection', function connection(ws) {
 
 setInterval(() => {
     if (clients.size > 0) {
+        // Проверяем есть ли активные игры
+        if (activeGames.size > 0) {
+            console.log(`Skipping broadcast - ${activeGames.size} active games in progress`);
+            return;
+        }
+        
         console.log('--- Broadcasting traps for ALL LEVELS to', clients.size, 'clients ---');
         const broadcastSeed = Date.now();
         const allLevels = ['easy', 'medium', 'hard', 'hardcore'];
@@ -140,5 +152,3 @@ function seededRandom(seed) {
         return x - Math.floor(x);
     };
 }
-
-console.log('WebSocket server started on ws://localhost:8080');

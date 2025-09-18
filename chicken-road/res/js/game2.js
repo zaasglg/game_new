@@ -29,7 +29,7 @@ var SETTINGS = {
     min_bet: 0.5, 
     max_bet: 150, 
     segw: parseInt( $('#battlefield .sector').css('width') ),
-    ws_url: 'wss://valor-games.co/ws'  // WebSocket URL for trap generation
+    ws_url: 'ws://localhost:8080'  // WebSocket URL for trap generation
 } 
 
 var SOUNDS = {
@@ -121,6 +121,11 @@ class Game{
                 this.traps = trapsForLevel;
                 if (this.cur_status === 'loading') {
                     this.updateTraps();
+                }
+                // Если ждем начала игры - запускаем ее
+                if (this.waitingForTraps && this.pendingGameStart) {
+                    this.updateTraps();
+                    this.actuallyStartGame();
                 }
             }
         } else if (data.type === 'traps') {
@@ -337,25 +342,46 @@ class Game{
     start(){ 
         this.current_bet = +$('#bet_size').val();
         if( this.current_bet && this.current_bet <= (this.balance + this.current_bet) && this.current_bet > 0 ){ 
-            this.cur_status = 'game'; 
-            this.stp = 0; 
-            this.alife = 1; 
-            CHICKEN.alife = 1; 
-            this.game_result_saved = false; // Сбрасываем флаг для новой игры
-            this.balance -= this.current_bet;
-            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
-            updateBalanceOnServer(this.balance);
-            $('.sector').off().on('click', function(){ 
-                GAME.move(); 
-            });
-            // Уведомляем сервер о начале игры
+            // Запрашиваем актуальные коэффициенты перед началом игры
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                this.ws.send(JSON.stringify({type: 'game_start'}));
+                this.ws.send(JSON.stringify({type: 'get_last_traps'}));
+                // Ждем ответ от сервера перед началом игры
+                this.waitingForTraps = true;
+                this.pendingGameStart = {
+                    current_bet: this.current_bet,
+                    balance: this.balance
+                };
+                return;
             }
             
-            // Balance updated above
-            this.move(); 
+            this.actuallyStartGame();
         }
+    }
+    
+    actuallyStartGame(){
+        if (!this.pendingGameStart) return;
+        
+        this.current_bet = this.pendingGameStart.current_bet;
+        this.cur_status = 'game'; 
+        this.stp = 0; 
+        this.alife = 1; 
+        CHICKEN.alife = 1; 
+        this.game_result_saved = false; // Сбрасываем флаг для новой игры
+        this.balance -= this.current_bet;
+        $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
+        updateBalanceOnServer(this.balance);
+        $('.sector').off().on('click', function(){ 
+            GAME.move(); 
+        });
+        // Уведомляем сервер о начале игры
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({type: 'game_start'}));
+        }
+        
+        this.waitingForTraps = false;
+        this.pendingGameStart = null;
+        // Balance updated above
+        this.move(); 
     } 
     finish( $win ){
         $('#overlay').show(); 
