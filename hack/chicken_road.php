@@ -440,18 +440,28 @@ try {
             displayCoefficient(coefficient, trapIndex) {
                 console.log(`💰 Coefficient received: ${coefficient}x at trap ${trapIndex}`);
                 
-                // Можете добавить отображение в интерфейсе бота
-                const predictionResult = document.getElementById('prediction-result');
-                if (predictionResult && !gameState.active) {
-                    predictionResult.innerHTML = `
-                        <div style="background: rgba(255,215,0,0.2); padding: 10px; border-radius: 5px;">
-                            📡 <strong>Datos del servidor:</strong><br>
-                            🎯 Coeficiente: <strong style="color: #ffd700;">${coefficient}x</strong><br>
-                            🔥 Posición de llama: <strong style="color: #ff6b00;">Paso ${trapIndex}</strong><br>
-                            📊 Nivel: <strong>${this.currentLevel.toUpperCase()}</strong>
-                        </div>
-                    `;
+                // Обновляем коэффициент в интерфейсе
+                document.getElementById('coefficient-number').textContent = coefficient.toFixed(2);
+                
+                // Показываем анимированный огонь
+                const fireIcon = document.getElementById('fire-icon');
+                if (fireIcon) {
+                    fireIcon.style.display = 'inline-block';
+                    let fireImgNum = trapIndex;
+                    if (fireImgNum < 1) fireImgNum = 1;
+                    if (fireImgNum > 21) fireImgNum = 21;
+                    fireIcon.src = `../chicken-road/res/img/fire_${fireImgNum}.png`;
                 }
+                
+                // Обновляем статус
+                document.getElementById('coefficient-status').innerHTML = '';
+                
+                // Сохраняем коэффициент в базу
+                updateCoefficientInDB(coefficient);
+                
+                // Сохраняем в глобальные переменные
+                lastLevelCoefficients[this.currentLevel] = coefficient;
+                wsReceivedForLevel[this.currentLevel] = true;
             }
 
             updateHackDisplay(traps, level, isHackAnalyze = false) {
