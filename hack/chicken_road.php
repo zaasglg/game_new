@@ -36,12 +36,12 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>🐔 Bot Hack Chicken Road</title>
-    <link rel="stylesheet" href="./css/reset.css">
+    <!-- <link rel="stylesheet" href="./css/reset.css">
     <link rel="stylesheet" href="./css/normalize.css">
     <link rel="stylesheet" href="./css/style.css">
-    <link rel="icon" href="./images/home-page.png" />
+    <link rel="icon" href="./images/home-page.png" /> -->
 
-    <style>
+    <!-- <style>
         * {
             margin: 0;
             padding: 0;
@@ -207,7 +207,7 @@ try {
             color: #000;
             box-shadow: 0 2px 0 #00cc6a, 0 6px 16px #00ff8833;
         }
-    </style>
+    </style> -->
 </head>
 
 <body>
