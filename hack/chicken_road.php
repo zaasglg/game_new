@@ -288,7 +288,7 @@ class ChickenHackWebSocket {
                 this.ws.close();
             }
             
-            this.ws = new WebSocket('wss://valor-games.co/ws');
+            this.ws = new WebSocket('wss://valor-games.com/ws');
 
             this.ws.onopen = () => {
                 this.isConnected = true;
