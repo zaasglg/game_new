@@ -272,23 +272,15 @@ try {
         let wsReceivedForLevel = { easy: false, medium: false, hard: false, hardcore: false };
 
         // Сохранять коэффициенты для всех уровней при traps_all_levels
-        function saveAllLevelCoefficients(trapsByLevel) {
-            const coefficients = {
-                easy: [ 1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63, 1.75, 1.88, 2.04, 2.22, 2.45, 2.72, 3.06, 3.50, 4.08, 4.90, 6.13, 6.61, 9.81, 19.44 ],
-                medium: [ 1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96, 6.20, 6.91, 8.90, 11.74, 15.99, 22.61, 33.58, 53.20, 92.17, 182.51, 451.71, 1788.80 ],
-                hard: [ 1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21, 22.59, 34.79, 55.97, 94.99, 172.42, 341.40, 760.46, 2007.63, 6956.47, 41321.43 ],
-                hardcore: [ 1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89, 9161.08, 39301.05, 233448.29 ]
-            };
-            for (const level in trapsByLevel) {
-                const traps = trapsByLevel[level];
-                if (traps && traps.length > 0) {
-                    const firePosition = traps[0];
-                    const coeff = coefficients[level][firePosition - 1] || coefficients[level][0];
-                    lastLevelCoefficients[level] = coeff;
-                    wsReceivedForLevel[level] = true;
-                }
-            }
+function saveAllLevelCoefficients(trapsByLevel) {
+    for (const level in trapsByLevel) {
+        const levelData = trapsByLevel[level];
+        if (levelData && levelData.coefficient) {
+            lastLevelCoefficients[level] = levelData.coefficient;
+            wsReceivedForLevel[level] = true;
         }
+    }
+}
 
         // WebSocket client for hack bot
         class ChickenHackWebSocket {
@@ -318,20 +310,36 @@ try {
                         const data = JSON.parse(event.data);
                         console.log('📥 Chicken Hack received:', data);
 
-                        // Новый формат: traps_all_levels
                         if (data.type === 'traps_all_levels' && data.traps) {
-                            // traps: { easy: [n], medium: [n], ... }
                             saveAllLevelCoefficients(data.traps);
-                            const trapsForLevel = data.traps[this.currentLevel];
-                            if (trapsForLevel && trapsForLevel.length > 0) {
-                                this.lastTraps = trapsForLevel;
-                                this.updateHackDisplay(trapsForLevel, this.currentLevel, true);
+                            
+                            const levelData = data.traps[this.currentLevel];
+                            if (levelData) {
+                                const coefficient = levelData.coefficient;
+                                const trapIndex = levelData.trapIndex;
+                                
+                                document.getElementById('coefficient-number').textContent = coefficient.toFixed(2);
+                                
+                                const fireIcon = document.getElementById('fire-icon');
+                                if (fireIcon) {
+                                    fireIcon.style.display = 'inline-block';
+                                    let fireImgNum = trapIndex;
+                                    if (fireImgNum < 1) fireImgNum = 1;
+                                    if (fireImgNum > 21) fireImgNum = 21;
+                                    fireIcon.src = `../chicken-road/res/img/fire_${fireImgNum}.png`;
+                                }
+                                
+                                updateCoefficientInDB(coefficient);
+                                
+                                lastLevelCoefficients[this.currentLevel] = coefficient;
+                                wsReceivedForLevel[this.currentLevel] = true;
                             }
                         }
-                        // Старый формат (на всякий случай)
                         else if (data.type === 'traps') {
-                            this.lastTraps = data.traps;
-                            this.updateHackDisplay(data.traps, data.level, true);
+                            if (data.coefficient) {
+                                document.getElementById('coefficient-number').textContent = data.coefficient.toFixed(2);
+                                updateCoefficientInDB(data.coefficient);
+                            }
                         }
                     };
 
