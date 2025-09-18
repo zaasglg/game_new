@@ -9,6 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 // Подключаем файл с подключением к базе данных
 require 'db.php';
+require 'auth_check.php';
 
 // Обработка отправки формы
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
