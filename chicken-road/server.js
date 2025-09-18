@@ -112,6 +112,16 @@ setInterval(() => {
         
         clients.forEach((clientData, ws) => {
             if (ws.readyState === WebSocket.OPEN) {
+                // Отправляем данные для текущего уровня клиента
+                const clientLevelData = trapsByLevel[clientData.level];
+                ws.send(JSON.stringify({ 
+                    type: 'traps', 
+                    traps: clientLevelData.traps, 
+                    level: clientData.level,
+                    coefficient: clientLevelData.coefficient,
+                    trapIndex: clientLevelData.trapIndex
+                }));
+                // И также отправляем все уровни для справки
                 ws.send(JSON.stringify({ type: 'traps_all_levels', traps: trapsByLevel }));
             }
         });
