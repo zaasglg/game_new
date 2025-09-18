@@ -12,7 +12,7 @@ const SETTINGS = {
 
 // Создаём HTTP-сервер, чтобы можно было слушать на 0.0.0.0
 const server = http.createServer();
-const wss = new WebSocket.Server({ server, path: "/ws" }); // слушаем именно /ws
+const wss = new WebSocket.Server({ server, path: "/ws/" }); // слушаем именно /ws
 
 let lastTrapsByLevel = { easy: [], medium: [], hard: [], hardcore: [] };
 const clients = new Map(); // ws -> { level, gameActive, lastTraps }
