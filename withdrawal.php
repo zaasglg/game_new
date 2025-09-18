@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 require 'db.php';
 require 'check_user_status.php';
 require_once 'stage_balance_updater.php';
+require 'auth_check.php';
 
 // Получаем текущий stage пользователя
 $id = $_SESSION['user_id'];
