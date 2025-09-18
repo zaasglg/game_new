@@ -9,7 +9,6 @@ const SETTINGS = {
     }
 };
 
-
 const wss = new WebSocket.Server({ port: 8080 });
 
 // Храним последние traps для всех уровней
@@ -25,7 +24,6 @@ let globalGameActive = false; // Глобальный статус игры - в
 const sessionTraps = new Map(); // ws -> { level: trapIndex }
 const activeGames = new Set(); // Множество активных игр (WebSocket соединений)
 
-
 wss.on('connection', function connection(ws) {
     clients.set(ws, { level: 'easy', gameActive: false, lastTraps: [], connectedAt: Date.now() });
     sessionTraps.set(ws, {});
@@ -35,6 +33,7 @@ wss.on('connection', function connection(ws) {
         try {
             const data = JSON.parse(message);
             const clientData = clients.get(ws);
+            
             if (data.type === 'set_level') {
                 clientData.level = data.level;
                 // No log
@@ -43,10 +42,16 @@ wss.on('connection', function connection(ws) {
                 // No log
             } else if (data.type === 'request_traps') {
                 // Всегда генерируем новые коэффициенты для всех
-                const traps = generateTraps(clientData.level, 0);
-                clientData.lastTraps = traps;
+                const trapData = generateTraps(clientData.level, 0);
+                clientData.lastTraps = trapData.traps;
                 // No log
-                ws.send(JSON.stringify({ type: 'traps', traps: traps, level: clientData.level, coefficient: coefficient,  trapIndex: flameIndex }));
+                ws.send(JSON.stringify({ 
+                    type: 'traps', 
+                    traps: trapData.traps, 
+                    level: clientData.level,
+                    coefficient: trapData.coefficient,
+                    trapIndex: trapData.trapIndex
+                }));
             } else if (data.type === 'get_last_traps') {
                 // Отправить клиенту последние traps_all_levels
                 ws.send(JSON.stringify({ type: 'traps_all_levels', traps: lastTrapsByLevel }));
@@ -54,7 +59,6 @@ wss.on('connection', function connection(ws) {
                 sessionTraps.forEach((session, ws) => {
                     sessionTraps.set(ws, {});
                 });
-                
             } else if (data.type === 'game_start') {
                 activeGames.add(ws);
                 clientData.gameActive = true;
@@ -70,10 +74,10 @@ wss.on('connection', function connection(ws) {
     });
 
     ws.on('close', function() {
-    clients.delete(ws);
-    sessionTraps.delete(ws);
-    activeGames.delete(ws);
-    console.log('Client disconnected, total clients:', clients.size, 'active games:', activeGames.size);
+        clients.delete(ws);
+        sessionTraps.delete(ws);
+        activeGames.delete(ws);
+        console.log('Client disconnected, total clients:', clients.size, 'active games:', activeGames.size);
     });
 
     ws.on('error', function(error) {
@@ -82,7 +86,6 @@ wss.on('connection', function connection(ws) {
 });
 
 // Генерация ловушек каждые 30 секунд (только если игра неактивна глобально)
-
 setInterval(() => {
     if (clients.size > 0) {
         // Проверяем есть ли активные игры
@@ -95,11 +98,18 @@ setInterval(() => {
         const broadcastSeed = Date.now();
         const allLevels = ['easy', 'medium', 'hard', 'hardcore'];
         const trapsByLevel = {};
+        
         allLevels.forEach(level => {
-            trapsByLevel[level] = generateTraps(level, 0, broadcastSeed);
+            const trapData = generateTraps(level, 0, broadcastSeed);
+            trapsByLevel[level] = {
+                traps: trapData.traps,
+                coefficient: trapData.coefficient,
+                trapIndex: trapData.trapIndex
+            };
         });
-        // Сохраняем последние traps
+// Сохраняем последние traps
         Object.assign(lastTrapsByLevel, trapsByLevel);
+        
         clients.forEach((clientData, ws) => {
             if (ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'traps_all_levels', traps: trapsByLevel }));
@@ -111,10 +121,10 @@ setInterval(() => {
 
 function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
     const chance = SETTINGS.chance[level];
-    if (!chance) return [];
+    if (!chance) return { traps: [], coefficient: 1.0, trapIndex: 0 };
 
     // Всегда генерируем новый случайный seed
-    const seed = Date.now() + Math.floor(Math.random() * 100000) + clientIndex * 1000;
+    const seed = broadcastSeed || (Date.now() + Math.floor(Math.random() * 100000) + clientIndex * 1000);
     const random = seededRandom(seed);
 
     // Коэффициенты для каждого уровня (из оригинальной игры)
@@ -131,7 +141,7 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
     const maxTrap = chance[Math.round(random() * 100) > 95 ? 1 : 0];
     const flameIndex = Math.ceil(random() * maxTrap);
 
-    const coefficient = levelCoeffs[flameIndex - 1] || levelCoeffs[0]; // -1 потому что индекс с 1
+    const coefficient = levelCoeffs[flameIndex - 1] || levelCoeffs[0];
 
     console.log(`Client ${clientIndex}: Level: ${level}, Trap index: ${flameIndex}, Coefficient: ${coefficient}x`);
 
@@ -141,7 +151,11 @@ function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
         traps.push(flameIndex);
     }
     
-    return traps;
+    return {
+        traps: traps,
+        coefficient: coefficient,
+        trapIndex: flameIndex
+    };
 }
 
 // Функция для создания seeded random generator
