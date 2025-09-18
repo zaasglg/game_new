@@ -169,8 +169,20 @@ class Game{
                                 <img src="./res/img/arc.png" class="entry" alt="">
                                 <div class="border"></div>
                             </div>`); 
-        var flameSegments = this.traps && this.traps.length > 0 ? this.traps : [];
-        this.fire = flameSegments.length > 0 ? flameSegments[0] : 0;
+        var flameSegments = [];
+        if (this.traps && this.traps.length > 0) {
+            flameSegments = this.traps;
+            this.fire = this.traps[0];
+        } else {
+            // Fallback: generate random trap if no WebSocket data
+            var chance = SETTINGS.chance[this.cur_lvl];
+            var maxTrap = chance[Math.random() > 0.95 ? 1 : 0];
+            this.fire = Math.ceil(Math.random() * maxTrap);
+            flameSegments = [this.fire];
+        }
+        
+        console.log('Fire position:', this.fire, 'Flame segments:', flameSegments);
+        
         for( var $i=0; $i<$arr.length; $i++ ){
             // Determine if this sector is a flame - сектора нумеруются с 1, но массив с 0
             var sectorId = $i + 1;
@@ -452,8 +464,12 @@ class Game{
             $sector.addClass('active');
             $sector.next().removeClass('far');
             $('.trigger', $sector).addClass('activated');
-            // Check for flame
-            if( +$sector.attr('flame') ){
+            // Check for flame - проверяем, есть ли текущий шаг в списке ловушек
+            var currentSectorId = this.stp;
+            var isFlame = this.traps && this.traps.includes(currentSectorId);
+            console.log('Step:', currentSectorId, 'Traps:', this.traps, 'Is flame:', isFlame);
+            
+            if( isFlame ){
                 $('#fire').addClass('active');
                 CHICKEN.alife = 0;
                 $chick.attr('state', 'dead');
