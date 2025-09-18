@@ -466,8 +466,9 @@ class Game{
             $('.trigger', $sector).addClass('activated');
             // Check for flame - проверяем, есть ли текущий шаг в списке ловушек
             var currentSectorId = this.stp;
-            var isFlame = this.traps && this.traps.includes(currentSectorId);
-            console.log('Step:', currentSectorId, 'Traps:', this.traps, 'Is flame:', isFlame);
+            var trapsArray = Array.isArray(this.traps) ? this.traps : (this.traps ? [this.traps] : []);
+            var isFlame = trapsArray.includes(currentSectorId);
+            console.log('Step:', currentSectorId, 'Traps:', this.traps, 'TrapsArray:', trapsArray, 'Is flame:', isFlame);
             
             if( isFlame ){
                 $('#fire').addClass('active');
