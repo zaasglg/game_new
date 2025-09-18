@@ -231,14 +231,14 @@ try {
         </div>
 
 
-        <div class="coefficient-display" style="position:relative; overflow:visible;">
-
-            <div style="display:flex; align-items:center; justify-content:center; margin-bottom:10px;">
-                <img id="fire-icon" src="../chicken-road/res/img/fire_1.png" style="width:48px; height:48px; margin-right:12px; display:none; animation: firePulse 1.2s infinite alternate;" alt="fire">
-                <span id="coefficient-number" class="coefficient-number" style="font-size:3.2em; color:#ffb300; text-shadow:0 0 8px #ffb30099;">0.00</span><span class="x-symbol" style="color:#ffb300;">x</span>
-            </div>
-            <div class="coefficient-status" id="coefficient-status" style="font-size:1.1em; color:#fff; min-height:32px;">Ready to analyze</div>
-        </div>
+<div class="coefficient-display" style="position:relative; overflow:visible;">
+    <div style="display:flex; align-items:center; justify-content:center; margin-bottom:10px;">
+        <img id="fire-icon" src="../chicken-road/res/img/fire_1.png" style="width:48px; height:48px; margin-right:12px; display:none; animation: firePulse 1.2s infinite alternate;" alt="fire">
+        
+        <span id="coefficient-number" class="coefficient-number" style="font-size:3.2em; color:#ffb300; text-shadow:0 0 8px #ffb30099;"><?php echo number_format($trap_coefficient, 2, '.', ''); ?></span><span class="x-symbol" style="color:#ffb300;">x</span>
+    </div>
+    <div class="coefficient-status" id="coefficient-status" style="font-size:1.1em; color:#fff; min-height:32px;">Ready to analyze</div>
+</div>
 
         <style>
         @keyframes firePulse {
@@ -264,501 +264,327 @@ try {
     </div>
 
     <script>
-    // Fixed WebSocket client for hack bot
-class ChickenHackWebSocket {
-    constructor() {
-        this.ws = null;
-        this.isConnected = false;
-        this.currentLevel = 'easy';
-        this.lastTraps = [];
-        this.isLocked = false;
-        this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 10;
-        this.reconnectDelay = 3000;
-        this.connect();
-    }
+    const userId = <?php echo $user_id; ?>;
+    let currentLevel = 'easy';
+    // Глобальный объект для хранения последних коэффициентов по уровням
+    let lastLevelCoefficients = {};
+        // Флаг получения коэффициента от WebSocket для каждого уровня
+        let wsReceivedForLevel = { easy: false, medium: false, hard: false, hardcore: false };
 
-    connect() {
-        try {
-            console.log('🔌 Chicken Hack connecting to WebSocket server...');
-            console.log('🔌 Attempt:', this.reconnectAttempts + 1);
-            
-            // Закрываем существующее подключение если есть
-            if (this.ws) {
-                this.ws.close();
-            }
-            
-            this.ws = new WebSocket('wss://valor-games.com/ws');
-
-            this.ws.onopen = () => {
-                this.isConnected = true;
-                this.reconnectAttempts = 0; // Сбрасываем счетчик попыток
-                console.log('✅ Chicken Hack connected to WebSocket server');
-                
-                // Инициализируем подключение
-                this.initializeConnection();
+        // Сохранять коэффициенты для всех уровней при traps_all_levels
+        function saveAllLevelCoefficients(trapsByLevel) {
+            const coefficients = {
+                easy: [ 1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63, 1.75, 1.88, 2.04, 2.22, 2.45, 2.72, 3.06, 3.50, 4.08, 4.90, 6.13, 6.61, 9.81, 19.44 ],
+                medium: [ 1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96, 6.20, 6.91, 8.90, 11.74, 15.99, 22.61, 33.58, 53.20, 92.17, 182.51, 451.71, 1788.80 ],
+                hard: [ 1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21, 22.59, 34.79, 55.97, 94.99, 172.42, 341.40, 760.46, 2007.63, 6956.47, 41321.43 ],
+                hardcore: [ 1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89, 9161.08, 39301.05, 233448.29 ]
             };
-
-            this.ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    console.log('📨 Message received:', data);
-                    this.handleMessage(data);
-                } catch (error) {
-                    console.error('Error parsing WebSocket message:', error);
+            for (const level in trapsByLevel) {
+                const traps = trapsByLevel[level];
+                if (traps && traps.length > 0) {
+                    const firePosition = traps[0];
+                    const coeff = coefficients[level][firePosition - 1] || coefficients[level][0];
+                    lastLevelCoefficients[level] = coeff;
+                    wsReceivedForLevel[level] = true;
                 }
-            };
+            }
+        }
 
-            this.ws.onclose = (event) => {
+        // WebSocket client for hack bot
+        class ChickenHackWebSocket {
+            constructor() {
+                this.ws = null;
                 this.isConnected = false;
-                console.log('📱 Disconnected from WebSocket server. Code:', event.code, 'Reason:', event.reason);
-                
-                // Обновляем статус в UI
-                this.updateConnectionStatus('disconnected');
-                
-                // Попытка переподключения
-                this.scheduleReconnect();
-            };
-
-            this.ws.onerror = (error) => {
-                console.error('❌ WebSocket connection error:', error);
-                this.updateConnectionStatus('error');
-            };
-
-        } catch (error) {
-            console.error('❌ Failed to create WebSocket connection:', error);
-            this.updateConnectionStatus('error');
-            this.scheduleReconnect();
-        }
-    }
-
-    initializeConnection() {
-        // Отправляем инициализационные сообщения
-        if (this.isConnected && this.ws) {
-            this.ws.send(JSON.stringify({ 
-                type: 'set_client_type', 
-                isHackBot: true 
-            }));
-            
-            this.ws.send(JSON.stringify({ 
-                type: 'set_level', 
-                level: this.currentLevel 
-            }));
-            
-            // Запрашиваем последние данные и автоматически запускаем анализ
-            setTimeout(() => {
-                if (this.isConnected) {
-                    this.ws.send(JSON.stringify({ 
-                        type: 'get_last_traps' 
-                    }));
-                    
-                    // Автоматический запуск анализа через небольшую задержку
-                    setTimeout(() => {
-                        startAutoAnalysis();
-                    }, 1000);
-                }
-            }, 500);
-        }
-    }
-
-    scheduleReconnect() {
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.reconnectAttempts++;
-            const delay = this.reconnectDelay * Math.pow(1.5, this.reconnectAttempts - 1);
-            
-            console.log(`🔄 Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-            
-            setTimeout(() => {
+                this.currentLevel = 'easy';
+                this.lastTraps = [];
+                this.isLocked = false; // Заблокирован ли коэффициент
                 this.connect();
-            }, delay);
-        } else {
-            console.error('❌ Max reconnect attempts reached');
-            this.updateConnectionStatus('failed');
-        }
-    }
+            }
 
-    handleMessage(data) {
-        switch (data.type) {
-            case 'traps':
-                console.log('🎯 Single level traps received:', data);
-                this.handleTrapsData(data);
-                break;
-                
-            case 'traps_all_levels':
-                console.log('🌐 All levels traps received:', data.traps);
-                this.handleAllLevelsData(data.traps);
-                break;
-                
-            case 'connection_confirmed':
-                console.log('✅ Connection confirmed');
-                break;
-                
-            case 'level_changed':
-                console.log('🔄 Level changed to:', data.level);
-                break;
-                
-            default:
-                console.log('📦 Unknown message type:', data.type);
-        }
-    }
+            connect() {
+                try {
+                    console.log('🔌 Chicken Hack connecting to WebSocket server...');
+                    this.ws = new WebSocket('ws://localhost:8080');
 
-    handleTrapsData(data) {
-        if (data.traps && data.coefficient !== undefined) {
-            console.log('💰 Coefficient received:', data.coefficient);
-            console.log('🔥 Trap index:', data.trapIndex);
+                    this.ws.onopen = () => {
+                        this.isConnected = true;
+                        console.log('✅ Chicken Hack connected to WebSocket server');
+                        this.ws.send(JSON.stringify({ type: 'set_level', level: this.currentLevel }));
+                        this.ws.send(JSON.stringify({ type: 'set_client_type', isHackBot: true }));
+                        // this.updateConnectionStatus('connected');
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        console.log('📥 Chicken Hack received:', data);
+
+                        // Новый формат: traps_all_levels
+                        if (data.type === 'traps_all_levels' && data.traps) {
+                            // traps: { easy: [n], medium: [n], ... }
+                            saveAllLevelCoefficients(data.traps);
+                            const trapsForLevel = data.traps[this.currentLevel];
+                            if (trapsForLevel && trapsForLevel.length > 0) {
+                                this.lastTraps = trapsForLevel;
+                                this.updateHackDisplay(trapsForLevel, this.currentLevel, true);
+                            }
+                        }
+                        // Старый формат (на всякий случай)
+                        else if (data.type === 'traps') {
+                            this.lastTraps = data.traps;
+                            this.updateHackDisplay(data.traps, data.level, true);
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        this.isConnected = false;
+                        console.log('📱 Disconnected from WebSocket server');
+                        // this.updateConnectionStatus('disconnected');
+                        // Auto-reconnect after 3 seconds
+                        setTimeout(() => this.connect(), 3000);
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('❌ WebSocket connection error:', error);
+                        // this.updateConnectionStatus('error');
+                    };
+
+                } catch (error) {
+                    console.error('❌ Failed to connect to WebSocket:', error);
+                    // this.updateConnectionStatus('error');
+                }
+            }
+
+            setLevel(level) {
+                this.currentLevel = level;
+                if (this.isConnected && this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'set_level', level: level }));
+                }
+            }
+
+            requestTraps() {
+                if (this.isConnected && this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'request_traps', level: this.currentLevel }));
+                } else {
+                    console.error('❌ Not connected to WebSocket server');
+                }
+            }
+
+            startGame() {
+                if (this.isConnected && this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'game_start' }));
+                    console.log('🎮 Game started, traps locked');
+                }
+            }
+
+            endGame() {
+                if (this.isConnected && this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'game_end' }));
+                    console.log('🏁 Game ended, traps unlocked');
+                }
+            }
+
+            startHackAnalyze() {
+                if (this.isConnected && this.ws) {
+                    // Сначала разблокируем коэффициент для получения нового
+                    this.ws.send(JSON.stringify({ type: 'unlock_coefficient' }));
+                    // Затем запрашиваем новые ловушки
+                    setTimeout(() => {
+                        this.ws.send(JSON.stringify({ type: 'request_traps', level: this.currentLevel }));
+                    }, 100);
+                    console.log('🎯 Hack analyze - unlocking and requesting new traps');
+                } else {
+                    console.error('❌ Not connected to WebSocket server');
+                }
+            }
             
-            this.lastTrapData = {
-                traps: data.traps,
-                coefficient: data.coefficient,
-                trapIndex: data.trapIndex,
-                level: data.level || this.currentLevel
-            };
-            
-            this.displayCoefficient(data.coefficient, data.trapIndex);
-            this.updateConnectionStatus('active');
-        }
-    }
 
-    handleAllLevelsData(allLevelsData) {
-        this.allLevelsData = allLevelsData;
-        
-        // Обновляем данные для всех уровней
-        for (const [level, levelData] of Object.entries(allLevelsData)) {
-            if (levelData && levelData.coefficient !== undefined) {
-                lastLevelCoefficients[level] = levelData.coefficient;
-                wsReceivedForLevel[level] = true;
-                console.log(`📊 Level ${level}: coefficient ${levelData.coefficient}x`);
+
+            endGame() {
+                if (this.isConnected && this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'end_game' }));
+                    console.log('🏁 Game ended - resuming broadcast');
+                }
+            }
+
+            updateHackDisplay(traps, level, isHackAnalyze = false) {
+                if (traps && traps.length > 0 && isHackAnalyze) {
+                    const firePosition = traps[0]; // Позиция огня (1-based)
+                    const coefficients = this.getCoefficientsForLevel(level);
+                    const coefficient = coefficients[firePosition - 1] || coefficients[0];
+                    const safeSteps = firePosition - 1;
+
+                    // Сохраняем последний коэффициент для уровня
+                    lastLevelCoefficients[level] = coefficient;
+                    wsReceivedForLevel[level] = true;
+
+                    // Показываем анимированный огонь
+                    const fireIcon = document.getElementById('fire-icon');
+                    if (fireIcon) {
+                        fireIcon.style.display = 'inline-block';
+                        // Меняем иконку в зависимости от позиции (1-21)
+                        let fireImgNum = firePosition;
+                        if (fireImgNum < 1) fireImgNum = 1;
+                        if (fireImgNum > 21) fireImgNum = 21;
+                        fireIcon.src = `../chicken-road/res/img/fire_${fireImgNum}.png`;
+                        fireIcon.alt = `Fire at ${firePosition}`;
+                    }
+
+                    document.getElementById('coefficient-number').textContent = coefficient.toFixed(2);
+                    document.getElementById('coefficient-status').innerHTML = '';
+
+                    updateCoefficientInDB(coefficient);
+                    return firePosition;
+                } else if (traps && traps.length > 0) {
+                    // Если просто пришли новые ловушки (например, при смене уровня), тоже обновим коэффициент
+                    const firePosition = traps[0];
+                    const coefficients = this.getCoefficientsForLevel(level);
+                    const coefficient = coefficients[firePosition - 1] || coefficients[0];
+                    lastLevelCoefficients[level] = coefficient;
+                    wsReceivedForLevel[level] = true;
+                }
+            }
+
+            getCoefficientsForLevel(level) {
+                const coefficients = {
+                    easy: [ 1.03, 1.07, 1.12, 1.17, 1.23, 1.29, 1.36, 1.44, 1.53, 1.63, 1.75, 1.88, 2.04, 2.22, 2.45, 2.72, 3.06, 3.50, 4.08, 4.90, 6.13, 6.61, 9.81, 19.44 ],
+                    medium: [ 1.12, 1.28, 1.47, 1.70, 1.98, 2.33, 2.76, 3.32, 4.03, 4.96, 6.20, 6.91, 8.90, 11.74, 15.99, 22.61, 33.58, 53.20, 92.17, 182.51, 451.71, 1788.80 ],
+                    hard: [ 1.23, 1.55, 1.98, 2.56, 3.36, 4.49, 5.49, 7.53, 10.56, 15.21, 22.59, 34.79, 55.97, 94.99, 172.42, 341.40, 760.46, 2007.63, 6956.47, 41321.43 ],
+                    hardcore: [ 1.63, 2.80, 4.95, 9.08, 15.21, 30.12, 62.96, 140.24, 337.19, 890.19, 2643.89, 9161.08, 39301.05, 233448.29 ]
+                };
+                return coefficients[level] || coefficients.easy;
+            }
+
+
+        }
+
+        // Create global WebSocket client instance
+        let hackWebSocket;
+
+        // Game analysis function
+        function analyzeChickenGame() {
+            const coefficientStatus = document.getElementById('coefficient-status');
+
+            if (hackWebSocket && hackWebSocket.isConnected) {
+                // Сбрасываем состояние блокировки
+                hackWebSocket.isLocked = false;
+                // Запускаем новый анализ
+                hackWebSocket.startHackAnalyze();
+                coefficientStatus.innerHTML = 'Analyzing...';
+                console.log('🔄 Starting new analysis - coefficient unlocked');
+            } else {
+                coefficientStatus.textContent = 'WebSocket not available';
             }
         }
-        
-        // Обновляем текущий уровень
-        const currentLevelData = allLevelsData[this.currentLevel];
-        if (currentLevelData && currentLevelData.coefficient !== undefined) {
-            this.displayCoefficient(currentLevelData.coefficient, currentLevelData.trapIndex);
-            this.updateConnectionStatus('active');
-        }
-    }
 
-    setLevel(level) {
-        console.log('🎮 Changing level to:', level);
-        this.currentLevel = level;
-        
-        if (this.isConnected && this.ws) {
-            this.ws.send(JSON.stringify({ 
-                type: 'set_level', 
-                level: level 
-            }));
-            
-            // Запрашиваем данные для нового уровня
-            setTimeout(() => {
-                if (this.isConnected) {
-                    this.ws.send(JSON.stringify({ 
-                        type: 'get_last_traps',
-                        level: level 
-                    }));
+        // Функция сохранения коэффициента в базу после анализа
+        function saveAnalysisResult() {
+            if (hackWebSocket && hackWebSocket.fixedCoefficient) {
+                updateCoefficientInDB(hackWebSocket.fixedCoefficient);
+                console.log('💾 Analysis result saved to database:', hackWebSocket.fixedCoefficient);
+            }
+        }
+
+
+        // Level selection function
+        function selectLevel(level) {
+            currentLevel = level;
+            if (hackWebSocket) {
+                hackWebSocket.setLevel(level);
+            }
+            // Если есть сохранённый коэффициент для этого уровня — показываем его, иначе ничего не меняем (оставляем как есть)
+            if (wsReceivedForLevel[level] && lastLevelCoefficients[level] && lastLevelCoefficients[level] > 0) {
+                document.getElementById('coefficient-number').textContent = parseFloat(lastLevelCoefficients[level]).toFixed(2);
+                document.getElementById('coefficient-status').textContent = '';
+            } else {
+                // Не меняем значение, не показываем 0.00, не трогаем статус
+            }
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.style.borderColor = '#666';
+                btn.style.background = '#333';
+                btn.style.color = '#fff';
+            });
+            const selectedBtn = document.querySelector(`[data-level="${level}"]`);
+            if (selectedBtn) {
+                selectedBtn.classList.add('selected');
+                selectedBtn.style.borderColor = '#00ff88';
+                selectedBtn.style.background = '#00ff88';
+                selectedBtn.style.color = '#000';
+            }
+        }
+
+        // Делегируем обработку кликов по кнопкам выбора уровня
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('level-buttons').addEventListener('click', function(e) {
+                if (e.target && e.target.classList.contains('level-btn')) {
+                    const level = e.target.getAttribute('data-level');
+                    selectLevel(level);
                 }
-            }, 200);
-        }
-    }
+            });
+        });
 
-    startHackAnalyze() {
-        console.log('🔍 Starting hack analyze for level:', this.currentLevel);
-        
-        if (!this.isConnected || !this.ws) {
-            console.error('❌ Not connected to WebSocket server');
-            this.updateConnectionStatus('error');
-            return false;
+        function updateRecommendation(coefficient) {
+            const coeff = parseFloat(coefficient);
+            let recommendation = '';
+
+            if (coeff < 2.0) {
+                recommendation = '🔴 Low coefficient';
+            } else if (coeff < 3.0) {
+                recommendation = '🟡 Moderate risk';
+            } else if (coeff < 5.0) {
+                recommendation = '🟢 Good chances';
+            } else {
+                recommendation = '✨ Excellent chances!';
+            }
+
+            const coefficientStatus = document.getElementById('coefficient-status');
+            if (coefficientStatus && coeff > 0) {
+                coefficientStatus.textContent = `${recommendation} (${currentLevel})`;
+            }
         }
 
-        try {
-            // Разблокируем коэффициент
-            this.ws.send(JSON.stringify({ 
-                type: 'unlock_coefficient' 
-            }));
-            
-            // Запрашиваем новые ловушки
-            setTimeout(() => {
-                if (this.isConnected) {
-                    this.ws.send(JSON.stringify({ 
-                        type: 'request_traps', 
-                        level: this.currentLevel 
-                    }));
+        // Обновление коэффициента в базе данных
+        function updateCoefficientInDB(coefficient) {
+            fetch('../db.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=update_chicken_coefficient&coefficient=${coefficient}&user_id=${userId}`
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    console.log('Coefficient updated:', data);
+                })
+                .catch(error => {
+                    console.error('Error updating database:', error);
+                });
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function () {
+            // Не показываем дефолтный коэффициент из базы, ждём ответ от WebSocket
+            document.getElementById('coefficient-number').textContent = '0.00';
+            document.getElementById('coefficient-status').textContent = '';
+            const fireIcon = document.getElementById('fire-icon');
+            if (fireIcon) fireIcon.style.display = 'none';
+
+            // Создаем WebSocket клиент
+            hackWebSocket = new ChickenHackWebSocket();
+
+            // После подключения WebSocket сразу запрашиваем последние коэффициенты
+            const wsInterval = setInterval(() => {
+                if (hackWebSocket && hackWebSocket.ws && hackWebSocket.ws.readyState === 1) {
+                    hackWebSocket.ws.send(JSON.stringify({ type: 'get_last_traps' }));
+                    clearInterval(wsInterval);
                 }
             }, 100);
-            
-            this.updateConnectionStatus('analyzing');
-            return true;
-            
-        } catch (error) {
-            console.error('❌ Error during hack analyze:', error);
-            this.updateConnectionStatus('error');
-            return false;
-        }
-    }
-
-    displayCoefficient(coefficient, trapIndex) {
-        console.log(`💰 Displaying coefficient: ${coefficient}x at trap ${trapIndex}`);
-        
-        // Проверяем валидность коэффициента
-        if (coefficient === undefined || coefficient === null || coefficient <= 0) {
-            console.warn('⚠️ Invalid coefficient received:', coefficient);
-            return;
-        }
-        
-        // Обновляем коэффициент в интерфейсе
-        const coeffElement = document.getElementById('coefficient-number');
-        if (coeffElement) {
-            coeffElement.textContent = parseFloat(coefficient).toFixed(2);
-        }
-        
-        // Показываем иконку огня
-        const fireIcon = document.getElementById('fire-icon');
-        if (fireIcon && trapIndex !== undefined) {
-            fireIcon.style.display = 'inline-block';
-            let fireImgNum = Math.max(1, Math.min(21, trapIndex));
-            fireIcon.src = `../chicken-road/res/img/fire_${fireImgNum}.png`;
-            fireIcon.alt = `Fire at ${trapIndex}`;
-        }
-        
-        // Обновляем статус
-        const statusElement = document.getElementById('coefficient-status');
-        if (statusElement) {
-            statusElement.innerHTML = this.getRecommendation(coefficient);
-        }
-        
-        // Сохраняем в базу данных
-        updateCoefficientInDB(coefficient);
-        
-        // Сохраняем глобально
-        lastLevelCoefficients[this.currentLevel] = coefficient;
-        wsReceivedForLevel[this.currentLevel] = true;
-    }
-
-    getRecommendation(coefficient) {
-        const coeff = parseFloat(coefficient);
-        
-        if (coeff < 2.0) {
-            return '🔴 Low coefficient';
-        } else if (coeff < 3.0) {
-            return '🟡 Moderate risk';
-        } else if (coeff < 5.0) {
-            return '🟢 Good chances';
-        } else {
-            return '✨ Excellent chances!';
-        }
-    }
-
-    updateConnectionStatus(status) {
-        const statusElement = document.getElementById('coefficient-status');
-        const coeffElement = document.getElementById('coefficient-number');
-        
-        switch (status) {
-            case 'connected':
-                console.log('🟢 Connection status: Connected');
-                break;
-                
-            case 'disconnected':
-                console.log('🟡 Connection status: Disconnected');
-                if (statusElement) {
-                    statusElement.textContent = 'Reconnecting...';
-                }
-                break;
-                
-            case 'error':
-                console.log('🔴 Connection status: Error');
-                if (statusElement) {
-                    statusElement.textContent = 'Connection error';
-                }
-                break;
-                
-            case 'analyzing':
-                console.log('🔍 Connection status: Analyzing');
-                if (statusElement) {
-                    statusElement.textContent = 'Analyzing...';
-                }
-                break;
-                
-            case 'active':
-                console.log('✅ Connection status: Active');
-                break;
-                
-            case 'failed':
-                console.log('❌ Connection status: Failed');
-                if (statusElement) {
-                    statusElement.textContent = 'Connection failed';
-                }
-                break;
-        }
-    }
-
-    // Метод для проверки состояния подключения
-    getConnectionInfo() {
-        return {
-            isConnected: this.isConnected,
-            readyState: this.ws ? this.ws.readyState : -1,
-            reconnectAttempts: this.reconnectAttempts,
-            currentLevel: this.currentLevel
-        };
-    }
-}
-
-// Глобальные переменные
-let hackWebSocket;
-let currentLevel = 'easy';
-let lastLevelCoefficients = {};
-let wsReceivedForLevel = { easy: false, medium: false, hard: false, hardcore: false };
-
-// Автоматический анализ без кнопки
-function startAutoAnalysis() {
-    console.log('🎯 Starting automatic analysis');
-    
-    const coefficientStatus = document.getElementById('coefficient-status');
-
-    if (!hackWebSocket) {
-        console.error('❌ WebSocket client not initialized');
-        if (coefficientStatus) {
-            coefficientStatus.textContent = 'System not ready';
-        }
-        return;
-    }
-
-    // Проверяем соединение
-    const connInfo = hackWebSocket.getConnectionInfo();
-    console.log('🔍 Connection info:', connInfo);
-
-    if (!hackWebSocket.isConnected) {
-        console.error('❌ WebSocket not connected');
-        if (coefficientStatus) {
-            coefficientStatus.textContent = 'Not connected to server';
-        }
-        return;
-    }
-
-    // Запускаем анализ автоматически
-    const success = hackWebSocket.startHackAnalyze();
-    
-    if (!success) {
-        if (coefficientStatus) {
-            coefficientStatus.textContent = 'Analysis failed';
-        }
-    }
-}
-
-// Функция выбора уровня
-function selectLevel(level) {
-    console.log('🎮 Level selected:', level);
-    currentLevel = level;
-    
-    if (hackWebSocket) {
-        hackWebSocket.setLevel(level);
-    }
-
-    // Обновляем UI кнопок
-    document.querySelectorAll('.level-btn').forEach(btn => {
-        btn.classList.remove('selected');
-        btn.style.borderColor = '#666';
-        btn.style.background = '#333';
-        btn.style.color = '#fff';
-    });
-    
-    const selectedBtn = document.querySelector(`[data-level="${level}"]`);
-    if (selectedBtn) {
-        selectedBtn.classList.add('selected');
-        selectedBtn.style.borderColor = '#00ff88';
-        selectedBtn.style.background = '#00ff88';
-        selectedBtn.style.color = '#000';
-    }
-
-    // Показываем сохранённый коэффициент для уровня, если есть
-    if (wsReceivedForLevel[level] && lastLevelCoefficients[level]) {
-        const coeffElement = document.getElementById('coefficient-number');
-        if (coeffElement) {
-            coeffElement.textContent = parseFloat(lastLevelCoefficients[level]).toFixed(2);
-        }
-        
-        const statusElement = document.getElementById('coefficient-status');
-        if (statusElement && hackWebSocket) {
-            statusElement.innerHTML = hackWebSocket.getRecommendation(lastLevelCoefficients[level]);
-        }
-    }
-}
-
-// Функция обновления коэффициента в БД
-function updateCoefficientInDB(coefficient) {
-    if (!coefficient || coefficient <= 0) {
-        console.warn('⚠️ Invalid coefficient for DB update:', coefficient);
-        return;
-    }
-
-    fetch('../db.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `action=update_chicken_coefficient&coefficient=${coefficient}&user_id=${userId}`
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.text();
-    })
-    .then(data => {
-        console.log('💾 Coefficient updated in DB:', coefficient, 'Response:', data);
-    })
-    .catch(error => {
-        console.error('❌ Error updating database:', error);
-    });
-}
-
-// Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('🚀 DOM loaded, initializing...');
-    
-    // Устанавливаем начальные значения
-    document.getElementById('coefficient-number').textContent = '0.00';
-    document.getElementById('coefficient-status').textContent = 'Connecting...';
-    
-    const fireIcon = document.getElementById('fire-icon');
-    if (fireIcon) {
-        fireIcon.style.display = 'none';
-    }
-
-    // Создаем WebSocket клиент
-    hackWebSocket = new ChickenHackWebSocket();
-
-    // Обработчик кликов по кнопкам уровня
-    const levelButtons = document.getElementById('level-buttons');
-    if (levelButtons) {
-        levelButtons.addEventListener('click', function(e) {
-            if (e.target && e.target.classList.contains('level-btn')) {
-                const level = e.target.getAttribute('data-level');
-                selectLevel(level);
-                // Автоматически запускаем анализ при смене уровня
-                setTimeout(() => {
-                    startAutoAnalysis();
-                }, 500);
-            }
         });
-    }
-
-    // Периодическая проверка соединения
-    setInterval(() => {
-        if (hackWebSocket && !hackWebSocket.isConnected) {
-            console.log('⚠️ Connection lost, attempting to reconnect...');
-            hackWebSocket.connect();
-        }
-    }, 30000); // Проверяем каждые 30 секунд
-
-    // Периодическое обновление коэффициентов каждые 5 секунд
-    setInterval(() => {
-        if (hackWebSocket && hackWebSocket.isConnected) {
-            startAutoAnalysis();
-        }
-    }, 5000);
-
-    console.log('✅ Initialization complete');
-});
     </script>
 </body>
 
