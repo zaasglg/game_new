@@ -200,7 +200,7 @@ require_once '..//auth_check.php';
               </span>
             </div>
           </div>
-          <div class="_balance_z3cl7_1">
+          <!-- <div class="_balance_z3cl7_1">
             <div class="_info_z3cl7_14">
               <span data-translate="header.bonuses">Bonificaciones</span>
               <span class="_count_z3cl7_20">
@@ -208,7 +208,7 @@ require_once '..//auth_check.php';
                 <?php echo htmlspecialchars($bonificaciones); ?>
               </span>
             </div>
-          </div>
+          </div> -->
         </div>
 
         <div style="display: flex;gap: 8px;">

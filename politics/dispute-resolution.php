@@ -186,7 +186,7 @@ require_once '..//auth_check.php';
         <?php else: ?>
         <!-- Блок для авторизованных -->
         <div class="_menu_8nsrw_122">
-          <div class="_menu_8nsrw_1 _menu_logged_8nsrw_40">
+          <div class="_menu_8nsrw_1 _menu_logged_8nsrw_40" style="margin-right: 20px;">
             <div class="_info_z3cl7_14">
               <span style="display: flex;align-items: center;font-size: 12px;line-height: 18px;"
                 data-translate="header.balance">Saldo</span>
@@ -200,7 +200,7 @@ require_once '..//auth_check.php';
               </span>
             </div>
           </div>
-          <div class="_balance_z3cl7_1">
+          <!-- <div class="_balance_z3cl7_1">
             <div class="_info_z3cl7_14">
               <span data-translate="header.bonuses">Bonificaciones</span>
               <span class="_count_z3cl7_20">
@@ -208,7 +208,7 @@ require_once '..//auth_check.php';
                 <?php echo htmlspecialchars($bonificaciones); ?>
               </span>
             </div>
-          </div>
+          </div> -->
         </div>
 
         <div style="display: flex;gap: 8px;">
@@ -1227,9 +1227,10 @@ require_once '..//auth_check.php';
           </div>
         </div>
         <div data-cy="register-modal" class="_body_fyyq9_1">
-          <div class="_banner_1191g_1" style="
-                background-image: url('/images/banner_register.png');
-              "></div>
+          <div class="_banner_1191g_1">
+          <img class="banner-desktop" src="/images/banner_register.png?v=2" alt="">
+          <img class="banner-mobile" src="/images/banner_register_m.png?v=2" alt="">
+        </div>
           <div class="_box_fyyq9_16">
             <div>
               <div class="tabs__content">
