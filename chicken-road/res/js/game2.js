@@ -29,7 +29,7 @@ var SETTINGS = {
     min_bet: 0.5, 
     max_bet: 150, 
     segw: parseInt( $('#battlefield .sector').css('width') ),
-    ws_url: 'wss://valor-games.com/ws/'  // WebSocket URL for trap generation
+    ws_url: 'ws://localhost:8080'  // WebSocket URL for trap generation
 } 
 
 var SOUNDS = {
@@ -315,11 +315,12 @@ class Game{
     }
     start(){ 
         this.current_bet = +$('#bet_size').val();
-        if( this.balance && this.current_bet && this.current_bet <= this.balance ){ 
+        if( this.current_bet && this.current_bet <= (this.balance + this.current_bet) && this.current_bet > 0 ){ 
             this.cur_status = 'game'; 
             this.stp = 0; 
             this.alife = 1; 
             CHICKEN.alife = 1; 
+            this.game_result_saved = false; // Сбрасываем флаг для новой игры
             this.balance -= this.current_bet;
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
             updateBalanceOnServer(this.balance);
@@ -354,6 +355,9 @@ class Game{
             $award = $award ? $award : 0; 
             //console.log("AWARD: "+ $award);
             this.balance += $award; 
+            this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
+            // Принудительно обновляем отображение баланса в интерфейсе
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
             updateBalanceOnServer(this.balance);
             if( SETTINGS.volume.sound ){ SOUNDS.win.play(); } 
             $('#win_modal').css('display', 'flex');
@@ -364,14 +368,20 @@ class Game{
             if( SETTINGS.volume.sound ){ SOUNDS.lose.play(); } 
         }
         
-        // Сохраняем результат игры в базе данных
-        saveGameResult($win ? 'win' : 'lose', this.current_bet, $award, this.balance);
+        // Сохраняем результат игры в базе данных только один раз
+        if (!this.game_result_saved) {
+            this.game_result_saved = true;
+            saveGameResult($win ? 'win' : 'lose', this.current_bet, $award, this.balance);
+        }
         
         setTimeout(
             function(){ 
                 $('#overlay').hide(); 
-                GAME.cur_status = "loading"; 
                 $('#win_modal').hide(); 
+                // Принудительно обновляем баланс после завершения игры
+                $('[data-rel="menu-balance"] span').html( GAME.balance.toFixed(2) );
+                GAME.cur_status = "loading"; 
+                GAME.game_result_saved = false; // Сбрасываем флаг для новой игры
                 GAME.create();  
             }, $win ? 5000 : 3000  
         ); 
@@ -511,7 +521,10 @@ class Game{
                 $('#dificulity i').hide();
                 break;  
         } 
-        $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
+        // Обновляем отображение баланса только если игра не в состоянии финиша
+        if( this.cur_status !== 'finish' ){
+            $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
+        } 
 
         var $sector = GAME.getCurrentSector(); 
         if( $sector > 1 ){ 

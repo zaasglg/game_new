@@ -270,10 +270,19 @@ try {
     window.addEventListener('message', function (event) {
         console.log('Received message in iframe:', event.data);
         if (event.data && event.data.type === 'updateBalance') {
+            // Не обновляем баланс если игра в процессе или завершается
+            if (window.GAME && (window.GAME.cur_status === 'game' || window.GAME.cur_status === 'finish')) {
+                console.log('Game in progress - ignoring external balance update');
+                return;
+            }
             console.log('Updating balance to:', event.data.balance);
             var balanceElement = document.getElementById('user_balance');
             if (balanceElement) {
                 balanceElement.textContent = event.data.balance;
+                // Также обновляем баланс в объекте игры если он существует
+                if (window.GAME && window.GAME.cur_status === 'loading') {
+                    window.GAME.balance = parseFloat(event.data.balance);
+                }
                 console.log('Balance updated successfully');
             } else {
                 console.error('Balance element not found');
@@ -286,7 +295,8 @@ try {
         console.log('updateBalance called with:', newBalance);
         var balanceElement = document.getElementById('user_balance');
         if (balanceElement) {
-            balanceElement.textContent = newBalance;
+            var roundedBalance = Math.round(parseFloat(newBalance) * 100) / 100;
+            balanceElement.textContent = roundedBalance.toFixed(2);
         }
     }
 
@@ -443,11 +453,12 @@ try {
                 console.log('Game result saved to main database:', data);
                 if (data.success) {
                     // Обновляем баланс в игре
+                    var roundedBalance = Math.round(data.balance * 100) / 100;
                     if (window.GAME) {
-                        window.GAME.balance = data.balance;
+                        window.GAME.balance = roundedBalance;
                     }
-                    updateBalance(data.balance);
-                    console.log('Balance updated to:', data.balance);
+                    updateBalance(roundedBalance);
+                    console.log('Balance updated to:', roundedBalance);
                     
                     // Отправляем баланс в национальной валюте родительскому окну
                     if (window.parent && window.parent !== window && data.balance_national) {
@@ -565,9 +576,10 @@ try {
                 console.log('User balance loaded:', data);
                 if (data.success && window.GAME) {
                     // Обновляем баланс в игре
-                    window.GAME.balance = data.balance;
-                    updateBalance(data.balance);
-                    console.log('Game balance updated to:', data.balance);
+                    var roundedBalance = Math.round(data.balance * 100) / 100;
+                    window.GAME.balance = roundedBalance;
+                    updateBalance(roundedBalance);
+                    console.log('Game balance updated to:', roundedBalance);
                 }
             } catch (e) {
                 console.error('Invalid JSON response:', text);
@@ -608,6 +620,15 @@ try {
 
                 // Переопределяем метод finish для сохранения результатов
                 window.GAME.finish = function($win) {
+                    // Проверяем, что результат еще не сохранен
+                    if (this.game_result_saved) {
+                        // Вызываем только оригинальный метод
+                        if (originalFinish) {
+                            originalFinish.call(this, $win);
+                        }
+                        return;
+                    }
+                    
                     const betAmount = this.current_bet || 0;
                     let winAmount = 0;
                     let gameResult = 'lose';
@@ -617,15 +638,19 @@ try {
                         winAmount = betAmount * multiplier;
                         gameResult = 'win';
                     }
+                    
+                    // Отмечаем, что результат сохраняется
+                    this.game_result_saved = true;
 
-                    const newBalance = this.balance;
-
-                    // Вызываем оригинальный метод
+                    // Вызываем оригинальный метод (он обновит баланс)
                     if (originalFinish) {
                         originalFinish.call(this, $win);
                     }
+                    
+                    // Теперь баланс уже обновлен оригинальным методом
+                    const newBalance = this.balance;
 
-                    // Сохраняем результат в базе данных
+                    // Сохраняем результат в базе данных только один раз
                     saveGameResult(gameResult, betAmount, winAmount, newBalance);
                 };
             }
