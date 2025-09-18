@@ -1300,9 +1300,10 @@ require_once '..//auth_check.php';
           </div>
         </div>
         <div data-cy="register-modal" class="_body_fyyq9_1">
-          <div class="_banner_1191g_1" style="
-                background-image: url('/images/banner_register.png');
-              "></div>
+          <div class="_banner_1191g_1">
+          <img class="banner-desktop" src="/images/banner_register.png?v=2" alt="">
+          <img class="banner-mobile" src="/images/banner_register_m.png?v=2" alt="">
+        </div>
           <div class="_box_fyyq9_16">
             <div>
               <div class="tabs__content">
