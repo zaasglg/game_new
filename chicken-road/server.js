@@ -9,12 +9,21 @@ const SETTINGS = {
     }
 };
 
+
 const wss = new WebSocket.Server({ port: 8080 });
+
+// Храним последние traps для всех уровней
+let lastTrapsByLevel = {
+    easy: [],
+    medium: [],
+    hard: [],
+    hardcore: []
+};
 
 const clients = new Map(); // ws -> { level, gameActive, lastTraps }
 let globalGameActive = false; // Глобальный статус игры - влияет на всех клиентов
 const sessionTraps = new Map(); // ws -> { level: trapIndex }
-let lockedCoefficient = null; // Заблокированный коэффициент от хак бота
+
 
 wss.on('connection', function connection(ws) {
     clients.set(ws, { level: 'easy', gameActive: false, lastTraps: [], connectedAt: Date.now() });
@@ -22,65 +31,33 @@ wss.on('connection', function connection(ws) {
     console.log('Client connected, total clients:', clients.size);
 
     ws.on('message', function incoming(message) {
-        console.log('Received message:', message.toString());
         try {
             const data = JSON.parse(message);
             const clientData = clients.get(ws);
-            
             if (data.type === 'set_level') {
                 clientData.level = data.level;
-                console.log('Client set level to:', data.level);
+                // No log
             } else if (data.type === 'set_client_type') {
                 clientData.isHackBot = data.isHackBot || false;
-                console.log('Client type set to:', data.isHackBot ? 'hack bot' : 'player');
+                // No log
             } else if (data.type === 'request_traps') {
-                let traps;
-                if (lockedCoefficient && !clientData.isHackBot) {
-                    // Для основной игры используем заблокированный коэффициент
-                    traps = [lockedCoefficient];
-                    console.log('Sending locked coefficient to game:', lockedCoefficient);
-                    ws.send(JSON.stringify({ type: 'game_traps', traps: traps, level: clientData.level }));
-                } else {
-                    // Для hack bot всегда генерируем новые
-                    traps = generateTraps(clientData.level, 0);
-                    clientData.lastTraps = traps;
-                    console.log('Generating new traps for level', clientData.level, ':', traps);
-                    ws.send(JSON.stringify({ type: 'traps', traps: traps, level: clientData.level }));
-                }
-            } else if (data.type === 'lock_coefficient') {
-                // Хак бот блокирует коэффициент (позицию огня)
-                lockedCoefficient = data.coefficient;
-                console.log('🔒 Fire position locked:', lockedCoefficient);
-                // Уведомляем всех клиентов
-                clients.forEach((clientData, clientWs) => {
-                    if (clientWs.readyState === WebSocket.OPEN) {
-                        clientWs.send(JSON.stringify({ 
-                            type: 'coefficient_locked', 
-                            firePosition: lockedCoefficient 
-                        }));
-                    }
-                });
-            } else if (data.type === 'unlock_coefficient') {
-                // Разблокируем коэффициент
-                lockedCoefficient = null;
-                console.log('🔓 Coefficient unlocked');
-                clients.forEach((clientData, clientWs) => {
-                    if (clientWs.readyState === WebSocket.OPEN) {
-                        clientWs.send(JSON.stringify({ type: 'coefficient_unlocked' }));
-                    }
-                });
+                // Всегда генерируем новые коэффициенты для всех
+                const traps = generateTraps(clientData.level, 0);
+                clientData.lastTraps = traps;
+                // No log
+                ws.send(JSON.stringify({ type: 'traps', traps: traps, level: clientData.level }));
+            } else if (data.type === 'get_last_traps') {
+                // Отправить клиенту последние traps_all_levels
+                ws.send(JSON.stringify({ type: 'traps_all_levels', traps: lastTrapsByLevel }));
             } else if (data.type === 'end_game') {
-                globalGameActive = false;
                 sessionTraps.forEach((session, ws) => {
                     sessionTraps.set(ws, {});
                 });
-                console.log('🏁 END_GAME - Resuming broadcast');
+                // No log
             } else if (data.type === 'game_start') {
-                globalGameActive = true;
-                console.log('🎮 GAME STARTED - Pausing broadcast');
+                // No log
             } else if (data.type === 'game_end') {
-                globalGameActive = false;
-                console.log('🏁 GAME ENDED - Resuming broadcast');
+                // No log
             }
         } catch (error) {
             console.error('Error parsing message:', error);
@@ -98,31 +75,27 @@ wss.on('connection', function connection(ws) {
     });
 });
 
-// Генерация ловушек каждые 3 секунды (только если игра неактивна глобально)
+// Генерация ловушек каждые 30 секунд (только если игра неактивна глобально)
+
 setInterval(() => {
     if (clients.size > 0) {
-        console.log('--- Broadcasting traps to', clients.size, 'clients ---');
-        if (!globalGameActive) {
-            // Используем фиксированный seed для всех клиентов в этом broadcast
-            const broadcastSeed = Date.now();
-            
-            // Сортируем клиентов по времени подключения (первый подключенный = игрок)
-            const sortedClients = Array.from(clients.entries()).sort((a, b) => a[1].connectedAt - b[1].connectedAt);
-            
-            sortedClients.forEach(([ws, clientData], index) => {
-                if (ws.readyState === WebSocket.OPEN) {
-                    // Все клиенты получают одинаковые ловушки (фиксированный seed)
-                    const traps = generateTraps(clientData.level, 0, broadcastSeed);
-                    clientData.lastTraps = traps;
-                    ws.send(JSON.stringify({ type: 'traps', traps: traps, level: clientData.level }));
-                }
-            });
-        } else {
-            console.log('🚫 Skipping broadcast - Game is active globally');
-        }
+        console.log('--- Broadcasting traps for ALL LEVELS to', clients.size, 'clients ---');
+        const broadcastSeed = Date.now();
+        const allLevels = ['easy', 'medium', 'hard', 'hardcore'];
+        const trapsByLevel = {};
+        allLevels.forEach(level => {
+            trapsByLevel[level] = generateTraps(level, 0, broadcastSeed);
+        });
+        // Сохраняем последние traps
+        Object.assign(lastTrapsByLevel, trapsByLevel);
+        clients.forEach((clientData, ws) => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'traps_all_levels', traps: trapsByLevel }));
+            }
+        });
         console.log('--- End broadcast ---\n');
     }
-}, 3000);
+}, 30000);
 
 function generateTraps(level, clientIndex = 0, broadcastSeed = null) {
     const chance = SETTINGS.chance[level];

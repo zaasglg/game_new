@@ -20,9 +20,33 @@
             <form id="chickenLoginForm" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
                 <input class="translate-placeholder" data-key="input_id" style="margin-bottom: 10px;" 
                        type="text" name="user_id" id="user_id" placeholder="Introduce tu ID de usuario" required>
-                <button style="background: #FFD900" class="btn translate" type="submit" data-key="sign_in">
+                <button class="btn translate three-d-btn" type="submit" data-key="sign_in">
                     Acceder al Hack Bot
                 </button>
+</form>
+<style>
+    .three-d-btn {
+        background: linear-gradient(180deg, #FFD900 60%, #bfa100 100%);
+        color: #222;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 4px 0 #bfa100, 0 8px 16px #0003;
+        font-size: 1.1em;
+        font-weight: 700;
+        padding: 13px 32px;
+        cursor: pointer;
+        transition: all 0.13s cubic-bezier(.4,0,.2,1);
+        outline: none;
+        position: relative;
+        margin-top: 8px;
+        text-shadow: 0 1px 0 #fff8;
+    }
+    .three-d-btn:active {
+        box-shadow: 0 2px 0 #bfa100, 0 2px 8px #0002 inset;
+        background: linear-gradient(180deg, #e6c200 80%, #bfa100 100%);
+        top: 2px;
+    }
+</style>
             </form>
             <p id="errorMessage" style="color: red; display: none;"></p>
             

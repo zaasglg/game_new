@@ -113,15 +113,24 @@ class Game{
     handleWSMessage(event) {
         var data = JSON.parse(event.data);
         console.log('Handling WebSocket message:', data);
-        if (data.type === 'traps') {
-            console.log('Updating traps:', data.traps);
-            this.traps = data.traps;
-            if (this.cur_status === 'loading') {
+        if (data.type === 'traps_all_levels' && data.traps) {
+            // traps: { easy: [n], medium: [n], ... }
+            var trapsForLevel = data.traps[this.cur_lvl];
+            if (trapsForLevel && trapsForLevel.length > 0) {
+                this.traps = trapsForLevel;
+                // Always update board with new traps
+                this.createBoard();
                 this.updateTraps();
             }
+        } else if (data.type === 'traps') {
+            console.log('Updating traps:', data.traps);
+            this.traps = data.traps;
+            this.createBoard();
+            this.updateTraps();
         } else if (data.type === 'game_traps') {
             console.log('Game traps received:', data.traps);
             this.traps = data.traps;
+            this.createBoard();
             this.updateTraps();
         }
     }
@@ -131,16 +140,22 @@ class Game{
         this.wrap.html('').css('left', 0);
         // Создаем поле сразу, не ждем WebSocket
         this.createBoard();
-        // Если WebSocket подключен, всегда отправляем set_level перед запросом ловушки
+        // Если WebSocket подключен, всегда отправляем set_level и сразу получаем ловушки по новому формату
         if (this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({type: 'set_level', level: this.cur_lvl}));
-            setTimeout(() => {
-                this.ws.send(JSON.stringify({type: 'request_traps', level: this.cur_lvl}));
-            }, 100);
         }
     }
     createBoard(){
         var $arr = SETTINGS.cfs[ this.cur_lvl ]; 
+        this.stp = 0; // Reset step on new board
+        this.alife = 0;
+        this.win = 0;
+        this.fire = 0;
+        // Remove old chick and fire if present
+        $('#chick').remove();
+        $('#fire').remove();
+        this.wrap.html('');
+        this.wrap.css('left', 0); // Reset camera position
         this.wrap.append(`<div class="sector start" data-id="0">
                                 <div class="breaks" breaks="3"></div>
                                 <div class="breaks" breaks="2"></div>
@@ -148,55 +163,52 @@ class Game{
                                 <div class="border"></div>
                             </div>`); 
         var flameSegments = this.traps && this.traps.length > 0 ? this.traps : [];
-        // Если нет ловушек от WebSocket, НЕ используем локальную генерацию, просто не показываем огонь
         this.fire = flameSegments.length > 0 ? flameSegments[0] : 0;
         for( var $i=0; $i<$arr.length; $i++ ){
-            if( $i == $arr.length - 1 ){
-                this.wrap.append(`<div class="sector finish" data-id="${ $i+1 }" ${ flameSegments.includes($i) ? 'flame="1"' : '' }>
-                                        <div class="coincontainer">
-                                            <img src="./res/img/bet5.png" alt="" class="coin e">
-                                            <img src="./res/img/bet6.png" alt="" class="coin f">
-                                            <img src="./res/img/bet7.png" alt="" class="coin g">
-                                            <span>${ $arr[ $i ] }x</span>
-                                        </div>
-                                        <div class="breaks" breaks="6"></div>
-                                        <div class="breaks" breaks="5"></div>
-                                        <img src="./res/img/arc2.png" class="arc" alt="">
-                                        <img src="./res/img/stand.png" class="cup" alt="">
-                                        <div class="finish_light"></div>
-                                        <img src="./res/img/trigger.png" class="trigger" alt="">
-                                        <div class="flame"></div>
-                                        <div class="border"></div>
-                                    </div>`);
-            } 
-            else {
-                this.wrap.append(`<div class="sector ${ $i ? 'far' : '' }" data-id="${ $i+1 }" ${ flameSegments.includes($i) ? 'flame="1"' : '' }>
-                                        <div class="breaks" breaks="4"></div>
-                                        <div class="breaks" breaks="5"></div>
-                                        <div class="coincontainer">
-                                            <img src="./res/img/betbg.png" alt="" class="coinwrapper">
-                                            <img src="./res/img/bet1.png" alt="" class="coin a" data-id="1">
-                                            <img src="./res/img/bet2.png" alt="" class="coin b" data-id="2">
-                                            <img src="./res/img/bet3.png" alt="" class="coin c" data-id="3">
-                                            <img src="./res/img/bet4.png" alt="" class="coin d" data-id="4"> 
-                                            <span>${ $arr[ $i ] }x</span>
-                                        </div>
-                                        <div class="breaks"></div>
-                                        <img src="./res/img/frame.png" class="frame" alt="">
-                                        <img src="./res/img/trigger.png" class="trigger" alt="">
-                                        <!--img src="./res/img/lights2.png" class="lights" alt=""-->
-                                        <div class="place_light"></div>
-                                        <div class="flame"></div>
-                                        <div class="border"></div>
-                                    </div>`); 
-            }
-        } 
+            // Determine if this sector is a flame
+            var isFlame = flameSegments.includes($i+1);
+            var coeff = $arr[$i];
+            this.wrap.append(`<div class="sector${ $i == $arr.length-1 ? ' finish' : ($i ? ' far' : '') }" data-id="${ $i+1 }"${ isFlame ? ' flame="1"' : '' }>
+                <div class="coincontainer">
+                    ${$i == $arr.length-1 ? `
+                        <img src="./res/img/bet5.png" alt="" class="coin e">
+                        <img src="./res/img/bet6.png" alt="" class="coin f">
+                        <img src="./res/img/bet7.png" alt="" class="coin g">
+                    ` : `
+                        <img src="./res/img/betbg.png" alt="" class="coinwrapper">
+                        <img src="./res/img/bet1.png" alt="" class="coin a" data-id="1">
+                        <img src="./res/img/bet2.png" alt="" class="coin b" data-id="2">
+                        <img src="./res/img/bet3.png" alt="" class="coin c" data-id="3">
+                        <img src="./res/img/bet4.png" alt="" class="coin d" data-id="4">
+                    `}
+                    <span>${ coeff }x</span>
+                </div>
+                ${$i == $arr.length-1 ? `
+                    <div class="breaks" breaks="6"></div>
+                    <div class="breaks" breaks="5"></div>
+                    <img src="./res/img/arc2.png" class="arc" alt="">
+                    <img src="./res/img/stand.png" class="cup" alt="">
+                    <div class="finish_light"></div>
+                    <img src="./res/img/trigger.png" class="trigger" alt="">
+                    <div class="flame"></div>
+                    <div class="border"></div>
+                ` : `
+                    <div class="breaks" breaks="4"></div>
+                    <div class="breaks" breaks="5"></div>
+                    <div class="breaks"></div>
+                    <img src="./res/img/frame.png" class="frame" alt="">
+                    <img src="./res/img/trigger.png" class="trigger" alt="">
+                    <div class="place_light"></div>
+                    <div class="flame"></div>
+                    <div class="border"></div>
+                `}
+            </div>`);
+        }
         this.wrap.append(`<div class="sector closer" data-id="${ $arr.length+1 }">
                             <div class="border"></div>
                         </div>`); 
 
         this.wrap.append(`<div id="chick" state="idle"><div class="inner"></div></div>`);
-
         this.wrap.append(`<div id="fire"></div>`); 
         var $flame_x = document.querySelector('.sector[flame="1"]'); 
         $flame_x = $flame_x ? $flame_x.offsetLeft : 0; 
@@ -205,7 +217,7 @@ class Game{
         SETTINGS.segw = parseInt( $('#battlefield .sector').css('width') ); 
 
         var $scale = (SETTINGS.segw/(250/100)*(70/100)/100);
-        $('#chick').css( 'left', ( SETTINGS.segw / 2 )+'px' );//.css('bottom', ( 60*$scale )+'px' ); 
+        $('#chick').css( 'left', ( SETTINGS.segw / 2 )+'px' );
         $('#chick .inner').css( 'transform', 'translateX(-50%) scale('+ $scale +')' ); 
         var $bottom = 50; 
         if( SETTINGS.w <= 1200 ){ $bottom = 35; }
@@ -214,6 +226,11 @@ class Game{
         if( SETTINGS.w <= 900 ){ $bottom = 5; }
         if( SETTINGS.w <= 800 ){ $bottom = -15; }
         $('#chick').css('bottom', $bottom+'px');
+
+        // Reset all sector classes
+        $('.sector').removeClass('active complete dead win lose');
+        // Set start sector as active
+        $('.sector.start').addClass('active');
 
         $('.sector').each(function(){
             var $self = $(this); 
@@ -341,22 +358,18 @@ class Game{
         this.cur_status = "finish"; 
         this.alife = 0; 
         CHICKEN.alife = 0; 
-        
         // Уведомляем сервер об окончании игры
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({type: 'game_end'}));
         }
-        
         var $award = 0;
         if( $win ){ 
             this.win = 1; 
             $('#fire').addClass('active');
             $award = ( this.current_bet * SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] ); 
             $award = $award ? $award : 0; 
-            //console.log("AWARD: "+ $award);
             this.balance += $award; 
             this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
-            // Принудительно обновляем отображение баланса в интерфейсе
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
             updateBalanceOnServer(this.balance);
             if( SETTINGS.volume.sound ){ SOUNDS.win.play(); } 
@@ -367,22 +380,20 @@ class Game{
         else {
             if( SETTINGS.volume.sound ){ SOUNDS.lose.play(); } 
         }
-        
         // Сохраняем результат игры в базе данных только один раз
         if (!this.game_result_saved) {
             this.game_result_saved = true;
             saveGameResult($win ? 'win' : 'lose', this.current_bet, $award, this.balance);
         }
-        
         setTimeout(
             function(){ 
                 $('#overlay').hide(); 
                 $('#win_modal').hide(); 
-                // Принудительно обновляем баланс после завершения игры
                 $('[data-rel="menu-balance"] span').html( GAME.balance.toFixed(2) );
                 GAME.cur_status = "loading"; 
                 GAME.game_result_saved = false; // Сбрасываем флаг для новой игры
-                GAME.create();  
+                // Не пересоздаём поле и не сбрасываем ловушки, чтобы использовать те же traps до следующего обновления от WebSocket
+                GAME.createBoard();
             }, $win ? 5000 : 3000  
         ); 
     }
@@ -390,55 +401,52 @@ class Game{
         var $chick = $('#chick'); 
         var $cur_x = parseInt( $chick.css('left') );
         var $state = $chick.attr('state'); 
-        if( $state == "idle" ){ 
-            this.stp += 1;  
+        if( $state == "idle" ){
+            this.stp += 1;
             if( SETTINGS.volume.sound ){ SOUNDS.step.play(); }
-            $chick.attr('state', "go"); 
-            var $nx =  $cur_x + SETTINGS.segw + 'px'; 
-            $chick.css('left', $nx); 
-            var $sectorIndex = this.getCurrentSector(); 
-            if( $sectorIndex !== null ){ 
-                var $sector = $('.sector').eq($sectorIndex);
-                if( $sector.next() ){ 
-                    $sector.removeClass('active').addClass('complete');
-                    $sector = $sector.next();  
-                    $('.trigger', $sector).addClass('activated');
-                    $sector.addClass('active'); 
-                    $sector.next().removeClass('far'); 
-                    if( +$sector.attr('flame') ){
-                        $('#fire').addClass('active'); 
-                        CHICKEN.alife = 0; 
-                        $chick.attr('state', 'dead'); 
-                        $sector.removeClass('active').removeClass('complete').addClass('dead');
-                        $('.sector.finish').addClass('lose');
-                        GAME.finish(); 
-                    } 
-                    else {
-                        if( $('.sector').eq( GAME.stp ).hasClass('finish') ){
-                            GAME.finish(1); 
-                            $('.sector').eq( GAME.stp ).addClass('win');
-                        }
-                    }
-                } 
-            }
-            setTimeout(function(){ 
-                if( CHICKEN.alife ){
-                    $chick.attr('state', 'idle'); 
+            $chick.attr('state', "go");
+            // Move chick to next sector
+            var $nx = $cur_x + SETTINGS.segw;
+            $chick.css('left', $nx + 'px');
+            // Camera logic: center chick if possible
+            var $fieldWidth = $('#battlefield').width();
+            var $containerWidth = SETTINGS.w;
+            var $left = parseInt($('#battlefield').css('left')) || 0;
+            var $chickCenter = $nx + (SETTINGS.segw/2);
+            var $targetLeft = $containerWidth/2 - $chickCenter;
+            // Clamp so field doesn't scroll out of bounds
+            var $maxLeft = 0;
+            var $minLeft = $containerWidth - $fieldWidth;
+            if ($targetLeft > $maxLeft) $targetLeft = $maxLeft;
+            if ($targetLeft < $minLeft) $targetLeft = $minLeft;
+            $('#battlefield').css('left', $targetLeft + 'px');
+            // Highlight sectors
+            var $prevSector = $('.sector').removeClass('active');
+            var $sector = $('.sector').eq(this.stp);
+            $('.sector').removeClass('active');
+            if(this.stp > 0) $('.sector').eq(this.stp-1).addClass('complete');
+            $sector.addClass('active');
+            $sector.next().removeClass('far');
+            $('.trigger', $sector).addClass('activated');
+            // Check for flame
+            if( +$sector.attr('flame') ){
+                $('#fire').addClass('active');
+                CHICKEN.alife = 0;
+                $chick.attr('state', 'dead');
+                $sector.removeClass('active').removeClass('complete').addClass('dead');
+                $('.sector.finish').addClass('lose');
+                GAME.finish();
+            } else {
+                if( $sector.hasClass('finish') ){
+                    GAME.finish(1);
+                    $sector.addClass('win');
                 }
-                //var $sector = GAME.getCurrentSector(); 
-                //if( $sector ){ 
-                //     console.log("CUR SECTOR: "+ $sector.data('id'));
-                //} 
-                //$('.sector').eq( $sector-1 ).removeClass('active').addClass('complete'); 
+            }
+            setTimeout(function(){
+                if( CHICKEN.alife ){
+                    $chick.attr('state', 'idle');
+                }
             }, 500);
-        } 
-        if( 
-            $cur_x > ( SETTINGS.w / 3 ) && 
-            parseInt( $('#battlefield').css('left') ) > -( parseInt( $('#battlefield').css('width') ) - SETTINGS.w -SETTINGS.segw )  
-        ){ 
-            var $field_x = parseInt( $('#battlefield').css('left') ); 
-            var $nfx = $field_x - SETTINGS.segw +'px';
-            $('#battlefield').css('left', $nfx);
         }
     }
     getCurrentSector() { 
