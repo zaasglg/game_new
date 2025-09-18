@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 require 'db.php';
 require 'detalization_db.php';
 require 'stage_balance_updater.php';
+require 'auth_check.php';
 
 // Получаем данные пользователя из базы данных
 $user_id = $_SESSION['user_id'];
