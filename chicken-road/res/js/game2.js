@@ -381,7 +381,9 @@ class Game{
         this.game_result_saved = false; // Сбрасываем флаг для новой игры
         this.balance -= this.current_bet;
         $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) ); 
-        updateBalanceOnServer(this.balance);
+        if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
+            updateBalanceOnServer(this.balance);
+        }
         $('.sector').off().on('click', function(){ 
             GAME.move(); 
         });
@@ -417,7 +419,9 @@ class Game{
             this.balance = Math.round(this.balance * 100) / 100; // Округляем до 2 знаков
             // Принудительно обновляем отображение баланса в интерфейсе
             $('[data-rel="menu-balance"] span').html( this.balance.toFixed(2) );
-            updateBalanceOnServer(this.balance);
+            if (window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
+                updateBalanceOnServer(this.balance);
+            }
             if( SETTINGS.volume.sound ){ SOUNDS.win.play(); } 
             $('#win_modal').css('display', 'flex');
             $('#win_modal h3').html( 'x'+ SETTINGS.cfs[ this.cur_lvl ][ this.stp - 1 ] );
@@ -428,7 +432,7 @@ class Game{
         }
         
         // Сохраняем результат игры в базе данных только один раз
-        if (!this.game_result_saved) {
+        if (!this.game_result_saved && window.GAME_CONFIG && window.GAME_CONFIG.is_real_mode) {
             this.game_result_saved = true;
             saveGameResult($win ? 'win' : 'lose', this.current_bet, $award, this.balance);
         }
