@@ -636,8 +636,10 @@ this.ws.onmessage = (event) => {
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function () {
             // Не показываем дефолтный коэффициент из базы, ждём ответ от WebSocket
-            document.getElementById('coefficient-number').textContent = '0.00';
-            document.getElementById('coefficient-status').textContent = '';
+            var coeffNumElem = document.getElementById('coefficient-number');
+            if (coeffNumElem) coeffNumElem.textContent = '0.00';
+            var coeffStatusElem = document.getElementById('coefficient-status');
+            if (coeffStatusElem) coeffStatusElem.textContent = '';
             const fireIcon = document.getElementById('fire-icon');
             if (fireIcon) fireIcon.style.display = 'none';
 
