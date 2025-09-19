@@ -306,8 +306,12 @@ function saveAllLevelCoefficients(trapsByLevel) {
     }
 }
 
-        // WebSocket client for hack bot
-        class ChickenHackWebSocket {
+    // Таймер для отображения времени до следующего обновления (глобально)
+    let timerSeconds = 30;
+    let timerSpan = null;
+
+    // WebSocket client for hack bot
+    class ChickenHackWebSocket {
             constructor() {
                 this.ws = null;
                 this.isConnected = false;
@@ -563,7 +567,7 @@ this.ws.onmessage = (event) => {
         }
 
         // Делегируем обработку кликов по кнопкам выбора уровня
-        document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('level-buttons').addEventListener('click', function(e) {
                 if (e.target && e.target.classList.contains('level-btn')) {
                     const level = e.target.getAttribute('data-level');
@@ -635,8 +639,7 @@ this.ws.onmessage = (event) => {
             }, 100);
 
             // Таймер теперь только с WebSocket, локального setInterval нет
-            let timerSeconds = 30;
-            const timerSpan = document.getElementById('timer-seconds');
+            timerSpan = document.getElementById('timer-seconds');
             // Обновление timerSeconds теперь только через WebSocket-сообщения (см. обработчик onmessage)
         });
     </script>
