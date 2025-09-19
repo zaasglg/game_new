@@ -189,8 +189,8 @@ class Game{
             var isFlame = flameSegments.includes(sectorId);
             var coeff = $arr[$i];
             console.log('Sector', sectorId, 'isFlame:', isFlame, 'coeff:', coeff);
-            this.wrap.append(`<div class="sector${ $i == $arr.length-1 ? ' finish' : ($i ? ' far' : '') }" data-id="${ $i+1 }"${ isFlame ? ' flame="1"' : '' }>
-                <div class="coincontainer">
+            this.wrap.append(`<div class="sector${ $i == $arr.length-1 ? ' finish' : ($i ? ' far' : '') }" data-id="${ $i+1 }"${ isFlame ? ' flame="1"' : '' } style="position: relative;">
+                <div class="coincontainer" style="position: absolute; bottom: 30%; left: 0; width: 100%;">
                     ${$i == $arr.length-1 ? `
                         <img src="./res/img/bet5.png" alt="" class="coin e">
                         <img src="./res/img/bet6.png" alt="" class="coin f">
@@ -279,8 +279,8 @@ class Game{
         this.fire = $flame_segment; 
         for( var $i=0; $i<$arr.length; $i++ ){
             if( $i == $arr.length - 1 ){
-                this.wrap.append(`<div class="sector finish" data-id="${ $i+1 }" ${ $i == $flame_segment ? 'flame="1"' : '' }>
-                                        <div class="coincontainer">
+                this.wrap.append(`<div class="sector finish" data-id="${ $i+1 }" ${ $i == $flame_segment ? 'flame="1"' : '' } style="position: relative;">
+                                        <div class="coincontainer" style="position: absolute; bottom: 30%; left: 0; width: 100%;">
                                             <img src="./res/img/bet5.png" alt="" class="coin e">
                                             <img src="./res/img/bet6.png" alt="" class="coin f">
                                             <img src="./res/img/bet7.png" alt="" class="coin g">
@@ -297,10 +297,10 @@ class Game{
                                     </div>`);
             } 
             else {
-                this.wrap.append(`<div class="sector ${ $i ? 'far' : '' }" data-id="${ $i+1 }" ${ $i == $flame_segment ? 'flame="1"' : '' }>
+                this.wrap.append(`<div class="sector ${ $i ? 'far' : '' }" data-id="${ $i+1 }" ${ $i == $flame_segment ? 'flame="1"' : '' } style="position: relative;">
                                         <div class="breaks" breaks="4"></div>
                                         <div class="breaks" breaks="5"></div>
-                                        <div class="coincontainer">
+                                        <div class="coincontainer" style="position: absolute; bottom: 0; left: 0; width: 100%;">
                                             <img src="./res/img/betbg.png" alt="" class="coinwrapper">
                                             <img src="./res/img/bet1.png" alt="" class="coin a" data-id="1">
                                             <img src="./res/img/bet2.png" alt="" class="coin b" data-id="2">
