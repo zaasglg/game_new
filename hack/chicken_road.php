@@ -88,7 +88,7 @@ justify-content: center;
             border-radius: 8px;
             padding: 30px 20px;
             margin-bottom: 30px;
-            width: 400px;
+            width: 300px;
         }
 
         .coefficient-label {
