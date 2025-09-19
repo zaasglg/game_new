@@ -499,7 +499,7 @@ EOD;
             </div>
             <div id="user-id" hidden> 102911</div>
           </span></span></div>
-      <div class="_info_1seji_18"><svg width="15" height="14" viewBox="0 0 15 14" fill="none"
+      <!-- <div class="_info_1seji_18"><svg width="15" height="14" viewBox="0 0 15 14" fill="none"
           xmlns="http://www.w3.org/2000/svg">
           <path
             d="M10 5C11.38 5 12.5 3.88 12.5 2.5C12.5 1.12 11.38 0 10 0C8.62 0 7.5 1.12 7.5 2.5C7.5 1.12 6.38 0 5 0C3.62 0 2.5 1.12 2.5 2.5C2.5 3.88 3.62 5 5 5H0.5V7H1.5V12C1.5 13.1 2.4 14 3.5 14H11.5C12.6 14 13.5 13.1 13.5 12V7H14.5V5H10ZM8.5 2.5C8.5 1.67 9.17 1 10 1C10.83 1 11.5 1.67 11.5 2.5C11.5 3.33 10.83 4 10 4H8.5V2.5ZM3.5 2.5C3.5 1.67 4.17 1 5 1C5.83 1 6.5 1.67 6.5 2.5V4H5C4.17 4 3.5 3.33 3.5 2.5Z"
@@ -507,7 +507,7 @@ EOD;
         </svg><span class="_label_1seji_23" data-translate="main.bonificaciones">Bonificaciones:</span><span class="_count_1seji_31">
           <?php echo
                 htmlspecialchars($bonificaciones); ?> COP
-        </span></div>
+        </span></div> -->
     </div>
 
     <div class="_container_1v35z_10" bis_skin_checked="1">
