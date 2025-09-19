@@ -270,6 +270,11 @@ try {
     window.addEventListener('message', function (event) {
         console.log('Received message in iframe:', event.data);
         if (event.data && event.data.type === 'updateBalance') {
+            // Игнорируем обновления баланса в демо режиме
+            if (!window.GAME_CONFIG.is_real_mode) {
+                console.log('Demo mode - ignoring external balance update');
+                return;
+            }
             // Не обновляем баланс если игра в процессе или завершается
             if (window.GAME && (window.GAME.cur_status === 'game' || window.GAME.cur_status === 'finish')) {
                 console.log('Game in progress - ignoring external balance update');
