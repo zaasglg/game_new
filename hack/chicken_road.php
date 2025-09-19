@@ -320,7 +320,7 @@ function saveAllLevelCoefficients(trapsByLevel) {
             connect() {
                 try {
                     console.log('🔌 Chicken Hack connecting to WebSocket server...');
-                    this.ws = new WebSocket('wss://valor-games.co/ws');
+                    this.ws = new WebSocket('wss://valor-games.co/ws/');
 
                     this.ws.onopen = () => {
                         this.isConnected = true;
