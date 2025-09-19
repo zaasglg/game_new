@@ -223,6 +223,10 @@ justify-content: center;
 <body>
     <div class="main__wrapper">
     <div class="chicken-container">
+        <!-- Таймер автообновления -->
+        <div id="auto-refresh-timer" style="margin-bottom:18px; font-size:1.1em; color:#ffb300; font-weight:600; letter-spacing:1px; text-align:center;">
+            Siguiente actualización en: <span id="timer-seconds">30</span> seg
+        </div>
         <h1 class="chicken-title">Chicken Road Bot</h1>
 
                 <!-- Вывод user_id -->
@@ -316,7 +320,7 @@ function saveAllLevelCoefficients(trapsByLevel) {
             connect() {
                 try {
                     console.log('🔌 Chicken Hack connecting to WebSocket server...');
-                    this.ws = new WebSocket('wss://valor-games.co/ws/');
+                    this.ws = new WebSocket('wss://valor-games.co/ws');
 
                     this.ws.onopen = () => {
                         this.isConnected = true;
@@ -330,14 +334,21 @@ this.ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     console.log('📥 Chicken Hack received:', data);
 
+    // Если сервер прислал таймер (timer или seconds) — сбрасываем локальный таймер
+    let newTimer = null;
+    if (typeof data.timer === 'number') newTimer = data.timer;
+    if (typeof data.seconds === 'number') newTimer = data.seconds;
+    if (newTimer !== null) {
+        timerSeconds = newTimer;
+        if (timerSpan) timerSpan.textContent = timerSeconds;
+    }
+
     // Handle the new format: traps_all_levels
     if (data.type === 'traps_all_levels' && data.traps) {
         // Получаем данные для текущего уровня
         const levelData = data.traps[this.currentLevel];
         if (levelData && levelData.coefficient) {
-            // Используем коэффициент напрямую из данных
             document.getElementById('coefficient-number').textContent = levelData.coefficient.toFixed(2);
-            
             // Показываем иконку огня
             const fireIcon = document.getElementById('fire-icon');
             if (fireIcon && levelData.trapIndex) {
@@ -347,11 +358,7 @@ this.ws.onmessage = (event) => {
                 if (fireImgNum > 21) fireImgNum = 21;
                 fireIcon.src = `../chicken-road/res/img/fire_${fireImgNum}.png`;
             }
-            
-            // Обновляем базу данных
             updateCoefficientInDB(levelData.coefficient);
-            
-            // Сохраняем для всех уровней
             for (const level in data.traps) {
                 if (data.traps[level] && data.traps[level].coefficient) {
                     lastLevelCoefficients[level] = data.traps[level].coefficient;
@@ -363,7 +370,6 @@ this.ws.onmessage = (event) => {
     // Обработка старого формата
     else if (data.type === 'traps' && data.coefficient) {
         document.getElementById('coefficient-number').textContent = data.coefficient.toFixed(2);
-        
         if (data.trapIndex) {
             const fireIcon = document.getElementById('fire-icon');
             if (fireIcon) {
@@ -371,7 +377,6 @@ this.ws.onmessage = (event) => {
                 fireIcon.src = `../chicken-road/res/img/fire_${data.trapIndex}.png`;
             }
         }
-        
         updateCoefficientInDB(data.coefficient);
         lastLevelCoefficients[data.level || this.currentLevel] = data.coefficient;
         wsReceivedForLevel[data.level || this.currentLevel] = true;
@@ -628,6 +633,11 @@ this.ws.onmessage = (event) => {
                     clearInterval(wsInterval);
                 }
             }, 100);
+
+            // Таймер теперь только с WebSocket, локального setInterval нет
+            let timerSeconds = 30;
+            const timerSpan = document.getElementById('timer-seconds');
+            // Обновление timerSeconds теперь только через WebSocket-сообщения (см. обработчик onmessage)
         });
     </script>
 </body>

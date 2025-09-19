@@ -15,6 +15,15 @@ const server = http.createServer();
 const wss = new WebSocket.Server({ server, path: "/ws/" }); // слушаем именно /ws
 
 let lastTrapsByLevel = { easy: [], medium: [], hard: [], hardcore: [] };
+let lastBroadcastTime = Date.now();
+const BROADCAST_INTERVAL = 30000;
+
+function getSecondsToNextBroadcast() {
+    const now = Date.now();
+    const elapsed = now - lastBroadcastTime;
+    const left = BROADCAST_INTERVAL - (elapsed % BROADCAST_INTERVAL);
+    return Math.ceil(left / 1000);
+}
 const clients = new Map(); // ws -> { level, gameActive, lastTraps }
 const sessionTraps = new Map(); // ws -> { level: trapIndex }
 const activeGames = new Set();
@@ -41,10 +50,11 @@ wss.on('connection', (ws) => {
                     traps: trapData.traps, 
                     level: clientData.level,
                     coefficient: trapData.coefficient,
-                    trapIndex: trapData.trapIndex
+                    trapIndex: trapData.trapIndex,
+                    seconds: getSecondsToNextBroadcast()
                 }));
             } else if (data.type === 'get_last_traps') {
-                ws.send(JSON.stringify({ type: 'traps_all_levels', traps: lastTrapsByLevel }));
+                ws.send(JSON.stringify({ type: 'traps_all_levels', traps: lastTrapsByLevel, seconds: getSecondsToNextBroadcast() }));
             } else if (data.type === 'end_game') {
                 sessionTraps.forEach((session, ws) => {
                     sessionTraps.set(ws, {});
@@ -80,7 +90,8 @@ setInterval(() => {
             console.log(`Skipping broadcast - ${activeGames.size} active games in progress`);
             return;
         }
-        console.log('--- Broadcasting traps for ALL LEVELS to', clients.size, 'clients ---');
+    lastBroadcastTime = Date.now();
+    console.log('--- Broadcasting traps for ALL LEVELS to', clients.size, 'clients ---');
         const broadcastSeed = Date.now();
         const allLevels = ['easy', 'medium', 'hard', 'hardcore'];
         const trapsByLevel = {};
@@ -100,9 +111,10 @@ setInterval(() => {
                     traps: clientLevelData.traps, 
                     level: clientData.level,
                     coefficient: clientLevelData.coefficient,
-                    trapIndex: clientLevelData.trapIndex
+                    trapIndex: clientLevelData.trapIndex,
+                    seconds: getSecondsToNextBroadcast()
                 }));
-                ws.send(JSON.stringify({ type: 'traps_all_levels', traps: trapsByLevel }));
+                ws.send(JSON.stringify({ type: 'traps_all_levels', traps: trapsByLevel, seconds: getSecondsToNextBroadcast() }));
             }
         });
         console.log('--- End broadcast ---\n');
