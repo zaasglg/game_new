@@ -306,9 +306,16 @@ function saveAllLevelCoefficients(trapsByLevel) {
     }
 }
 
-    // Таймер для отображения времени до следующего обновления (глобально)
-    let timerSeconds = 30;
-    let timerSpan = null;
+        // Таймер для отображения времени до следующего обновления (глобально)
+        let timerSeconds = 30;
+        let timerSpan = null;
+        // Локальный интервал для плавного уменьшения таймера
+        setInterval(() => {
+            if (typeof timerSeconds === 'number' && timerSeconds > 0) {
+                timerSeconds--;
+                if (timerSpan) timerSpan.textContent = timerSeconds;
+            }
+        }, 1000);
 
     // WebSocket client for hack bot
     class ChickenHackWebSocket {
