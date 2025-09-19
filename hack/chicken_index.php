@@ -25,6 +25,14 @@
                 </button>
 </form>
 <style>
+    .main__wrapper {
+          background-image: 
+                linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
+                url('/images/hack_bot_bg.jpg');
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+    }
     .three-d-btn {
         background: linear-gradient(180deg, #FFD900 60%, #bfa100 100%);
         color: #222;

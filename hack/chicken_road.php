@@ -49,20 +49,29 @@ try {
         }
 
         body {
-            background: #0a0a0a;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+width: 100%;
+    height: 100vh;
+    color: white;
+    background-color: #000;
+    background-image: linear-gradient(315deg, #16191d 0%, #252a2e 100%);
         }
 
-        .chicken-container {
-            max-width: 400px;
-            width: 90%;
-            text-align: center;
-        }
+        .main__wrapper {
+max-width: 500px;
+margin: 0 auto;
+width: 100%;
+position: relative;
+padding: 0 10px;
+height: 100%;
+background: black;
+}
+.chicken-container {
+    height: 100%;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+}
 
         .chicken-title {
             font-size: 1.8em;
@@ -79,6 +88,7 @@ try {
             border-radius: 8px;
             padding: 30px 20px;
             margin-bottom: 30px;
+            width: 400px;
         }
 
         .coefficient-label {
@@ -211,6 +221,7 @@ try {
 </head>
 
 <body>
+    <div class="main__wrapper">
     <div class="chicken-container">
         <h1 class="chicken-title">Chicken Road Bot</h1>
 
@@ -231,19 +242,27 @@ try {
         </div>
 
 
-<div class="coefficient-display" style="position:relative; overflow:visible;">
-    <div style="display:flex; align-items:center; justify-content:center; margin-bottom:10px;">
-        <img id="fire-icon" src="../chicken-road/res/img/fire_1.png" style="width:48px; height:48px; margin-right:12px; display:none; animation: firePulse 1.2s infinite alternate;" alt="fire">
-        
-        <span id="coefficient-number" class="coefficient-number" style="font-size:3.2em; color:#ffb300; text-shadow:0 0 8px #ffb30099;"><?php echo number_format($trap_coefficient, 2, '.', ''); ?></span><span class="x-symbol" style="color:#ffb300;">x</span>
-    </div>
-    <div class="coefficient-status" id="coefficient-status" style="font-size:1.1em; color:#fff; min-height:32px;">Ready to analyze</div>
-</div>
+        <div class="coefficient-display" style="position:relative; overflow:visible;">
+            <div style="display:flex; align-items:center; justify-content:center; margin-bottom:10px;">
+                <img id="fire-icon" src="../chicken-road/res/img/fire_1.png" style="width:48px; height:48px; margin-right:12px; display:none; animation: firePulse 1.2s infinite alternate;" alt="fire">
+                
+                <span id="coefficient-number" class="coefficient-number" style="font-size:3.2em; color:#ffb300; text-shadow:0 0 8px #ffb30099;"><?php echo number_format($trap_coefficient, 2, '.', ''); ?></span><span class="x-symbol" style="color:#ffb300;">x</span>
+            </div>
+            <div class="coefficient-status" id="coefficient-status" style="font-size:1.1em; color:#fff; min-height:32px;">Ready to analyze</div>
+        </div>
 
         <style>
         @keyframes firePulse {
             0% { filter: drop-shadow(0 0 0 #ffb300); opacity:1; }
             100% { filter: drop-shadow(0 0 16px #ffb300cc); opacity:0.7; }
+        }
+        .chicken-container {
+          background-image: 
+                linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
+                url('/images/hack_bot_bg.jpg');
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
         }
         .coefficient-display {
             background: linear-gradient(135deg, #1a1a1a 80%, #ffb30022 100%);
@@ -261,6 +280,7 @@ try {
         </style>
 
 
+    </div>
     </div>
 
     <script>
