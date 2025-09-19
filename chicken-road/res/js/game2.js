@@ -353,7 +353,7 @@ class Game{
     }
     start(){ 
         this.current_bet = +$('#bet_size').val();
-        if( this.current_bet && this.current_bet <= (this.balance + this.current_bet) && this.current_bet > 0 ){ 
+        if( this.current_bet && this.current_bet <= this.balance && this.current_bet > 0 ){ 
             // Запрашиваем актуальные коэффициенты перед началом игры
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                 this.ws.send(JSON.stringify({type: 'get_last_traps'}));
@@ -644,7 +644,7 @@ class Game{
                     var $self=$(this); 
                     var $val= +$self.val(); 
                     $val = $val < SETTINGS.min_bet ? SETTINGS.min_bet : ( $val > SETTINGS.max_bet ? SETTINGS.max_bet : $val ); 
-                    $val = $val >= GAME.balance ? GAME.balance : $val; 
+                    $val = $val > GAME.balance ? GAME.balance : $val; 
                     $self.val( $val ); 
                 }
             });
@@ -659,7 +659,7 @@ class Game{
                             $('#bet_size').val( SETTINGS.min_bet );
                             break; 
                         case "max": 
-                            $('#bet_size').val( SETTINGS.max_bet >= GAME.balance ? GAME.balance : SETTINGS.max_bet );
+                            $('#bet_size').val( Math.min(SETTINGS.max_bet, GAME.balance) );
                             break; 
                     }
                 }
@@ -670,7 +670,7 @@ class Game{
                     if( SETTINGS.volume.sound ){ SOUNDS.button.play(); } 
                     var $self=$(this); 
                     var $val = +$self.val();  
-                    $val = $val >= GAME.balance ? GAME.balance : $val;
+                    $val = $val > GAME.balance ? GAME.balance : $val;
                     $('#bet_size').val( $val ); 
                 }
             }); 
