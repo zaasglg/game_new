@@ -500,7 +500,7 @@ try {
             </span>
           </div>
 
-          <div class="_column_4jlkj_8">
+          <!-- <div class="_column_4jlkj_8">
             <p class="_label_4jlkj_8" data-translate="main.bonificaciones">Bonificaciones:</p>
             <p class="_value_4jlkj_17">
               <svg width="15" height="20" viewbox="0 0 15 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -510,7 +510,7 @@ try {
               <?php echo
                                 htmlspecialchars($bonificaciones); ?>
             </p>
-          </div>
+          </div> -->
           <div class="_column_4jlkj_8">
             <p class="_label_4jlkj_8" data-translate="main.id_de_usuario">ID de usuario:</p>
             <p class="_value_4jlkj_17">
