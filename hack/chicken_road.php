@@ -223,10 +223,7 @@ justify-content: center;
 <body>
     <div class="main__wrapper">
     <div class="chicken-container">
-        <!-- Таймер автообновления -->
-        <div id="auto-refresh-timer" style="margin-bottom:18px; font-size:1.1em; color:#ffb300; font-weight:600; letter-spacing:1px; text-align:center;">
-            Siguiente actualización en: <span id="timer-seconds">30</span> seg
-        </div>
+
         <h1 class="chicken-title">Chicken Road Bot</h1>
 
                 <!-- Вывод user_id -->
@@ -252,7 +249,9 @@ justify-content: center;
                 
                 <span id="coefficient-number" class="coefficient-number" style="font-size:3.2em; color:#ffb300; text-shadow:0 0 8px #ffb30099;"><?php echo number_format($trap_coefficient, 2, '.', ''); ?></span><span class="x-symbol" style="color:#ffb300;">x</span>
             </div>
-            <div class="coefficient-status" id="coefficient-status" style="font-size:1.1em; color:#fff; min-height:32px;">Ready to analyze</div>
+            <div id="auto-refresh-timer" style="margin-top:18px; font-size:1.2em; color:#ffb300; font-weight:600; letter-spacing:1px; text-align:center;">
+                <span id="timer-seconds">00:00:30</span>
+            </div>
         </div>
 
         <style>
@@ -309,11 +308,18 @@ function saveAllLevelCoefficients(trapsByLevel) {
         // Таймер для отображения времени до следующего обновления (глобально)
         let timerSeconds = 30;
         let timerSpan = null;
-        // Локальный интервал для плавного уменьшения таймера
+        // Форматирование в 00:00:SS
+        function formatTimer(sec) {
+            sec = Math.max(0, parseInt(sec, 10) || 0);
+            let s = sec % 60;
+            let m = Math.floor(sec / 60) % 60;
+            let h = Math.floor(sec / 3600);
+            return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
         setInterval(() => {
             if (typeof timerSeconds === 'number' && timerSeconds > 0) {
                 timerSeconds--;
-                if (timerSpan) timerSpan.textContent = timerSeconds;
+                if (timerSpan) timerSpan.textContent = formatTimer(timerSeconds);
             }
         }, 1000);
 
@@ -351,7 +357,7 @@ this.ws.onmessage = (event) => {
     if (typeof data.seconds === 'number') newTimer = data.seconds;
     if (newTimer !== null) {
         timerSeconds = newTimer;
-        if (timerSpan) timerSpan.textContent = timerSeconds;
+        if (timerSpan) timerSpan.textContent = formatTimer(timerSeconds);
     }
 
     // Handle the new format: traps_all_levels
@@ -413,6 +419,7 @@ this.ws.onmessage = (event) => {
                     // this.updateConnectionStatus('error');
                 }
             }
+
 
             setLevel(level) {
                 this.currentLevel = level;
@@ -647,7 +654,7 @@ this.ws.onmessage = (event) => {
 
             // Таймер теперь только с WebSocket, локального setInterval нет
             timerSpan = document.getElementById('timer-seconds');
-            // Обновление timerSeconds теперь только через WebSocket-сообщения (см. обработчик onmessage)
+            if (timerSpan) timerSpan.textContent = formatTimer(timerSeconds);
         });
     </script>
 </body>
