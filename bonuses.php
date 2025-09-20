@@ -2,20 +2,26 @@
 require_once 'auth_check.php';
 $ip = $_SERVER['REMOTE_ADDR'];
 
-$url = "http://ip-api.com/json/{$ip}?fields=status,message,countryCode";
-$response = @file_get_contents($url);
-
-if ($response === false) {
-    throw new Exception('Failed to fetch IP data from API');
+// Check if IP is in reserved range (localhost, private networks)
+if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+    // Use default country code for local/reserved IPs
+    $country_code = 'US'; // or whatever default you prefer
+} else {
+    $url = "http://ip-api.com/json/{$ip}?fields=status,message,countryCode";
+    $response = @file_get_contents($url);
+    
+    if ($response === false) {
+        $country_code = 'US'; // fallback
+    } else {
+        $data = json_decode($response, true);
+        
+        if ($data['status'] !== 'success') {
+            $country_code = 'US'; // fallback instead of throwing exception
+        } else {
+            $country_code = $data['countryCode'];
+        }
+    }
 }
-
-$data = json_decode($response, true);
-
-if ($data['status'] !== 'success') {
-    throw new Exception('API error: ' . ($data['message'] ?? 'Unknown error'));
-}
-
-$country_code = $data['countryCode'];
 
 
 
@@ -26,7 +32,9 @@ $script_tag = <<<EOD
   window.chat24_url = "https://livechatv2.chat2desk.com";
   window.chat24_socket_url ="wss://livechatv2.chat2desk.com/widget_ws_new";
   window.chat24_static_files_domain = "https://storage.chat2desk.com/";
-  window.lang = "ru";
+  window.lang = "es";
+  // Forzar idioma español
+  document.documentElement.lang = "es";
   window.fetch("".concat(window.chat24_url, "/packs/manifest.json?nocache=").concat(new Date().getTime())).then(function (res) {
     return res.json();
   }).then(function (data) {
@@ -41,7 +49,7 @@ EOD;
 ?>
 
 <!DOCTYPE html>
-<html translate="no" lang="en" prefix="og: https://ogp.me/ns#"
+<html translate="no" lang="es" prefix="og: https://ogp.me/ns#"
   style="--tg-viewport-height: 100vh; --tg-viewport-stable-height: 100vh">
 
 <head>
@@ -55,7 +63,7 @@ EOD;
   <link rel="apple-touch-icon" href="../images/logo192.png" />
 
   <link crossorigin="use-credentials" rel="manifest" href="../manifest.json" />
-  <title data-translate="head.title">
+  <title>
     Sitio web oficial de Valor Casino: Las mejores tragamonedas en línea y registro rápido 🎰
   </title>
 
@@ -63,18 +71,18 @@ EOD;
   <link rel="stylesheet" href="../css/styles.css" />
 
 
-  <meta data-translate="footer.description" name="description"
+  <meta name="description"
     content="Descubre una amplia gama de tragamonedas online en el sitio web oficial de Valor Casino. Disfruta de opciones de juego gratis y con dinero real tras registrarte. ¡Únete hoy mismo a Valor Casino para disfrutar de la mejor experiencia de juego! ✨"
     data-react-helmet="true" />
-  <meta data-translate="footer.title" property="og:title"
+  <meta property="og:title"
     content="Sitio web oficial de Valor Casino: Las mejores tragamonedas en línea y registro rápido 🎰"
     data-react-helmet="true" />
-  <meta data-translate="footer.valor" property="og:site_name" content="Valor" data-react-helmet="true" />
-  <meta data-translate="footer.description" property="og:description"
+  <meta property="og:site_name" content="Valor" data-react-helmet="true" />
+  <meta property="og:description"
     content="Descubre una amplia gama de tragamonedas online en el sitio web oficial de Valor Casino. Disfruta de opciones de juego gratis y con dinero real tras registrarte. ¡Únete hoy mismo a Valor Casino para disfrutar de la mejor experiencia de juego! ✨"
     data-react-helmet="true" />
 
-  <!-- Подключение Notiflix -->
+  <!-- Conexión de Notiflix -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notiflix@3.2.6/dist/notiflix-3.2.6.min.css">
   <script src="https://cdn.jsdelivr.net/npm/notiflix@3.2.6/dist/notiflix-3.2.6.min.js"></script>
 </head>
@@ -99,15 +107,9 @@ EOD;
             d="M29.4993 34.4011C30.1489 33.8146 31.1423 33.8754 31.7182 34.537C32.2941 35.1985 32.2344 36.2102 31.5848 36.7967C30.9352 37.3832 29.9417 37.3223 29.3658 36.6608C28.7899 35.9993 28.8497 34.9876 29.4993 34.4011Z"
             fill="#FDA700"></path>
           <path
-            d="M22.4018 16.9735C21.7522 17.56 20.7587 17.4991 20.1828 16.8376C19.6069 16.1761 19.6667 15.1644 20.3163 14.5779C20.9659 13.9914 21.9593 14.0523 22.5352 14.7138C23.1111 15.3753 23.0513 16.387 22.4018 16.9735Z"
-            fill="#FDA700"></path>
-          <path
-            d="M22.4018 34.4011C21.7522 33.8146 20.7587 33.8754 20.1828 34.537C19.6069 35.1985 19.6667 36.2102 20.3163 36.7967C20.9659 37.3832 21.9593 37.3223 22.5352 36.6608C23.1111 35.9993 23.0513 34.9876 22.4018 34.4011Z"
-            fill="#FDA700"></path>
-          <path
             d="M31.7445 25.6873C31.7445 23.1732 29.1505 21.1351 25.9505 21.1351C22.7506 21.1351 20.1565 23.1732 20.1565 25.6873C20.1565 28.2014 22.7506 30.2395 25.9505 30.2395C29.1505 30.2395 31.7445 28.2014 31.7445 25.6873ZM23.1499 26.1069H22.2166V25.1935H23.0859C23.1133 24.5687 23.2779 23.9631 23.4792 23.6089L24.5503 23.8885C24.3398 24.2802 24.1474 24.83 24.1474 25.4356C24.1474 25.9671 24.3489 26.3302 24.715 26.3302C25.0627 26.3302 25.2825 26.0323 25.5112 25.3427C25.8406 24.3454 26.2982 23.6647 27.1861 23.6647C27.9913 23.6647 28.6229 24.2426 28.815 25.24H29.6845V26.1534H28.879C28.8518 26.7778 28.7235 27.1971 28.5773 27.5049L27.5429 27.2347C27.6435 26.9921 27.8541 26.5634 27.8541 25.8921C27.8541 25.2865 27.5979 25.0908 27.3416 25.0908C27.0396 25.0908 26.8475 25.4173 26.5545 26.2092C26.1701 27.3186 25.6667 27.7657 24.843 27.7657C24.0284 27.7657 23.333 27.1784 23.1499 26.1069Z"
             fill="#FDA700"></path>
-        </svg><button type="button" data-translate="header.recommend"
+        </svg><button type="button"
           class="_button_1qy1r_1 _button_color_white_1qy1r_45 _button_border-radius_medium_1qy1r_23 _button_border_1qy1r_20 _button_flex_1qy1r_14 _button_j8fbr_25">
           Recomendar
         </button>
@@ -127,7 +129,7 @@ EOD;
             </div>
             <div class="_casino-icon_q85o9_142" bis_skin_checked="1">
               <div class="_defaultIcon_q85o9_9" bis_skin_checked="1">
-                <p data-translate="header.casino" class="_text_q85o9_20">CASINO</p>
+                <p class="_text_q85o9_20">CASINO</p>
               </div>
             </div>
           </a>
@@ -142,7 +144,7 @@ EOD;
                           d="M4.78021 8L9.5929 20L0 8H4.78021ZM12.4072 20L22 8H17.2198L12.4072 20ZM11 8H6.21985L11 20L15.7802 8H11ZM7.53589 0H4.97864L0 7H4.78015L7.53589 0ZM11 7H15.7802L13.1313 0H8.86871L6.21985 7H11ZM22 7L17.0214 0H14.4641L17.2198 7H22Z"
                           fill="#0F9658"></path>
                       </svg>
-                      <p data-translate="header.home" class="_label_p19s5_35">Inicio</p>
+                      <p class="_label_p19s5_35">Inicio</p>
                     </a>
                   </li>
                   <li class="_item_1992l_14" aria-hidden="true">
@@ -172,7 +174,7 @@ EOD;
                           d="M22 16.319L21.5141 6.46155C21.5141 3.44531 19.2828 1 16.5305 1C14.8939 1 13.4416 1.86487 12.533 3.20001C11.5338 3.85272 11 3.66431 11 3.66431C11 3.66431 10.4662 3.85272 9.46704 3.20001C8.55847 1.86487 7.1062 1 5.46948 1C2.71722 1 0.485962 3.44531 0.485962 6.46155L0 16.319L0.0113525 16.3245C0.0039673 16.4047 0 16.4863 0 16.5689C0 17.9115 0.993408 19 2.21838 19C2.85828 19 3.43372 18.701 3.83862 18.2253L3.88953 18.2505L7.04974 14.121C7.04974 14.121 8.26538 12.9888 9.66309 13.1221H10.4528H11H11.5472H12.3369C13.7347 12.9888 14.9503 14.121 14.9503 14.121L18.1105 18.2505L18.1614 18.2253C18.5663 18.701 19.1417 19 19.7817 19C21.0066 19 22 17.9115 22 16.5689C22 16.4863 21.9961 16.4047 21.9886 16.3245L22 16.319ZM9 9H7V11H5V9H3V7H5V5H7V7H9V9ZM16 5C16.5524 5 17 5.44763 17 6C17 6.55243 16.5524 7 16 7C15.4476 7 15 6.55243 15 6C15 5.44763 15.4476 5 16 5ZM14 9C13.4476 9 13 8.55237 13 8C13 7.44763 13.4476 7 14 7C14.5524 7 15 7.44763 15 8C15 8.55237 14.5524 9 14 9ZM16 11C15.4476 11 15 10.5524 15 10C15 9.44763 15.4476 9 16 9C16.5524 9 17 9.44763 17 10C17 10.5524 16.5524 11 16 11ZM18 9C17.4476 9 17 8.55237 17 8C17 7.44763 17.4476 7 18 7C18.5524 7 19 7.44763 19 8C19 8.55237 18.5524 9 18 9Z"
                           fill="#0F9658"></path>
                       </svg>
-                      <p data-translate="header.games" class="_label_p19s5_35">Juegos</p>
+                      <p class="_label_p19s5_35">Juegos</p>
                     </a>
                   </li>
                   <li class="_item_1992l_14" aria-hidden="true">
@@ -182,7 +184,7 @@ EOD;
                           d="M18.8799 9.7702C18.6738 8.59296 18.2095 7.50348 17.5476 6.56244C17.0135 5.80292 16.3507 5.1402 15.5912 4.60596C14.6501 3.94415 13.5607 3.47974 12.3834 3.27368C11.9339 3.19495 11.4717 3.15363 11 3.15363C10.5283 3.15363 10.0661 3.19495 9.61658 3.27368C8.43933 3.47974 7.34991 3.94415 6.40881 4.60596C5.64929 5.1402 4.98651 5.80292 4.45233 6.56244C3.79047 7.50348 3.32617 8.59296 3.12006 9.7702C3.04138 10.2197 3 10.6819 3 11.1536C3 11.6253 3.04138 12.0875 3.12006 12.537C3.32617 13.7143 3.79053 14.8036 4.45233 15.7448C4.98657 16.5043 5.64929 17.1671 6.40881 17.7012C7.34991 18.3631 8.43933 18.8275 9.61658 19.0336C10.0661 19.1122 10.5283 19.1536 11 19.1536C11.4717 19.1536 11.9339 19.1122 12.3834 19.0336C13.5607 18.8275 14.6501 18.3631 15.5912 17.7012C16.3507 17.1671 17.0134 16.5043 17.5476 15.7448C18.2095 14.8036 18.6738 13.7143 18.8799 12.537C18.9586 12.0875 19 11.6253 19 11.1536C19 10.6819 18.9586 10.2197 18.8799 9.7702ZM18.2644 9.7702H16.4922C16.3557 9.22827 16.1407 8.71722 15.8604 8.24969L17.1129 6.99719C17.6732 7.8186 18.0721 8.75818 18.2644 9.7702ZM16.0581 11.1536C16.0581 11.6331 15.9911 12.0972 15.8658 12.537C15.7579 12.9163 15.6064 13.2773 15.4176 13.6147C14.9594 14.4338 14.2802 15.113 13.4611 15.5712C13.1237 15.7599 12.7626 15.9115 12.3834 16.0195C11.9435 16.1447 11.4795 16.2117 11 16.2117C10.5205 16.2117 10.0564 16.1447 9.61658 16.0195C9.23737 15.9115 8.87634 15.7599 8.53888 15.5712C7.71979 15.113 7.04053 14.4338 6.5824 13.6147C6.39362 13.2773 6.24213 12.9163 6.13416 12.537C6.00891 12.0972 5.94183 11.6331 5.94183 11.1536C5.94183 10.6741 6.00891 10.21 6.13416 9.7702C6.24213 9.39093 6.39362 9.02997 6.5824 8.6925C7.04053 7.87341 7.71973 7.19415 8.53882 6.73602C8.87634 6.54724 9.23737 6.39575 9.61658 6.28778C10.0564 6.16254 10.5205 6.09546 11 6.09546C11.4795 6.09546 11.9435 6.16254 12.3834 6.28778C12.7626 6.39575 13.1237 6.54724 13.4611 6.73602C14.2802 7.19415 14.9594 7.87335 15.4176 8.6925C15.6064 9.02997 15.7579 9.39093 15.8658 9.7702C15.9911 10.21 16.0581 10.6741 16.0581 11.1536ZM15.1564 5.04071L13.9039 6.29321C13.4364 6.01282 12.9254 5.79797 12.3834 5.66138V3.88922C13.3954 4.08148 14.335 4.48047 15.1564 5.04071ZM9.61658 3.88922V5.66138C9.07465 5.79797 8.5636 6.01282 8.09607 6.29321L6.84357 5.04071C7.66498 4.48047 8.60455 4.08148 9.61658 3.88922ZM4.88708 6.99719L6.13959 8.24969C5.85919 8.71722 5.64435 9.22827 5.50781 9.7702H3.7356C3.92786 8.75818 4.32684 7.8186 4.88708 6.99719ZM3.7356 12.537H5.50781C5.64435 13.0789 5.85919 13.59 6.13959 14.0576L4.88708 15.31C4.32684 14.4886 3.92792 13.549 3.7356 12.537ZM6.84357 17.2665L8.09607 16.014C8.5636 16.2944 9.07465 16.5092 9.61658 16.6458V18.418C8.60461 18.2257 7.66498 17.8268 6.84357 17.2665ZM12.3834 18.418V16.6458C12.9254 16.5092 13.4364 16.2944 13.9039 16.014L15.1564 17.2665C14.335 17.8268 13.3954 18.2257 12.3834 18.418ZM17.1129 15.31L15.8604 14.0576C16.1407 13.59 16.3557 13.0789 16.4922 12.537H18.2644C18.0721 13.549 17.6732 14.4886 17.1129 15.31ZM12.8466 9.94336L11.6364 11.1536L12.8466 12.3638C13.1529 12.2818 13.4908 12.3464 13.7311 12.5868C14.0896 12.9453 14.0896 13.5264 13.7311 13.8848C13.3727 14.2432 12.7916 14.2432 12.4332 13.8848C12.1928 13.6445 12.1282 13.3065 12.2103 13.0002L11 11.79L9.78973 13.0002C9.87177 13.3065 9.80719 13.6445 9.56677 13.8848C9.20831 14.2432 8.62726 14.2432 8.2688 13.8848C7.91034 13.5264 7.91034 12.9453 8.2688 12.5868C8.50909 12.3465 8.84705 12.2819 9.15332 12.3638L10.3636 11.1536L9.15332 9.94336C8.84705 10.0253 8.50909 9.96075 8.2688 9.7204C7.91034 9.36194 7.91034 8.78082 8.2688 8.42236C8.62726 8.06396 9.20831 8.06396 9.56677 8.42236C9.80713 8.66272 9.87164 9.00067 9.78973 9.30695L11 10.5172L12.2103 9.30695C12.1284 9.00067 12.1929 8.66272 12.4332 8.42236C12.7916 8.06396 13.3727 8.06396 13.7311 8.42236C14.0896 8.78082 14.0896 9.36194 13.7311 9.7204C13.4908 9.96075 13.1529 10.0253 12.8466 9.94336ZM18.7781 3.22186C16.7006 1.14423 13.9382 0 11 0C8.06177 0 5.29944 1.14423 3.2218 3.22186C1.14417 5.2995 0 8.06183 0 11C0 13.9382 1.14417 16.7006 3.2218 18.7782C5.29944 20.8558 8.06177 22 11 22C13.9382 22 16.7006 20.8558 18.7781 18.7782C20.8558 16.7006 22 13.9382 22 11C22 8.06183 20.8558 5.2995 18.7781 3.22186ZM17.364 17.364C15.6641 19.0638 13.404 20 11 20C8.59607 20 6.33594 19.0638 4.63605 17.364C2.93616 15.6641 2 13.404 2 11C2 8.59601 2.93616 6.33594 4.63605 4.63605C6.33594 2.93616 8.59601 2 11 2C13.404 2 15.6641 2.93616 17.364 4.63605C19.0638 6.336 20 8.59607 20 11C20 13.404 19.0638 15.6641 17.364 17.364Z"
                           fill="#0F9658"></path>
                       </svg>
-                      <p data-translate="header.casino2" class="_label_p19s5_35">Casino</p>
+                      <p class="_label_p19s5_35">Casino</p>
                     </a>
                   </li>
                   <li class="_item_1992l_14" aria-hidden="true">
@@ -192,7 +194,7 @@ EOD;
                           d="M11 0C4.92487 0 0 4.92487 0 11C0 17.0751 4.92487 22 11 22C17.0751 22 22 17.0751 22 11C22 4.92487 17.0751 0 11 0ZM11 20C6.03741 20 2 15.9626 2 11C2 6.03735 6.03741 2 11 2C15.9626 2 20 6.03735 20 11C20 15.9626 15.9626 20 11 20ZM11 3C6.58173 3 3 6.58173 3 11C3 15.4183 6.58173 19 11 19C15.4183 19 19 15.4183 19 11C19 6.58173 15.4183 3 11 3ZM11.5651 14.7502V16H10.335V14.836C9.49341 14.7993 8.67792 14.5787 8.20081 14.3089L8.57739 12.8752C9.1051 13.157 9.8454 13.4145 10.6609 13.4145C11.377 13.4145 11.8661 13.1447 11.8661 12.6545C11.8661 12.1887 11.4649 11.8945 10.5359 11.5883C9.19281 11.1472 8.276 10.5344 8.276 9.3457C8.276 8.26733 9.0545 7.42157 10.3977 7.16431V6H11.6276V7.07849C12.4688 7.11523 13.0336 7.28668 13.4479 7.48285L13.0842 8.86774C12.7573 8.73279 12.1799 8.45117 11.276 8.45117C10.4601 8.45117 10.1969 8.79425 10.1969 9.13733C10.1969 9.54169 10.6363 9.79907 11.7028 10.1913C13.1972 10.706 13.7992 11.3801 13.7992 12.483C13.7992 13.5737 13.0084 14.5049 11.5651 14.7502Z"
                           fill="#0A893D"></path>
                       </svg>
-                      <p data-translate="header.bonuses" class="_label_p19s5_35">Bonificaciones</p>
+                      <p class="_label_p19s5_35">Bonificaciones</p>
                     </a>
                   </li>
                   <li class="_item_1992l_14" aria-hidden="true"><a href="/all_games.php?categorías=live" type="link"
@@ -202,7 +204,7 @@ EOD;
                           d="M23.1369 9.91624L14.0838 0.863096C12.9329 -0.287699 11.067 -0.287699 9.91625 0.863096L0.86312 9.91624C-0.287739 11.0671 -0.287674 12.933 0.86312 14.0838L9.91625 23.1369C11.067 24.2877 12.9329 24.2877 14.0838 23.1368L23.1369 14.0838C24.2877 12.9329 24.2877 11.067 23.1369 9.91624ZM5.03682 13.0669C4.37329 13.7304 3.29709 13.7304 2.6333 13.0667C1.96957 12.4029 1.96957 11.3267 2.6331 10.6632C3.29709 9.99921 4.37329 9.99921 5.03702 10.663C5.70081 11.3267 5.70081 12.4029 5.03682 13.0669ZM9.05184 9.05189C8.38792 9.71581 7.31166 9.71581 6.64793 9.05208C5.98421 8.38836 5.98421 7.3121 6.64813 6.64817C7.31173 5.98457 8.38792 5.98464 9.05165 6.64837C9.71538 7.3121 9.71544 8.38829 9.05184 9.05189ZM10.6632 2.63308C11.3265 1.96981 12.4028 1.96981 13.0665 2.63354C13.7302 3.29726 13.7302 4.37353 13.0669 5.0368C12.4028 5.70098 11.3265 5.70098 10.6628 5.03725C9.99903 4.37353 9.99903 3.29726 10.6632 2.63308ZM13.3368 21.3669C12.6733 22.0304 11.5971 22.0305 10.9333 21.3667C10.2696 20.7029 10.2696 19.6267 10.9331 18.9631C11.597 18.2992 12.6733 18.2992 13.337 18.9629C14.0007 19.6267 14.0007 20.7029 13.3368 21.3669ZM17.3518 17.3518C16.6879 18.0158 15.6117 18.0158 14.9479 17.352C14.2841 16.6883 14.2841 15.6121 14.9481 14.9481C15.6117 14.2846 16.6879 14.2846 17.3516 14.9484C18.0154 15.6121 18.0154 16.6883 17.3518 17.3518ZM21.3669 13.3368C20.7027 14.001 19.6265 14.001 18.9627 13.3373C18.299 12.6735 18.299 11.5973 18.9632 10.9331C19.6265 10.2698 20.7027 10.2698 21.3664 10.9335C22.0302 11.5973 22.0302 12.6735 21.3669 13.3368Z"
                           fill="#0F9658"></path>
                       </svg>
-                      <p data-translate="header.live_games" class="_label_p19s5_35">Juegos en vivo</p>
+                      <p class="_label_p19s5_35">Juegos en vivo</p>
                     </a></li>
 
                 </ul>
@@ -211,25 +213,24 @@ EOD;
           </menu>
         </div>
         <?php if (!$is_logged_in): ?>
-        <!-- Блок для неавторизованных -->
+        <!-- Bloque para usuarios no autorizados -->
         <div class="_menu_8nsrw_1" bis_skin_checked="1">
           <button type="button"
             class="_button_1qy1r_1 _button_1qy1r_1_login _button_color_yellow_1qy1r_33 _button_border-radius_medium_1qy1r_23 _button_border_1qy1r_20 _button_flex_1qy1r_14 _button_8nsrw_6"
-            data-cy="button_open_login" data-translate="header.login">
+            data-cy="button_open_login">
             Iniciar sesión
           </button>
-          <button type="button" data-cy="button_open_register" data-translate="header.register"
+          <button type="button" data-cy="button_open_register"
             class="_button_1qy1r_1 _button_color_green_1qy1r_39 _button_border-radius_medium_1qy1r_23 _button_border_1qy1r_20 _button_flex_1qy1r_14 _button_8nsrw_6">
             Registrarse
           </button>
         </div>
         <?php else: ?>
-        <!-- Блок для авторизованных -->
+        <!-- Bloque para usuarios autorizados -->
         <div class="_menu_8nsrw_122">
           <div class="_menu_8nsrw_1 _menu_logged_8nsrw_40" style="margin-right: 20px;">
             <div class="_info_z3cl7_14">
-              <span style="display: flex;align-items: center;font-size: 12px;line-height: 18px;"
-                data-translate="header.balance">Saldo</span>
+              <span style="display: flex;align-items: center;font-size: 12px;line-height: 18px;">Saldo</span>
               <span class="_count_z3cl7_20" style="display:flex;font-weight: 700;">
                 <div class="summ-balance" id="balance">
                   <?php echo htmlspecialchars($deposit); ?>
@@ -242,7 +243,7 @@ EOD;
           </div>
           <!-- <div class="_balance_z3cl7_1">
             <div class="_info_z3cl7_14">
-              <span data-translate="header.bonuses">Bonificaciones</span>
+              <span>Bonificaciones</span>
               <span class="_count_z3cl7_20">
                 <?php echo htmlspecialchars($bonificaciones); ?>
                 <?= htmlspecialchars( SYS_CURRENCY ); ?>
@@ -253,7 +254,7 @@ EOD;
         </div>
 
         <div style="display: flex;gap: 8px;">
-          <button type="button" data-translate="header.deposit"
+          <button type="button"
             class="href_accaunt_two _button_1r6hv_1 _button_color_green_1r6hv_39 _button_border-radius_medium_1r6hv_23 _button_border_1r6hv_20 _button_flex_1r6hv_14 _topUpButton_8nsrw_9">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"
               class="_menu_8nsrw_svg">
@@ -271,7 +272,7 @@ EOD;
                 d="M6.9997 8C9.20527 8 10.9997 6.20557 10.9997 4C10.9997 1.79443 9.20527 0 6.9997 0C4.79414 0 2.9997 1.79443 2.9997 4C2.9997 6.20557 4.79414 8 6.9997 8ZM6.9997 2C8.10273 2 8.9997 2.89697 8.9997 4C8.9997 5.10303 8.10273 6 6.9997 6C5.89667 6 4.9997 5.10303 4.9997 4C4.9997 2.89697 5.89667 2 6.9997 2ZM13.5178 13.8555C13.3561 13.9536 13.1769 14 13.0007 14C12.6623 14 12.3327 13.8286 12.1442 13.5181C12.0837 13.4209 10.5319 11 6.9997 11C3.46747 11 1.91572 13.4209 1.85175 13.5239C1.66132 13.8281 1.33369 13.9966 0.998725 13.9966C0.820502 13.9966 0.640326 13.9487 0.477729 13.8491C0.0094671 13.561 -0.140435 12.9517 0.144233 12.4819C0.230658 12.3398 2.3083 9 6.9997 9C11.6911 9 13.7687 12.3398 13.8552 12.4819C14.1413 12.9541 13.9904 13.5688 13.5178 13.8555Z"
                 fill="#fff"></path>
             </svg>
-            <span style="" class="_menu_8nsrw_span" data-translate="header.account"> Cuenta
+            <span style="" class="_menu_8nsrw_span"> Cuenta
               <svg width="2" height="10" viewBox="0 0 2 10" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
                   d="M0 1C0 0.447715 0.447715 0 1 0C1.55228 0 2 0.447715 2 1C2 1.55228 1.55228 2 1 2C0.447715 2 0 1.55228 0 1Z"
@@ -298,7 +299,7 @@ EOD;
                     d="M4.78021 8L9.5929 20L0 8H4.78021ZM12.4072 20L22 8H17.2198L12.4072 20ZM11 8H6.21985L11 20L15.7802 8H11ZM7.53589 0H4.97864L0 7H4.78015L7.53589 0ZM11 7H15.7802L13.1313 0H8.86871L6.21985 7H11ZM22 7L17.0214 0H14.4641L17.2198 7H22Z"
                     fill="#0F9658"></path>
                 </svg>
-                <p data-translate="header.home" class="_label_p19s5_35">Inicio</p>
+                <p class="_label_p19s5_35">Inicio</p>
               </a>
             </li>
             <li class="_item_1992l_14" aria-hidden="true">
@@ -329,7 +330,7 @@ EOD;
                     d="M22 16.319L21.5141 6.46155C21.5141 3.44531 19.2828 1 16.5305 1C14.8939 1 13.4416 1.86487 12.533 3.20001C11.5338 3.85272 11 3.66431 11 3.66431C11 3.66431 10.4662 3.85272 9.46704 3.20001C8.55847 1.86487 7.1062 1 5.46948 1C2.71722 1 0.485962 3.44531 0.485962 6.46155L0 16.319L0.0113525 16.3245C0.0039673 16.4047 0 16.4863 0 16.5689C0 17.9115 0.993408 19 2.21838 19C2.85828 19 3.43372 18.701 3.83862 18.2253L3.88953 18.2505L7.04974 14.121C7.04974 14.121 8.26538 12.9888 9.66309 13.1221H10.4528H11H11.5472H12.3369C13.7347 12.9888 14.9503 14.121 14.9503 14.121L18.1105 18.2505L18.1614 18.2253C18.5663 18.701 19.1417 19 19.7817 19C21.0066 19 22 17.9115 22 16.5689C22 16.4863 21.9961 16.4047 21.9886 16.3245L22 16.319ZM9 9H7V11H5V9H3V7H5V5H7V7H9V9ZM16 5C16.5524 5 17 5.44763 17 6C17 6.55243 16.5524 7 16 7C15.4476 7 15 6.55243 15 6C15 5.44763 15.4476 5 16 5ZM14 9C13.4476 9 13 8.55237 13 8C13 7.44763 13.4476 7 14 7C14.5524 7 15 7.44763 15 8C15 8.55237 14.5524 9 14 9ZM16 11C15.4476 11 15 10.5524 15 10C15 9.44763 15.4476 9 16 9C16.5524 9 17 9.44763 17 10C17 10.5524 16.5524 11 16 11ZM18 9C17.4476 9 17 8.55237 17 8C17 7.44763 17.4476 7 18 7C18.5524 7 19 7.44763 19 8C19 8.55237 18.5524 9 18 9Z"
                     fill="#0F9658"></path>
                 </svg>
-                <p data-translate="header.games" class="_label_p19s5_35">Juegos</p>
+                <p class="_label_p19s5_35">Juegos</p>
               </a>
             </li>
             <li class="_item_1992l_14" aria-hidden="true">
@@ -340,7 +341,7 @@ EOD;
                     d="M18.8799 9.7702C18.6738 8.59296 18.2095 7.50348 17.5476 6.56244C17.0135 5.80292 16.3507 5.1402 15.5912 4.60596C14.6501 3.94415 13.5607 3.47974 12.3834 3.27368C11.9339 3.19495 11.4717 3.15363 11 3.15363C10.5283 3.15363 10.0661 3.19495 9.61658 3.27368C8.43933 3.47974 7.34991 3.94415 6.40881 4.60596C5.64929 5.1402 4.98651 5.80292 4.45233 6.56244C3.79047 7.50348 3.32617 8.59296 3.12006 9.7702C3.04138 10.2197 3 10.6819 3 11.1536C3 11.6253 3.04138 12.0875 3.12006 12.537C3.32617 13.7143 3.79053 14.8036 4.45233 15.7448C4.98657 16.5043 5.64929 17.1671 6.40881 17.7012C7.34991 18.3631 8.43933 18.8275 9.61658 19.0336C10.0661 19.1122 10.5283 19.1536 11 19.1536C11.4717 19.1536 11.9339 19.1122 12.3834 19.0336C13.5607 18.8275 14.6501 18.3631 15.5912 17.7012C16.3507 17.1671 17.0134 16.5043 17.5476 15.7448C18.2095 14.8036 18.6738 13.7143 18.8799 12.537C18.9586 12.0875 19 11.6253 19 11.1536C19 10.6819 18.9586 10.2197 18.8799 9.7702ZM18.2644 9.7702H16.4922C16.3557 9.22827 16.1407 8.71722 15.8604 8.24969L17.1129 6.99719C17.6732 7.8186 18.0721 8.75818 18.2644 9.7702ZM16.0581 11.1536C16.0581 11.6331 15.9911 12.0972 15.8658 12.537C15.7579 12.9163 15.6064 13.2773 15.4176 13.6147C14.9594 14.4338 14.2802 15.113 13.4611 15.5712C13.1237 15.7599 12.7626 15.9115 12.3834 16.0195C11.9435 16.1447 11.4795 16.2117 11 16.2117C10.5205 16.2117 10.0564 16.1447 9.61658 16.0195C9.23737 15.9115 8.87634 15.7599 8.53888 15.5712C7.71979 15.113 7.04053 14.4338 6.5824 13.6147C6.39362 13.2773 6.24213 12.9163 6.13416 12.537C6.00891 12.0972 5.94183 11.6331 5.94183 11.1536C5.94183 10.6741 6.00891 10.21 6.13416 9.7702C6.24213 9.39093 6.39362 9.02997 6.5824 8.6925C7.04053 7.87341 7.71973 7.19415 8.53882 6.73602C8.87634 6.54724 9.23737 6.39575 9.61658 6.28778C10.0564 6.16254 10.5205 6.09546 11 6.09546C11.4795 6.09546 11.9435 6.16254 12.3834 6.28778C12.7626 6.39575 13.1237 6.54724 13.4611 6.73602C14.2802 7.19415 14.9594 7.87335 15.4176 8.6925C15.6064 9.02997 15.7579 9.39093 15.8658 9.7702C15.9911 10.21 16.0581 10.6741 16.0581 11.1536ZM15.1564 5.04071L13.9039 6.29321C13.4364 6.01282 12.9254 5.79797 12.3834 5.66138V3.88922C13.3954 4.08148 14.335 4.48047 15.1564 5.04071ZM9.61658 3.88922V5.66138C9.07465 5.79797 8.5636 6.01282 8.09607 6.29321L6.84357 5.04071C7.66498 4.48047 8.60455 4.08148 9.61658 3.88922ZM4.88708 6.99719L6.13959 8.24969C5.85919 8.71722 5.64435 9.22827 5.50781 9.7702H3.7356C3.92786 8.75818 4.32684 7.8186 4.88708 6.99719ZM3.7356 12.537H5.50781C5.64435 13.0789 5.85919 13.59 6.13959 14.0576L4.88708 15.31C4.32684 14.4886 3.92792 13.549 3.7356 12.537ZM6.84357 17.2665L8.09607 16.014C8.5636 16.2944 9.07465 16.5092 9.61658 16.6458V18.418C8.60461 18.2257 7.66498 17.8268 6.84357 17.2665ZM12.3834 18.418V16.6458C12.9254 16.5092 13.4364 16.2944 13.9039 16.014L15.1564 17.2665C14.335 17.8268 13.3954 18.2257 12.3834 18.418ZM17.1129 15.31L15.8604 14.0576C16.1407 13.59 16.3557 13.0789 16.4922 12.537H18.2644C18.0721 13.549 17.6732 14.4886 17.1129 15.31ZM12.8466 9.94336L11.6364 11.1536L12.8466 12.3638C13.1529 12.2818 13.4908 12.3464 13.7311 12.5868C14.0896 12.9453 14.0896 13.5264 13.7311 13.8848C13.3727 14.2432 12.7916 14.2432 12.4332 13.8848C12.1928 13.6445 12.1282 13.3065 12.2103 13.0002L11 11.79L9.78973 13.0002C9.87177 13.3065 9.80719 13.6445 9.56677 13.8848C9.20831 14.2432 8.62726 14.2432 8.2688 13.8848C7.91034 13.5264 7.91034 12.9453 8.2688 12.5868C8.50909 12.3465 8.84705 12.2819 9.15332 12.3638L10.3636 11.1536L9.15332 9.94336C8.84705 10.0253 8.50909 9.96075 8.2688 9.7204C7.91034 9.36194 7.91034 8.78082 8.2688 8.42236C8.62726 8.06396 9.20831 8.06396 9.56677 8.42236C9.80713 8.66272 9.87164 9.00067 9.78973 9.30695L11 10.5172L12.2103 9.30695C12.1284 9.00067 12.1929 8.66272 12.4332 8.42236C12.7916 8.06396 13.3727 8.06396 13.7311 8.42236C14.0896 8.78082 14.0896 9.36194 13.7311 9.7204C13.4908 9.96075 13.1529 10.0253 12.8466 9.94336ZM18.7781 3.22186C16.7006 1.14423 13.9382 0 11 0C8.06177 0 5.29944 1.14423 3.2218 3.22186C1.14417 5.2995 0 8.06183 0 11C0 13.9382 1.14417 16.7006 3.2218 18.7782C5.29944 20.8558 8.06177 22 11 22C13.9382 22 16.7006 20.8558 18.7781 18.7782C20.8558 16.7006 22 13.9382 22 11C22 8.06183 20.8558 5.2995 18.7781 3.22186ZM17.364 17.364C15.6641 19.0638 13.404 20 11 20C8.59607 20 6.33594 19.0638 4.63605 17.364C2.93616 15.6641 2 13.404 2 11C2 8.59601 2.93616 6.33594 4.63605 4.63605C6.33594 2.93616 8.59601 2 11 2C13.404 2 15.6641 2.93616 17.364 4.63605C19.0638 6.336 20 8.59607 20 11C20 13.404 19.0638 15.6641 17.364 17.364Z"
                     fill="#0F9658"></path>
                 </svg>
-                <p data-translate="header.casino2" class="_label_p19s5_35">Casino</p>
+                <p class="_label_p19s5_35">Casino</p>
               </a>
             </li>
             <li class="_item_1992l_14" aria-hidden="true">
@@ -350,7 +351,7 @@ EOD;
                     d="M11 0C4.92487 0 0 4.92487 0 11C0 17.0751 4.92487 22 11 22C17.0751 22 22 17.0751 22 11C22 4.92487 17.0751 0 11 0ZM11 20C6.03741 20 2 15.9626 2 11C2 6.03735 6.03741 2 11 2C15.9626 2 20 6.03735 20 11C20 15.9626 15.9626 20 11 20ZM11 3C6.58173 3 3 6.58173 3 11C3 15.4183 6.58173 19 11 19C15.4183 19 19 15.4183 19 11C19 6.58173 15.4183 3 11 3ZM11.5651 14.7502V16H10.335V14.836C9.49341 14.7993 8.67792 14.5787 8.20081 14.3089L8.57739 12.8752C9.1051 13.157 9.8454 13.4145 10.6609 13.4145C11.377 13.4145 11.8661 13.1447 11.8661 12.6545C11.8661 12.1887 11.4649 11.8945 10.5359 11.5883C9.19281 11.1472 8.276 10.5344 8.276 9.3457C8.276 8.26733 9.0545 7.42157 10.3977 7.16431V6H11.6276V7.07849C12.4688 7.11523 13.0336 7.28668 13.4479 7.48285L13.0842 8.86774C12.7573 8.73279 12.1799 8.45117 11.276 8.45117C10.4601 8.45117 10.1969 8.79425 10.1969 9.13733C10.1969 9.54169 10.6363 9.79907 11.7028 10.1913C13.1972 10.706 13.7992 11.3801 13.7992 12.483C13.7992 13.5737 13.0084 14.5049 11.5651 14.7502Z"
                     fill="#0A893D"></path>
                 </svg>
-                <p data-translate="header.bonuses" class="_label_p19s5_35">Bonificaciones</p>
+                <p class="_label_p19s5_35">Bonificaciones</p>
               </a>
             </li>
             <li class="_item_1992l_14" aria-hidden="true">
@@ -360,7 +361,7 @@ EOD;
                     d="M23.1369 9.91624L14.0838 0.863096C12.9329 -0.287699 11.067 -0.287699 9.91625 0.863096L0.86312 9.91624C-0.287739 11.0671 -0.287674 12.933 0.86312 14.0838L9.91625 23.1369C11.067 24.2877 12.9329 24.2877 14.0838 23.1368L23.1369 14.0838C24.2877 12.9329 24.2877 11.067 23.1369 9.91624ZM5.03682 13.0669C4.37329 13.7304 3.29709 13.7304 2.6333 13.0667C1.96957 12.4029 1.96957 11.3267 2.6331 10.6632C3.29709 9.99921 4.37329 9.99921 5.03702 10.663C5.70081 11.3267 5.70081 12.4029 5.03682 13.0669ZM9.05184 9.05189C8.38792 9.71581 7.31166 9.71581 6.64793 9.05208C5.98421 8.38836 5.98421 7.3121 6.64813 6.64817C7.31173 5.98457 8.38792 5.98464 9.05165 6.64837C9.71538 7.3121 9.71544 8.38829 9.05184 9.05189ZM10.6632 2.63308C11.3265 1.96981 12.4028 1.96981 13.0665 2.63354C13.7302 3.29726 13.7302 4.37353 13.0669 5.0368C12.4028 5.70098 11.3265 5.70098 10.6628 5.03725C9.99903 4.37353 9.99903 3.29726 10.6632 2.63308ZM13.3368 21.3669C12.6733 22.0304 11.5971 22.0305 10.9333 21.3667C10.2696 20.7029 10.2696 19.6267 10.9331 18.9631C11.597 18.2992 12.6733 18.2992 13.337 18.9629C14.0007 19.6267 14.0007 20.7029 13.3368 21.3669ZM17.3518 17.3518C16.6879 18.0158 15.6117 18.0158 14.9479 17.352C14.2841 16.6883 14.2841 15.6121 14.9481 14.9481C15.6117 14.2846 16.6879 14.2846 17.3516 14.9484C18.0154 15.6121 18.0154 16.6883 17.3518 17.3518ZM21.3669 13.3368C20.7027 14.001 19.6265 14.001 18.9627 13.3373C18.299 12.6735 18.299 11.5973 18.9632 10.9331C19.6265 10.2698 20.7027 10.2698 21.3664 10.9335C22.0302 11.5973 22.0302 12.6735 21.3669 13.3368Z"
                     fill="#0F9658"></path>
                 </svg>
-                <p data-translate="header.live_games" class="_label_p19s5_35">Juegos en vivo</p>
+                <p class="_label_p19s5_35">Juegos en vivo</p>
               </a>
             </li>
           </ul>
@@ -372,22 +373,21 @@ EOD;
       <div class="_container_1j59z_5">
         <div class="_bonuses_xn1l5_1">
           <div class="_header_xn1l5_15">
-            <h3 class="_title_xn1l5_21" data-translate="main.el_casino_en_l&iacute;nea_m&aacute;s_generoso">&iexcl;El
+            <h3 class="_title_xn1l5_21">&iexcl;El
               casino en l&iacute;nea m&aacute;s generoso!</h3>
           </div>
           <div class="_container_xn1l5_31">
             <div class="_bonuses_cu7hf_1 _welcome_xn1l5_31">
               <div class="_header_cu7hf_9">
                 <div class="_column_cu7hf_51">
-                  <h3 class="_title_cu7hf_56" data-translate="main.650_bono_de_bienvenida"><span
-                      data-translate="main.650">650%</span> Bono de Bienvenida</h3>
+                  <h3 class="_title_cu7hf_56"><span>650%</span> Bono de Bienvenida</h3>
                   <p class="_text_cu7hf_68"
-                    data-translate="main.reciba_hasta_tl68900_a_tu_saldo_de_bonificaci&oacute;n_acaba_de_incrementarse_al_recargar_tu_saldo_de_cuenta">
-                    Reciba hasta <span data-translate="main.tl68900">TL68900</span> A tu saldo de bonificaci&oacute;n
+>
+                    Reciba hasta <span>2000$</span> A tu saldo de bonificación
                     acaba de
                     incrementarse al recargar tu saldo de cuenta!</p>
                 </div><button data-cy="button_open_bonuses" class="_howItWorks_cu7hf_18"
-                  data-translate="main.c&oacute;mo_funciona">C&oacute;mo funciona</button>
+>Cómo funciona</button>
               </div>
               <div class="_box_cu7hf_88">
                 <div class="_container_cu7hf_81">
@@ -423,18 +423,18 @@ EOD;
                     </div>
                     <div class="_content_47r2f_371">
                       <div class="_header_47r2f_380">
-                        <h4 class="_title_47r2f_388"
-                          data-translate="main.&#304;lk_para_yat&#305;rma_i&#351;leminizde_13_250_tl_ye_kadar_bonus_kazan&#305;n">
-                          &#304;lk para yat&#305;rma i&#351;leminizde 13.250 TL'ye kadar bonus kazan&#305;n</h4>
-                        <p data-text="125%" class="_subtitle_47r2f_399" data-translate="main.125">125%</p>
+                        <h4 class="_title_47r2f_388">
+                          Gana un bono de hasta 125% en tu primer depósito
+                        </h4>
+                        <p data-text="125%" class="_subtitle_47r2f_399">125%</p>
                       </div>
                       <div class="_bonusValue_1oi83_1">
-                        <p class="_subtitle_1oi83_8" data-translate="main.obt&eacute;n_tl13250_de_bonificaci&oacute;n">
-                          Obt&eacute;n TL13250 de bonificaci&oacute;n</p>
+                        <p class="_subtitle_1oi83_8">
+                          Obt&eacute;n 125% de bonificaci&oacute;n</p>
                         <div class="_row_1oi83_49"><button data-cy="button_open_register"
                             class="_button_12c87_1 _button_color_yellow_12c87_50 _button_height_medium_12c87_65 _button_withDecor_12c87_95">
                             <div class="_content_12c87_36">
-                              <p class="_label_12c87_25" data-translate="main.haz_un_dep&oacute;sito">Haz un
+                              <p class="_label_12c87_25">Haz un
                                 dep&oacute;sito</p>
                             </div><img
                               src="data:image/svg+xml,%3csvg%20width='76'%20height='48'%20viewBox='0%200%2076%2048'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cg%20filter='url(%23filter0_d_32643_4546)'%3e%3cpath%20d='M67.9373%20-11.2263L68%2027.7098L30.9567%2040L8%208.65962L30.8552%20-23L67.9373%20-11.2263Z'%20fill='white'%20fill-opacity='0.15'%20shape-rendering='crispEdges'%20/%3e%3c/g%3e%3cdefs%3e%3cfilter%20id='filter0_d_32643_4546'%20x='0'%20y='-31'%20width='76'%20height='79'%20filterUnits='userSpaceOnUse'%20color-interpolation-filters='sRGB'%3e%3cfeFlood%20flood-opacity='0'%20result='BackgroundImageFix'%20/%3e%3cfeColorMatrix%20in='SourceAlpha'%20type='matrix'%20values='0%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%20127%200'%20result='hardAlpha'%20/%3e%3cfeOffset%20/%3e%3cfeGaussianBlur%20stdDeviation='4'%20/%3e%3cfeComposite%20in2='hardAlpha'%20operator='out'%20/%3e%3cfeColorMatrix%20type='matrix'%20values='0%200%200%200%201%200%200%200%200%201%200%200%200%200%201%200%200%200%200.15%200'%20/%3e%3cfeBlend%20mode='normal'%20in2='BackgroundImageFix'%20result='effect1_dropShadow_32643_4546'%20/%3e%3cfeBlend%20mode='normal'%20in='SourceGraphic'%20in2='effect1_dropShadow_32643_4546'%20result='shape'%20/%3e%3c/filter%3e%3c/defs%3e%3c/svg%3e"
@@ -450,7 +450,7 @@ EOD;
                           </button><button data-cy="button_open_bonuses_two"
                             class="_info_cfp68_1 _info_color_purple_cfp68_36 _info_shadow_cfp68_49" type="button">
                             <div class="_images_cfp68_39"></div>
-                            <div class="_decor_cfp68_13" data-translate="main.i">i</div>
+                            <div class="_decor_cfp68_13">i</div>
                           </button></div>
                       </div>
                     </div>
@@ -489,19 +489,18 @@ EOD;
                     </div>
                     <div class="_content_47r2f_371">
                       <div class="_header_47r2f_380">
-                        <h4 class="_title_47r2f_388"
-                          data-translate="main.&#304;kinci_para_yat&#305;rma_i&#351;leminizde_15_900_tl_ye_kadar_bonus_kazan&#305;n">
-                          &#304;kinci para yat&#305;rma i&#351;leminizde 15.900 TL'ye kadar bonus kazan&#305;n
+                        <h4 class="_title_47r2f_388">
+                          Gana un bono de hasta 150% en tu segundo depósito
                         </h4>
-                        <p data-text="150%" class="_subtitle_47r2f_399" data-translate="main.150">150%</p>
+                        <p data-text="150%" class="_subtitle_47r2f_399">150%</p>
                       </div>
                       <div class="_bonusValue_1oi83_1">
-                        <p class="_subtitle_1oi83_8" data-translate="main.obt&eacute;n_tl15900_de_bonificaci&oacute;n">
-                          Obt&eacute;n TL15900 de bonificaci&oacute;n</p>
+                        <p class="_subtitle_1oi83_8">
+                          Obt&eacute;n 150% de bonificaci&oacute;n</p>
                         <div class="_row_1oi83_49"><button data-cy="button_open_register"
                             class="_button_12c87_1 _button_color_yellow_12c87_50 _button_height_medium_12c87_65 _button_withDecor_12c87_95">
                             <div class="_content_12c87_36">
-                              <p class="_label_12c87_25" data-translate="main.haz_un_dep&oacute;sito">Haz un
+                              <p class="_label_12c87_25">Haz un
                                 dep&oacute;sito</p>
                             </div><img
                               src="data:image/svg+xml,%3csvg%20width='76'%20height='48'%20viewBox='0%200%2076%2048'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cg%20filter='url(%23filter0_d_32643_4546)'%3e%3cpath%20d='M67.9373%20-11.2263L68%2027.7098L30.9567%2040L8%208.65962L30.8552%20-23L67.9373%20-11.2263Z'%20fill='white'%20fill-opacity='0.15'%20shape-rendering='crispEdges'%20/%3e%3c/g%3e%3cdefs%3e%3cfilter%20id='filter0_d_32643_4546'%20x='0'%20y='-31'%20width='76'%20height='79'%20filterUnits='userSpaceOnUse'%20color-interpolation-filters='sRGB'%3e%3cfeFlood%20flood-opacity='0'%20result='BackgroundImageFix'%20/%3e%3cfeColorMatrix%20in='SourceAlpha'%20type='matrix'%20values='0%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%20127%200'%20result='hardAlpha'%20/%3e%3cfeOffset%20/%3e%3cfeGaussianBlur%20stdDeviation='4'%20/%3e%3cfeComposite%20in2='hardAlpha'%20operator='out'%20/%3e%3cfeColorMatrix%20type='matrix'%20values='0%200%200%200%201%200%200%200%200%201%200%200%200%200%201%200%200%200%200.15%200'%20/%3e%3cfeBlend%20mode='normal'%20in2='BackgroundImageFix'%20result='effect1_dropShadow_32643_4546'%20/%3e%3cfeBlend%20mode='normal'%20in='SourceGraphic'%20in2='effect1_dropShadow_32643_4546'%20result='shape'%20/%3e%3c/filter%3e%3c/defs%3e%3c/svg%3e"
@@ -517,7 +516,7 @@ EOD;
                           </button><button data-cy="button_open_bonuses_two"
                             class="_info_cfp68_1 _info_color_purple_cfp68_36 _info_shadow_cfp68_49" type="button">
                             <div class="_images_cfp68_39"></div>
-                            <div class="_decor_cfp68_13" data-translate="main.i">i</div>
+                            <div class="_decor_cfp68_13">i</div>
                           </button></div>
                       </div>
                     </div>
@@ -559,19 +558,18 @@ EOD;
                     <div class="_content_47r2f_371">
                       <div class="_header_47r2f_380">
                         <h4 class="_title_47r2f_388"
-                          data-translate="main.&Uuml;&ccedil;&uuml;nc&uuml;_para_yat&#305;rma_i&#351;leminizde_18_550_tl_ye_kadar_bonus_kazan&#305;n">
-                          &Uuml;&ccedil;&uuml;nc&uuml; para yat&#305;rma i&#351;leminizde 18.550 TL'ye kadar bonus
-                          kazan&#305;n
+                          >
+                          Gana un bono de hasta 175% en tu tercer depósito
                         </h4>
-                        <p data-text="175%" class="_subtitle_47r2f_399" data-translate="main.175">175%</p>
+                        <p data-text="175%" class="_subtitle_47r2f_399">175%</p>
                       </div>
                       <div class="_bonusValue_1oi83_1">
-                        <p class="_subtitle_1oi83_8" data-translate="main.obt&eacute;n_tl18550_de_bonificaci&oacute;n">
-                          Obt&eacute;n TL18550 de bonificaci&oacute;n</p>
+                        <p class="_subtitle_1oi83_8">
+                          Obt&eacute;n 175% de bonificaci&oacute;n</p>
                         <div class="_row_1oi83_49"><button data-cy="button_open_register"
                             class="_button_12c87_1 _button_color_yellow_12c87_50 _button_height_medium_12c87_65 _button_withDecor_12c87_95">
                             <div class="_content_12c87_36">
-                              <p class="_label_12c87_25" data-translate="main.haz_un_dep&oacute;sito">Haz un
+                              <p class="_label_12c87_25">Haz un
                                 dep&oacute;sito</p>
                             </div><img
                               src="data:image/svg+xml,%3csvg%20width='76'%20height='48'%20viewBox='0%200%2076%2048'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cg%20filter='url(%23filter0_d_32643_4546)'%3e%3cpath%20d='M67.9373%20-11.2263L68%2027.7098L30.9567%2040L8%208.65962L30.8552%20-23L67.9373%20-11.2263Z'%20fill='white'%20fill-opacity='0.15'%20shape-rendering='crispEdges'%20/%3e%3c/g%3e%3cdefs%3e%3cfilter%20id='filter0_d_32643_4546'%20x='0'%20y='-31'%20width='76'%20height='79'%20filterUnits='userSpaceOnUse'%20color-interpolation-filters='sRGB'%3e%3cfeFlood%20flood-opacity='0'%20result='BackgroundImageFix'%20/%3e%3cfeColorMatrix%20in='SourceAlpha'%20type='matrix'%20values='0%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%20127%200'%20result='hardAlpha'%20/%3e%3cfeOffset%20/%3e%3cfeGaussianBlur%20stdDeviation='4'%20/%3e%3cfeComposite%20in2='hardAlpha'%20operator='out'%20/%3e%3cfeColorMatrix%20type='matrix'%20values='0%200%200%200%201%200%200%200%200%201%200%200%200%200%201%200%200%200%200.15%200'%20/%3e%3cfeBlend%20mode='normal'%20in2='BackgroundImageFix'%20result='effect1_dropShadow_32643_4546'%20/%3e%3cfeBlend%20mode='normal'%20in='SourceGraphic'%20in2='effect1_dropShadow_32643_4546'%20result='shape'%20/%3e%3c/filter%3e%3c/defs%3e%3c/svg%3e"
@@ -587,7 +585,7 @@ EOD;
                           </button><button data-cy="button_open_bonuses_two"
                             class="_info_cfp68_1 _info_color_purple_cfp68_36 _info_shadow_cfp68_49" type="button">
                             <div class="_images_cfp68_39"></div>
-                            <div class="_decor_cfp68_13" data-translate="main.i">i</div>
+                            <div class="_decor_cfp68_13">i</div>
                           </button></div>
                       </div>
                     </div>
@@ -626,20 +624,18 @@ EOD;
                     </div>
                     <div class="_content_47r2f_371">
                       <div class="_header_47r2f_380">
-                        <h4 class="_title_47r2f_388"
-                          data-translate="main.d&ouml;rd&uuml;nc&uuml;_para_yat&#305;rma_i&#351;leminizde_21_200_tl_ye_kadar_bonus_kazan&#305;n">
-                          D&ouml;rd&uuml;nc&uuml; para yat&#305;rma i&#351;leminizde 21.200 TL'ye kadar bonus
-                          kazan&#305;n
+                        <h4 class="_title_47r2f_388">
+                          Gana un bono de hasta 200% en tu cuarto depósito
                         </h4>
-                        <p data-text="200%" class="_subtitle_47r2f_399" data-translate="main.200">200%</p>
+                        <p data-text="200%" class="_subtitle_47r2f_399">200%</p>
                       </div>
                       <div class="_bonusValue_1oi83_1">
-                        <p class="_subtitle_1oi83_8" data-translate="main.obt&eacute;n_tl21200_de_bonificaci&oacute;n">
-                          Obt&eacute;n TL21200 de bonificaci&oacute;n</p>
+                        <p class="_subtitle_1oi83_8" >
+                          Obt&eacute;n 200% de bonificaci&oacute;n</p>
                         <div class="_row_1oi83_49"><button data-cy="button_open_register"
                             class="_button_12c87_1 _button_color_yellow_12c87_50 _button_height_medium_12c87_65 _button_withDecor_12c87_95">
                             <div class="_content_12c87_36">
-                              <p class="_label_12c87_25" data-translate="main.haz_un_dep&oacute;sito">Haz un
+                                <p class="_label_12c87_25">Haz un
                                 dep&oacute;sito</p>
                             </div><img
                               src="data:image/svg+xml,%3csvg%20width='76'%20height='48'%20viewBox='0%200%2076%2048'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cg%20filter='url(%23filter0_d_32643_4546)'%3e%3cpath%20d='M67.9373%20-11.2263L68%2027.7098L30.9567%2040L8%208.65962L30.8552%20-23L67.9373%20-11.2263Z'%20fill='white'%20fill-opacity='0.15'%20shape-rendering='crispEdges'%20/%3e%3c/g%3e%3cdefs%3e%3cfilter%20id='filter0_d_32643_4546'%20x='0'%20y='-31'%20width='76'%20height='79'%20filterUnits='userSpaceOnUse'%20color-interpolation-filters='sRGB'%3e%3cfeFlood%20flood-opacity='0'%20result='BackgroundImageFix'%20/%3e%3cfeColorMatrix%20in='SourceAlpha'%20type='matrix'%20values='0%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%20127%200'%20result='hardAlpha'%20/%3e%3cfeOffset%20/%3e%3cfeGaussianBlur%20stdDeviation='4'%20/%3e%3cfeComposite%20in2='hardAlpha'%20operator='out'%20/%3e%3cfeColorMatrix%20type='matrix'%20values='0%200%200%200%201%200%200%200%200%201%200%200%200%200%201%200%200%200%200.15%200'%20/%3e%3cfeBlend%20mode='normal'%20in2='BackgroundImageFix'%20result='effect1_dropShadow_32643_4546'%20/%3e%3cfeBlend%20mode='normal'%20in='SourceGraphic'%20in2='effect1_dropShadow_32643_4546'%20result='shape'%20/%3e%3c/filter%3e%3c/defs%3e%3c/svg%3e"
@@ -655,7 +651,7 @@ EOD;
                           </button><button data-cy="button_open_bonuses_two"
                             class="_info_cfp68_1 _info_color_purple_cfp68_36 _info_shadow_cfp68_49" type="button">
                             <div class="_images_cfp68_39"></div>
-                            <div class="_decor_cfp68_13" data-translate="main.i">i</div>
+                            <div class="_decor_cfp68_13">i</div>
                           </button></div>
                       </div>
                     </div>
@@ -680,7 +676,7 @@ EOD;
             </div>
             <div class="_bonuses_1wixd_1">
               <div class="_header_1wixd_6">
-                <h3 class="_title_1wixd_17" data-translate="main.todos_los_bonos">Todos los bonos</h3>
+                <h3 class="_title_1wixd_17">Todos los bonos</h3>
               </div>
               <div class="_container_1wixd_133">
                 <div class="_card_1pdoo_1">
@@ -692,12 +688,12 @@ EOD;
                   <div class="_content_1pdoo_40">
                     <div class="_main_1pdoo_48">
                       <p class="_text_1pdoo_60"
-                        data-translate="main.hasta_un_400_en_tu_dep&oacute;sito_con_un_c&oacute;digo_promocional">
-                        &iexcl;Hasta un +400% en tu dep&oacute;sito con un c&oacute;digo promocional!</p>
+>
+                        ¡Hasta un +400% en tu depósito con un código promocional!</p>
                       <p class="_subtitle_1pdoo_73"
-                        data-translate="main.cada_c&oacute;digo_promocional_es_&uacute;nico_y_otorga_del_50_al_1000_a_tu_saldo_de_bonificaci&oacute;n">
-                        Cada c&oacute;digo promocional es &uacute;nico y otorga del +50% al +1000% a tu
-                        saldo de bonificaci&oacute;n.</p>
+>
+                        Cada código promocional es único y otorga del +50% al +1000% a tu
+                        saldo de bonificación.</p>
                     </div>
                     <div class="_content_19mnb_1 _footer_1pdoo_56">
                       <div class="_notStarted_19mnb_1">
@@ -706,7 +702,7 @@ EOD;
                           <div class="_buttonRow_19mnb_131"><button type="button" data-cy="button_open_register"
                               class="_button_12c87_1 _button_color_yellow_12c87_50 _button_height_medium_12c87_65">
                               <div class="_content_12c87_36">
-                                <p class="_label_12c87_25" data-translate="main.confirmar">Confirmar</p>
+                                <p class="_label_12c87_25">Confirmar</p>
                               </div>
                             </button></div>
                         </form>
@@ -722,22 +718,20 @@ EOD;
 
       <div class="_bonuses_xn1l5_1 _bonuses_mobile_xn1l5_44">
         <div class="_header_xn1l5_15">
-          <h3 class="_title_xn1l5_21" data-translate="main.el_casino_en_l&iacute;nea_m&aacute;s_generoso">&iexcl;El
-            casino en l&iacute;nea m&aacute;s generoso!</h3>
+          <h3 class="_title_xn1l5_21">¡El
+            casino en línea más generoso!</h3>
         </div>
         <div class="_container_xn1l5_31">
           <div class="_bonuses_cu7hf_1 _bonuses_mobile_cu7hf_91 _welcome_xn1l5_31">
             <div class="_header_cu7hf_9">
               <div class="_column_cu7hf_51">
-                <h3 class="_title_cu7hf_56" data-translate="main.650_bono_de_bienvenida"><span
-                    data-translate="main.650">650%</span> Bono de Bienvenida</h3>
+                <h3 class="_title_cu7hf_56"><span>650%</span> Bono de Bienvenida</h3>
                 <p class="_text_cu7hf_68"
-                  data-translate="main.reciba_hasta_tl68900_a_tu_saldo_de_bonificaci&oacute;n_acaba_de_incrementarse_al_recargar_tu_saldo_de_cuenta">
-                  Reciba hasta <span data-translate="main.tl68900">TL68900</span> A tu saldo de bonificaci&oacute;n
+>
+                  Reciba hasta <span>650%</span> A tu saldo de bonificación
                   acaba de
                   incrementarse al recargar tu saldo de cuenta!</p>
-              </div><button data-cy="button_open_bonuses" class="_howItWorks_cu7hf_18"
-                data-translate="main.c&oacute;mo_funciona">C&oacute;mo funciona</button>
+              </div><button data-cy="button_open_bonuses" class="_howItWorks_cu7hf_18">Cómo funciona</button>
             </div>
             <div class="_mobileBonuses_cu7hf_104">
               <div class="_container_8rn2c_1">
@@ -770,15 +764,14 @@ EOD;
                   <div class="_imageBox_8rn2c_24"><img class="_image_8rn2c_24" src="../images/CqHBKcrt.png"></div>
                   <div class="_level_yp7l2_1 _level_mobile_yp7l2_77 _level_8rn2c_46">
                     <div class="_default_yp7l2_43">
-                      <p class="_count_yp7l2_61" data-translate="main.i">I</p>
+                      <p class="_count_yp7l2_61">I</p>
                       <div class="_back_yp7l2_52"></div>
                     </div>
                   </div>
                   <div class="_content_8rn2c_51">
-                    <h4 class="_title_8rn2c_55"
-                      data-translate="main.&#304;lk_para_yat&#305;rma_i&#351;leminizde_13_250_tl_ye_kadar_bonus_kazan&#305;n">
+                    <h4 class="_title_8rn2c_55">
                       &#304;lk para yat&#305;rma i&#351;leminizde 13.250 TL'ye kadar bonus kazan&#305;n</h4>
-                    <p data-text="125%" class="_subtitle_8rn2c_71" data-translate="main.125">125%</p>
+                    <p data-text="125%" class="_subtitle_8rn2c_71">125%</p>
                   </div>
                 </div>
                 <div class="_footer_2o854_1"><button data-cy="button_open_register"
@@ -831,21 +824,20 @@ EOD;
                   <div class="_imageBox_8rn2c_24"><img class="_image_8rn2c_24" src="../images/DaYhHTCB.png"></div>
                   <div class="_level_yp7l2_1 _level_mobile_yp7l2_77 _level_8rn2c_46">
                     <div class="_default_yp7l2_43">
-                      <p class="_count_yp7l2_61" data-translate="main.ii">II</p>
+                      <p class="_count_yp7l2_61">II</p>
                       <div class="_back_yp7l2_52"></div>
                     </div>
                   </div>
                   <div class="_content_8rn2c_51">
-                    <h4 class="_title_8rn2c_55"
-                      data-translate="main.&#304;kinci_para_yat&#305;rma_i&#351;leminizde_15_900_tl_ye_kadar_bonus_kazan&#305;n">
+                    <h4 class="_title_8rn2c_55">
                       &#304;kinci para yat&#305;rma i&#351;leminizde 15.900 TL'ye kadar bonus kazan&#305;n</h4>
-                    <p data-text="150%" class="_subtitle_8rn2c_71" data-translate="main.150">150%</p>
+                    <p data-text="150%" class="_subtitle_8rn2c_71">150%</p>
                   </div>
                 </div>
                 <div class="_footer_2o854_1"><button data-cy="button_open_register"
                     class="_button_12c87_1 _button_color_yellow_12c87_50 _button_height_small_12c87_62 _button_withDecor_12c87_95">
                     <div class="_content_12c87_36">
-                      <p class="_label_12c87_25" data-translate="main.depositar">Depositar</p>
+                      <p class="_label_12c87_25">Depositar</p>
                     </div><img
                       src="data:image/svg+xml,%3csvg%20width='76'%20height='48'%20viewBox='0%200%2076%2048'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cg%20filter='url(%23filter0_d_32643_4546)'%3e%3cpath%20d='M67.9373%20-11.2263L68%2027.7098L30.9567%2040L8%208.65962L30.8552%20-23L67.9373%20-11.2263Z'%20fill='white'%20fill-opacity='0.15'%20shape-rendering='crispEdges'%20/%3e%3c/g%3e%3cdefs%3e%3cfilter%20id='filter0_d_32643_4546'%20x='0'%20y='-31'%20width='76'%20height='79'%20filterUnits='userSpaceOnUse'%20color-interpolation-filters='sRGB'%3e%3cfeFlood%20flood-opacity='0'%20result='BackgroundImageFix'%20/%3e%3cfeColorMatrix%20in='SourceAlpha'%20type='matrix'%20values='0%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%20127%200'%20result='hardAlpha'%20/%3e%3cfeOffset%20/%3e%3cfeGaussianBlur%20stdDeviation='4'%20/%3e%3cfeComposite%20in2='hardAlpha'%20operator='out'%20/%3e%3cfeColorMatrix%20type='matrix'%20values='0%200%200%200%201%200%200%200%200%201%200%200%200%200%201%200%200%200%200.15%200'%20/%3e%3cfeBlend%20mode='normal'%20in2='BackgroundImageFix'%20result='effect1_dropShadow_32643_4546'%20/%3e%3cfeBlend%20mode='normal'%20in='SourceGraphic'%20in2='effect1_dropShadow_32643_4546'%20result='shape'%20/%3e%3c/filter%3e%3c/defs%3e%3c/svg%3e"
                       class="_decor_12c87_71 _decor1_12c87_75"><img
@@ -861,7 +853,7 @@ EOD;
                     class="_info_cfp68_1 _info_color_purple_cfp68_36 _info_mobile_cfp68_52 _info_shadow_cfp68_49"
                     type="button">
                     <div class="_images_cfp68_39"></div>
-                    <div class="_decor_cfp68_13" data-translate="main.i">i</div>
+                    <div class="_decor_cfp68_13">i</div>
                   </button></div>
               </div>
               <div class="_container_8rn2c_1">
@@ -1005,11 +997,9 @@ EOD;
                 </div>
                 <div class="_content_1pdoo_40">
                   <div class="_main_1pdoo_48">
-                    <p class="_text_1pdoo_60"
-                      data-translate="main.hasta_un_400_en_tu_dep&oacute;sito_con_un_c&oacute;digo_promocional">
+                    <p class="_text_1pdoo_60">
                       &iexcl;Hasta un +400% en tu dep&oacute;sito con un c&oacute;digo promocional!</p>
-                    <p class="_subtitle_1pdoo_73"
-                      data-translate="main.cada_c&oacute;digo_promocional_es_&uacute;nico_y_otorga_del_50_al_1000_a_tu_saldo_de_bonificaci&oacute;n">
+                    <p class="_subtitle_1pdoo_73">
                       Cada c&oacute;digo promocional es &uacute;nico y otorga del +50% al +1000% a tu
                       saldo de bonificaci&oacute;n.</p>
                   </div>
@@ -1020,6 +1010,7 @@ EOD;
                             class="_button_12c87_1 _button_color_yellow_12c87_50 _button_height_small_12c87_62">
                             <div class="_content_12c87_36">
                               <p class="_label_12c87_25" data-translate="main.confirmar">Confirmar</p>
+                      <p class="_label_12c87_25">Confirmar</p>
                             </div>
                           </button></div>
                       </form>
@@ -1049,20 +1040,24 @@ EOD;
             </div>
             <div class="_column_ux79l_44" bis_skin_checked="1">
               <p data-translate="footer.operator_info" style="margin-bottom:0;">
+              <p style="margin-bottom:0;">
                 La información en el sitio es proporcionada por el operador
                 del sitio - la empresa ValorBet N.V., registrada en la
                 dirección: Palm Avenue 10, Rosebank, Sint Maarten.
               </p>
               <p data-translate="footer.license_info" style="margin:0;">La
+              <p style="margin:0;">La
                 actividad de la empresa ValorBet N.V. está licenciada y
                 regulada por IslandGames N.V. (número de licencia: No.
                 1234/JAZ2021-567; válida hasta el 31 de diciembre de 2025) y
                 por la legislación de Sint Maarten. </p>
               <p data-translate="footer.payment_info" style="margin:0;">Los pagos son
+              <p style="margin:0;">Los pagos son
                 procesados por Global Invest Solutions Ltd (número de
                 registro: HE 654321, dirección: Ocean Drive 22, Mesa Verde,
                 5678, Limassol, Chipre), una subsidiaria de ValorBet N.V.</p>
               <p data-translate="footer.copyright">© 2021 - 2025. ValorCasino. Derechos Reservados</p>
+              <p>© 2021 - 2025. ValorCasino. Derechos Reservados</p>
             </div>
           </div>
         </div>
@@ -1070,7 +1065,9 @@ EOD;
           <div class="_container_1698s_1 _container_desktop_1698s_11" bis_skin_checked="1">
             <div bis_skin_checked="1">
               <h2 data-translate="footer.questions" class="_title_1698s_27">¿Tiene preguntas?</h2>
+              <h2 class="_title_1698s_27">¿Tiene preguntas?</h2>
               <p class="_subtitle_1698s_18" data-translate="footer.contact_us">
+              <p class="_subtitle_1698s_18">
                 ¡Escríbanos o llámenos y responderemos de inmediato!
               </p>
             </div>
@@ -1087,6 +1084,7 @@ EOD;
           <div class="politics-menu" style="margin: 0;">
             <div class="politics-menu__value" onclick="toggleDropdown(this)">
               <span class="politics-mobile-menu__selected" data-translate="footer.legal_info">Información Legal</span>
+              <span class="politics-mobile-menu__selected">Información Legal</span>
               <svg xmlns="http://www.w3.org/2000/svg">
                 <path
                   d="M4.8134 5.96384C4.78252 5.95145 4.75597 5.93196 4.72771 5.91322C4.70714 5.8996 4.68364 5.89306 4.66472 5.87602C4.65819 5.8701 4.65605 5.86167 4.64988 5.85544C4.64311 5.84872 4.63408 5.8461 4.62761 5.83889L0.127446 0.835804C0.0415059 0.740042 -0.000976568 0.61985 -0.000976562 0.500636C-0.000976557 0.363833 0.0546894 0.228007 0.164557 0.128336C0.369642 -0.056348 0.68606 -0.0397362 0.870637 0.165469L4.9992 4.75546L9.12777 0.165469C9.31234 -0.0397358 9.62876 -0.0563476 9.83385 0.128337C10.0389 0.314975 10.055 0.6306 9.87096 0.835804L5.3708 5.83889C5.36457 5.84579 5.35584 5.84836 5.34937 5.85483C5.34296 5.8613 5.34046 5.86985 5.33369 5.87602C5.31476 5.89306 5.29127 5.8996 5.2707 5.91322C5.24243 5.93196 5.21588 5.95145 5.185 5.96384C5.15497 5.976 5.12457 5.9807 5.0932 5.98675C5.06158 5.99285 5.03137 6 4.9992 6C4.96703 6 4.93682 5.99285 4.9052 5.98675C4.87383 5.9807 4.84343 5.976 4.8134 5.96384Z">
@@ -1096,26 +1094,26 @@ EOD;
             <div class="politics-menu__dropdown-wrapper">
               <nav class="politics-menu__dropdown">
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile" href="/politics/refund.php"
-                  data-translate="footer.refund_policy">Política de reembolso</a>
+                  >Política de reembolso</a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile"
-                  href="/politics/cancellation.php" data-translate="footer.cancellation_policy">Política de
+                  href="/politics/cancellation.php">Política de
                   cancelación</a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile"
-                  href="/politics/fairness.php" data-translate="footer.fairness_rng">Métodos de prueba de equidad y RNG
+                  href="/politics/fairness.php">Métodos de prueba de equidad y RNG
                 </a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile"
-                  href="/politics/user-auxiliary.php" data-translate="footer.account_payments_bonuses">Cuenta, Pagos y
+                  href="/politics/user-auxiliary.php">Cuenta, Pagos y
                   Bonos</a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile" href="/politics/kyc.php"
-                  data-translate="footer.kyc_policy">Política de Conozca a su Cliente (KYC)</a>
+                  >Política de Conozca a su Cliente (KYC)</a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile"
-                  href="/politics/dispute-resolution.php" data-translate="footer.dispute_resolution">Resolución de
+                  href="/politics/dispute-resolution.php">Resolución de
                   Disputas</a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile"
-                  href="/politics/responsible-gaming.php" data-translate="footer.responsible_gaming">Juego
+                  href="/politics/responsible-gaming.php">Juego
                   Responsable</a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile"
-                  href="/politics/responsible-gambling.php" data-translate="footer.responsible_gaming">Juego
+                  href="/politics/responsible-gambling.php">Juego
                   responsable</a>
               </nav>
             </div>
@@ -1126,6 +1124,7 @@ EOD;
           <div class="politics-menu" style="margin: 0;">
             <div class="politics-menu__value" onclick="toggleDropdown(this)">
               <span class="politics-mobile-menu__selected" data-translate="footer.site_info">Información del
+              <span class="politics-mobile-menu__selected">Información del
                 Sitio</span>
               <svg xmlns="http://www.w3.org/2000/svg">
                 <path
@@ -1136,18 +1135,18 @@ EOD;
             <div class="politics-menu__dropdown-wrapper">
               <nav class="politics-menu__dropdown">
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile"
-                  href="/politics/about-us.php" data-translate="footer.about_us">Sobre nosotros</a>
+                  href="/politics/about-us.php">Sobre nosotros</a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile"
-                  href="/politics/contact-us.php" data-translate="footer.contact">Contacto</a>
+                  href="/politics/contact-us.php">Contacto</a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile"
-                  href="/politics/privacy.php" data-translate="mainprivacy_policy.">Política de privacidad</a>
+                  href="/politics/privacy.php">Política de privacidad</a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile"
-                  href="/politics/terms-and-conditions.php" data-translate="footer.general_terms">Condiciones
+                  href="/politics/terms-and-conditions.php">Condiciones
                   generales</a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile" href="/politics/aml.php"
-                  data-translate="footer.aml_policies">Políticas de AML</a>
+                  >Políticas de AML</a>
                 <a class="politics-menu__dropdown-item politics-menu__dropdown-item--mobile"
-                  href="/politics/self-exclusion.php" data-translate="footer.self_exclusion">Autoexclusión</a>
+                  href="/politics/self-exclusion.php">Autoexclusión</a>
               </nav>
             </div>
           </div>
@@ -1219,16 +1218,19 @@ EOD;
 
         <div>
           <p class="_register_xqcyt_200" data-translate="footer.operator_info" style="margin-bottom:0;">
+  <p class="_register_xqcyt_200" style="margin-bottom:0;">
             La información en el sitio es proporcionada por el operador
             del sitio - la empresa ValorBet N.V., registrada en la
             dirección: Palm Avenue 10, Rosebank, Sint Maarten.
           </p>
           <p class="_register_xqcyt_200" data-translate="footer.license_info" style="margin:0;">La
+  <p class="_register_xqcyt_200" style="margin:0;">La
             actividad de la empresa ValorBet N.V. está licenciada y
             regulada por IslandGames N.V. (número de licencia: No.
             1234/JAZ2021-567; válida hasta el 31 de diciembre de 2025) y
             por la legislación de Sint Maarten. </p>
           <p class="_register_xqcyt_200" data-translate="footer.payment_info" style="margin:0;">Los pagos son
+  <p class="_register_xqcyt_200" style="margin:0;">Los pagos son
             procesados por Global Invest Solutions Ltd (número de
             registro: HE 654321, dirección: Ocean Drive 22, Mesa Verde,
             5678, Limassol, Chipre), una subsidiaria de ValorBet N.V.</p>
@@ -1249,27 +1251,27 @@ EOD;
           <div class="_links_fsgsa_58" bis_skin_checked="1">
             <div class="_list_fsgsa_66" bis_skin_checked="1">
               <a aria-label="footer.menu.terms_and_conditions" href="/politics/terms-and-conditions.php"
-                class="_link_fsgsa_58" data-translate="footer.general_terms">Condiciones
+                class="_link_fsgsa_58">Condiciones
                 generales</a><a aria-label="footer.menu.privacy_policy" href="/politics/privacy.php"
-                class="_link_fsgsa_58" data-translate="footer.privacy_policy">Política de
+                class="_link_fsgsa_58">Política de
                 privacidad</a>
             </div>
             <div class="_list_fsgsa_66" bis_skin_checked="1">
               <a aria-label="footer.menu.responsible_gambling" href="/politics/responsible-gambling.php"
-                class="_link_fsgsa_58" data-translate="footer.responsible_gaming">Juego
+                class="_link_fsgsa_58">Juego
                 responsable</a><a aria-label="footer.menu.about_us" href="/politics/about-us.php" class="_link_fsgsa_58"
-                data-translate="footer.about_us">Sobre
+                >Sobre
                 nosotros</a>
             </div>
             <div class="_list_fsgsa_66" bis_skin_checked="1">
               <a aria-label="footer.menu.contact_us" href="/politics/contact-us.php" class="_link_fsgsa_58"
-                data-translate="footer.contact">Contacto</a><a aria-label="footer.menu.user_auxiliary"
+                >Contacto</a><a aria-label="footer.menu.user_auxiliary"
                 href="/politics/user-auxiliary.php" class="_link_fsgsa_58"
-                data-translate="footer.account_payments_bonuses">Cuenta, Pagos y Bonos</a>
+                >Cuenta, Pagos y Bonos</a>
             </div>
             <div class="_list_fsgsa_66" bis_skin_checked="1">
               <a aria-label="footer.menu.contact_us" href="#" class="_link_fsgsa_58"
-                data-translate="footer.affiliate_program">Programa de afiliados</a>
+                >Programa de afiliados</a>
             </div>
 
             <section class="language-selector">
@@ -1490,12 +1492,14 @@ EOD;
             d="M18.88 9.77a7.96 7.96 0 0 0-1.332-3.208 8.1 8.1 0 0 0-1.957-1.956A7.96 7.96 0 0 0 11 3.154q-.709 0-1.383.12a7.96 7.96 0 0 0-3.208 1.332 8.1 8.1 0 0 0-1.957 1.956A7.96 7.96 0 0 0 3 11.154q0 .708.12 1.383a8 8 0 0 0 1.332 3.208A8.1 8.1 0 0 0 6.41 17.7 7.96 7.96 0 0 0 11 19.154q.709-.001 1.383-.12a7.96 7.96 0 0 0 3.208-1.333 8.1 8.1 0 0 0 1.957-1.956A7.96 7.96 0 0 0 19 11.154q0-.708-.12-1.384m-.616 0h-1.772a5.6 5.6 0 0 0-.632-1.52l1.253-1.253c.56.822.96 1.761 1.151 2.773m-2.206 1.384a5.04 5.04 0 0 1-.64 2.46 5.1 5.1 0 0 1-3.035 2.406 5.05 5.05 0 0 1-3.844-.449 5.1 5.1 0 0 1-2.405-3.034 5.04 5.04 0 0 1 .448-3.844 5.1 5.1 0 0 1 3.035-2.405 5.05 5.05 0 0 1 3.844.448 5.1 5.1 0 0 1 2.405 3.034c.125.44.192.904.192 1.384m-.902-6.113-1.252 1.252a5.6 5.6 0 0 0-1.52-.632V3.89a7.4 7.4 0 0 1 2.772 1.152m-5.54-1.152v1.772a5.6 5.6 0 0 0-1.52.632L6.844 5.041a7.4 7.4 0 0 1 2.773-1.152M4.888 6.997 6.14 8.25a5.6 5.6 0 0 0-.632 1.52H3.736a7.4 7.4 0 0 1 1.151-2.773m-1.151 5.54h1.772c.136.542.351 1.053.632 1.52L4.887 15.31a7.4 7.4 0 0 1-1.151-2.773m3.108 4.73 1.252-1.253c.468.28.979.495 1.52.632v1.772a7.4 7.4 0 0 1-2.772-1.151m5.54 1.151v-1.772a5.6 5.6 0 0 0 1.52-.632l1.252 1.253c-.821.56-1.76.959-2.773 1.151m4.729-3.108-1.253-1.252c.28-.468.496-.98.632-1.521h1.772a7.4 7.4 0 0 1-1.151 2.773m-4.266-5.367-1.21 1.21 1.21 1.21a.9.9 0 0 1 .884.224.918.918 0 1 1-1.298 1.298.9.9 0 0 1-.223-.885L11 11.79 9.79 13a.9.9 0 0 1-.223.885.918.918 0 0 1-1.298-1.298.9.9 0 0 1 .884-.223l1.21-1.21-1.21-1.21a.9.9 0 0 1-.884-.224.918.918 0 1 1 1.298-1.298c.24.24.305.579.223.885l1.21 1.21 1.21-1.21a.9.9 0 0 1 .223-.885.918.918 0 1 1 1.298 1.298.9.9 0 0 1-.884.223m5.931-6.721A10.93 10.93 0 0 0 11 0C8.062 0 5.3 1.144 3.222 3.222A10.93 10.93 0 0 0 0 11c0 2.938 1.144 5.7 3.222 7.778A10.93 10.93 0 0 0 11 22c2.938 0 5.7-1.144 7.778-3.222A10.93 10.93 0 0 0 22 11c0-2.938-1.144-5.7-3.222-7.778m-1.414 14.142A8.94 8.94 0 0 1 11 20a8.94 8.94 0 0 1-6.364-2.636A8.94 8.94 0 0 1 2 11c0-2.404.936-4.664 2.636-6.364A8.94 8.94 0 0 1 11 2c2.404 0 4.664.936 6.364 2.636A8.94 8.94 0 0 1 20 11a8.94 8.94 0 0 1-2.636 6.364" />
         </svg>
         <p data-translate="footer.casino" class="_label_t4ztx_33">Casino</p>
+  <p class="_label_t4ztx_33">Casino</p>
       </a><a href="/all_games.php?categorías=live" class="_link_t4ztx_20"><svg xmlns="http://www.w3.org/2000/svg"
           width="24" height="24" fill="none">
           <path fill="grey"
             d="M23.137 9.916 14.084.863a2.947 2.947 0 0 0-4.168 0L.863 9.916a2.947 2.947 0 0 0 0 4.168l9.053 9.053a2.947 2.947 0 0 0 4.168 0l9.053-9.053a2.947 2.947 0 0 0 0-4.168m-18.1 3.15a1.7 1.7 0 1 1-2.403-2.403 1.7 1.7 0 0 1 2.403 2.404m4.015-4.014a1.7 1.7 0 1 1-2.404-2.404 1.7 1.7 0 0 1 2.404 2.404m1.611-6.419a1.7 1.7 0 1 1 2.403 2.405 1.7 1.7 0 0 1-2.403-2.405m2.674 18.734a1.7 1.7 0 1 1-2.403-2.404 1.7 1.7 0 0 1 2.403 2.404m4.015-4.015a1.7 1.7 0 1 1-2.404-2.403 1.7 1.7 0 0 1 2.404 2.403m4.015-4.015a1.7 1.7 0 1 1-2.405-2.404 1.7 1.7 0 0 1 2.405 2.404" />
         </svg>
         <p data-translate="footer.live_games" class="_label_t4ztx_33">Juegos en vivo</p>
+  <p class="_label_t4ztx_33">Juegos en vivo</p>
       </a><button title="Messages" type="button" class="_chat_t4ztx_124">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -1523,6 +1527,7 @@ EOD;
             </g>
           </svg>
           <h3 data-translate="modal.access" class="_title_10y1t_114 _title_fontSize_medium_10y1t_131">
+          <h3 class="_title_10y1t_114 _title_fontSize_medium_10y1t_131">
             Acceso
           </h3>
           <div data-cy="close-modal-button-login" class="_close_10y1t_164" aria-hidden="true"></div>
@@ -1533,21 +1538,23 @@ EOD;
               <div class="_row_uzguq_10">
                 <div class="_root_1rq38_1 _root_ltr_1rq38_115">
                   <label data-translate="modal.email_phone" class="_label_1rq38_10 _label_color_mirage_1rq38_16"
+                  <label class="_label_1rq38_10 _label_color_mirage_1rq38_16"
                     for="username">Correo electrónico /
                     Teléfono</label>
                   <div class="_inputContent_1rq38_22">
                     <input class="_input_1rq38_22" id="email" name="email" placeholder="Correo electrónico o teléfono"
-                      data-translate="modal.email_placeholder" required>
+                      required>
                   </div>
                 </div>
               </div>
               <div class="_row_uzguq_10">
                 <div class="_root_1rq38_1">
                   <label data-translate="modal.password" class="_label_1rq38_10 _label_color_mirage_1rq38_16"
+                  <label class="_label_1rq38_10 _label_color_mirage_1rq38_16"
                     for="password">Contraseña</label>
                   <div class="_inputContent_1rq38_22">
                     <input class="_input_1rq38_22 toggle-password-input" id="password" name="password"
-                      placeholder="Contraseña" type="password" data-translate="modal.password_placeholder" required>
+                      placeholder="Contraseña" type="password" required>
                     <div class="_endIcon_1rq38_75">
                       <img class="toggle-password-input-svg" src="../images/uneach.svg" alt="">
                     </div>
@@ -1557,6 +1564,7 @@ EOD;
             </div>
             <div class="_buttons_uzguq_98">
               <button data-translate="modal.access" type="submit"
+              <button type="submit"
                 class="_button_1qy1r_1 _button_color_yellow_1qy1r_33 _button_border-radius_medium_1qy1r_23 _button_border_1qy1r_20 _button_flex_1qy1r_14 _button_fixHeight_1qy1r_76 _submit_uzguq_26"
                 data-cy="login-submit">
                 Acceso
@@ -1624,7 +1632,9 @@ EOD;
         </div>
         <div class="_footer_10y1t_188 _footer_uzguq_53">
           <p data-translate="modal.no_account" class="_text_uzguq_59">No tengo una cuenta</p>
+          <p class="_text_uzguq_59">No tengo una cuenta</p>
           <button data-translate="modal.signup" type="button" class="_link_uzguq_65 open_login-modal">
+          <button type="button" class="_link_uzguq_65 open_login-modal">
             Registrarse <img src="../images/arrow-right.svg" alt>
           </button>
         </div>
@@ -1649,6 +1659,7 @@ EOD;
             </g>
           </svg>
           <h3 data-translate="modal.account_creation" class="_title_10y1t_114 _title_fontSize_medium_10y1t_131">
+          <h3 class="_title_10y1t_114 _title_fontSize_medium_10y1t_131">
             Creación de cuenta
           </h3>
           <div data-cy="close-modal-button" class="_close_10y1t_164 close-modal-button-register" aria-hidden="true">
@@ -1667,12 +1678,14 @@ EOD;
                     <form id="registration-form" class="form _form_118hh_20 _form_desktop_118hh_58" method="POST">
                       <div class="_root_1rq38_1 _root_ltr_1rq38_115 _control_118hh_1">
                         <label data-translate="modal.email" class="_label_1rq38_10 _label_color_mirage_1rq38_16"
+                        <label class="_label_1rq38_10 _label_color_mirage_1rq38_16"
                           for="email">Correo
                           electrónico</label>
                         <div class="_inputContent_1rq38_22">
                           <input class="_input_1rq38_22" id="email" name="email" placeholder="Correo electrónico"
-                            data-translate="modal.registration_email_placeholder" type="email" data-testid="email-input"
+                            type="email" data-testid="email-input"
                             value="" required="">
+                        <label class="_label_1rq38_10 _label_color_mirage_1rq38_16"
                         </div>
                       </div>
                       <div class="_root_1rq38_1 _control_118hh_1">
@@ -1680,7 +1693,7 @@ EOD;
                           for="password">Contraseña</label>
                         <div class="_inputContent_1rq38_22">
                           <input class="_input_1rq38_22 toggle-password-input" id="password" name="password"
-                            placeholder="Contraseña" data-translate="modal.password_placeholder" type="password"
+                            placeholder="Contraseña" type="password"
                             element="password" data-testid="password-input" value="" required="">
                           <div class="_endIcon_1rq38_75">
                             <img class="toggle-password-input-svg" src="../images/uneach.svg" alt="">
@@ -1690,49 +1703,71 @@ EOD;
                       <!-- Добавленный блок выбора страны -->
                       <div class="_root_1rq38_1 _control_118hh_1">
                         <label data-translate="modal.country" class="_label_1rq38_10 _label_color_mirage_1rq38_16"
+                        <label class="_label_1rq38_10 _label_color_mirage_1rq38_16"
                           for="country">País</label>
                         <div class="_inputContent_1rq38_22">
                           <select class="_input_1rq38_22" id="country" name="country" required>
                             <option data-translate="modal.select_country" value="" disabled selected>Selecciona tu país
                             </option>
                             <option data-translate="modal.argentina" value="Argentina">Argentina</option>
+                            <option value="Argentina">Argentina</option>
                             <!-- Испанский -->
                             <option data-translate="modal.bolivia" value="Bolivia">Bolivia</option> <!-- Испанский -->
+                            <option value="Bolivia">Bolivia</option> <!-- Испанский -->
                             <option data-translate="modal.brazil" value="Brazil">Brasil</option> <!-- Португальский -->
+                            <option value="Brazil">Brasil</option> <!-- Португальский -->
                             <option data-translate="modal.chile" value="Chile">Chile</option> <!-- Испанский -->
+                            <option value="Chile">Chile</option> <!-- Испанский -->
                             <option data-translate="modal.colombia" value="Colombia">Colombia</option>
+                            <option value="Colombia">Colombia</option>
                             <!-- Испанский -->
                             <option data-translate="modal.costa_rica" value="Costa Rica">Costa Rica</option>
+                            <option value="Costa Rica">Costa Rica</option>
                             <!-- Испанский -->
                             <option data-translate="modal.cuba" value="Cuba">Cuba</option> <!-- Испанский -->
+                            <option value="Cuba">Cuba</option> <!-- Испанский -->
                             <option data-translate="modal.dominican_republic" value="Dominican Republic">República
                               Dominicana</option> <!-- Испанский -->
                             <option data-translate="modal.ecuador" value="Ecuador">Ecuador</option> <!-- Испанский -->
+                            <option value="Ecuador">Ecuador</option> <!-- Испанский -->
                             <option data-translate="modal.el_salvador" value="El Salvador">El Salvador</option>
+                            <option value="El Salvador">El Salvador</option>
                             <!-- Испанский -->
                             <option data-translate="modal.guatemala" value="Guatemala">Guatemala</option>
+                            <option value="Guatemala">Guatemala</option>
                             <!-- Испанский -->
                             <option data-translate="modal.haiti" value="Haiti">Haïti</option>
+                            <option value="Haiti">Haïti</option>
                             <!-- Французский и гаитянский креольский -->
                             <option data-translate="modal.honduras" value="Honduras">Honduras</option>
+                            <option value="Honduras">Honduras</option>
                             <!-- Испанский -->
                             <option data-translate="modal.mexico" value="Mexico">México</option> <!-- Испанский -->
+                            <option value="Mexico">México</option> <!-- Испанский -->
                             <option data-translate="modal.nicaragua" value="Nicaragua">Nicaragua</option>
+                            <option value="Nicaragua">Nicaragua</option>
                             <!-- Испанский -->
                             <option data-translate="modal.panama" value="Panama">Panamá</option> <!-- Испанский -->
+                            <option value="Panama">Panamá</option> <!-- Испанский -->
                             <option data-translate="modal.paraguay" value="Paraguay">Paraguay</option>
+                            <option value="Paraguay">Paraguay</option>
                             <!-- Испанский -->
                             <option data-translate="modal.peru" value="Peru">Perú</option> <!-- Испанский -->
+                            <option value="Peru">Perú</option> <!-- Испанский -->
                             <option data-translate="modal.puerto_rico" value="Puerto Rico">Puerto Rico</option>
+                            <option value="Puerto Rico">Puerto Rico</option>
                             <!-- Испанский -->
                             <option data-translate="modal.uruguay" value="Uruguay">Uruguay</option> <!-- Испанский -->
+                            <option value="Uruguay">Uruguay</option> <!-- Испанский -->
                             <option data-translate="modal.venezuela" value="Venezuela">Venezuela</option>
+                            <option value="Venezuela">Venezuela</option>
                             <!-- Испанский -->
                           </select>
                         </div>
                       </div>
                       <!-- Конец добавленного блока -->
                       <button data-translate="modal.open_account" type="submit"
+                        <button type="submit"
                         class="_button_1qy1r_1 _button_color_green_1qy1r_39 _button_border-radius_medium_1qy1r_23 _button_border_1qy1r_20 _button_flex_1qy1r_14 _button_fixHeight_1qy1r_76 form__submit_june"
                         data-testid="submit-button">
                         Abrir cuenta
@@ -1776,7 +1811,8 @@ EOD;
             </div>
           </div>
           <div class="_policy_fyyq9_20" style="display: flex; align-items: center; gap: 5px;">
-            <p data-translate="modal.terms_agreement"> Estoy familiarizado y de acuerdo con</p>
+            <p> Estoy familiarizado y de acuerdo con</p>
+            <p> Estoy familiarizado y de acuerdo con</p>
             <a data-translate="modal.terms_usage" href="/politics.php" aria-hidden="true">las condiciones del acuerdo de
               uso del
               sitio</a>
@@ -1789,7 +1825,7 @@ EOD;
                 d="M0.17827 5.25726C0.455552 3.73352 3.05504 1.76172 3.71349 1.34357C4.37193 0.925232 5.06523 0.178406 5.06523 0.178406C5.06523 0.178406 5.75847 0.925232 6.41698 1.34357C7.07549 1.76172 9.6751 3.73352 9.95232 5.25726C10.2295 6.78082 9.25902 8.2746 7.56072 8.3642C7.56072 8.3642 6.41667 8.4848 5.5656 7.73505C5.83476 8.33624 6.25475 9.01617 6.91069 9.68933V9.98035H5.06535H3.2199V9.68933C3.87578 9.01617 4.29582 8.33612 4.56487 7.73492C3.71398 8.4848 2.56975 8.3642 2.56975 8.3642C0.871446 8.2746 -0.0990131 6.78082 0.17827 5.25726ZM16.6981 10.1588C16.6981 10.1588 18.8409 6.73206 21.9706 5.07941C18.8409 3.4267 16.6981 0 16.6981 0C16.6981 0 14.5553 3.4267 11.4258 5.07941C14.5553 6.73206 16.6981 10.1588 16.6981 10.1588ZM7.62724 12.8953C7.62724 12.8953 5.88365 12.7112 5.06535 14.1836C4.24687 12.7112 2.50334 12.8953 2.50334 12.8953C0.759874 12.9874 -0.236464 14.5209 0.0482037 16.085C0.332811 17.6493 3.00151 19.6736 3.67754 20.103C4.35356 20.5323 5.06535 21.2991 5.06535 21.2991C5.06535 21.2991 5.77702 20.5323 6.45293 20.103C7.12901 19.6736 9.79765 17.6493 10.0824 16.085C10.367 14.5209 9.37077 12.9874 7.62724 12.8953ZM19.4645 16.0617C19.1429 16.0617 18.8126 16.108 18.4946 16.1941C18.959 15.6904 19.2339 15.0082 19.2339 14.3726C19.2339 13.1655 18.0987 12.187 16.6982 12.187C15.2977 12.187 14.1625 13.1655 14.1625 14.3726C14.1625 15.0223 14.5331 15.7207 15.0937 16.2274C14.7164 16.0897 14.3168 16.012 13.932 16.012C12.5315 16.012 11.3963 16.9905 11.3963 18.1977C11.3963 19.4047 12.5315 20.3834 13.932 20.3834C14.771 20.3834 15.6802 20.0498 16.2745 19.5231C16 20.1816 15.5508 20.9444 14.8157 21.6987V22H16.727H18.6384V21.6987C17.8974 20.9384 17.4473 20.1698 17.1734 19.5077C17.7598 20.0602 18.641 20.433 19.4645 20.433C20.8648 20.433 22 19.4545 22 18.2473C22 17.0401 20.8648 16.0617 19.4645 16.0617Z"
                 fill="#ffffff"></path>
             </svg>
-            <p data-translate="modal.bets_bonus" class="_text_fyyq9_60">¡Obtén un 650% en apuestas!</p>
+            <p class="_text_fyyq9_60">¡Obtén un 650% en apuestas!</p>
           </div>
           <div class="_item_fyyq9_42">
             <svg width="22" height="24" viewBox="0 0 22 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1797,7 +1833,7 @@ EOD;
                 d="M7.12878 14H11.8713H12.5643H18L16.4096 4.00003H12.0643H11.5101H7.71899H7.16486H2.81958L1 14H6.43561H7.12878ZM15.9587 4.7117L17.2036 13.2882H12.5288L12.0999 4.7117H15.9587ZM7.67694 4.7117H11.5359L11.8456 13.2882H7.17072L7.67694 4.7117ZM3.25403 4.7117H7.11298L6.48755 13.2882H1.81274L3.25403 4.7117ZM3.77863 6.27872H6.13171L6.06866 6.93777L4.13306 11.2596H3.17792L5.14911 7.17526L5.15088 7.16H3.64331L3.77863 6.27872ZM10.7089 6.27872L10.72 6.93777L9.27087 11.2596H8.31586L9.82721 7.17526L9.82727 7.16H8.31976L8.35583 6.27872H10.7089ZM12.9962 7.16L12.933 6.27872H15.2861L15.3715 6.93777L14.4088 11.2596H13.4538L14.5054 7.17526L14.5038 7.16H12.9962ZM18 15H1V19L0 20V24H0.846069H18.1539H19V20L18 19V15ZM13 19H6V17H13V19ZM21 14L22 15V17H19V15L20 14L19.8539 6.70389C19.288 6.47653 18.8882 5.93546 18.8882 5.30057C18.8882 4.46127 19.5848 3.78098 20.4441 3.78098C21.3034 3.78098 22 4.46127 22 5.30057C22 5.93546 21.6003 6.47653 21.0343 6.70389L21 14ZM8.18549 3.00003H3.17792L3.4856 2.20975C4.00098 0.885956 5.38708 3.05176e-05 6.94275 3.05176e-05H9.44995H9.51794H12.0252C13.5809 3.05176e-05 14.9669 0.885956 15.4823 2.20975L15.79 3.00003H11.0002H9.51562H9.45239H8.18549Z"
                 fill="#ffffff"></path>
             </svg>
-            <p data-translate="modal.casino_bonus" class="_text_fyyq9_60">¡Obtén un 650% en el casino!</p>
+            <p class="_text_fyyq9_60">¡Obtén un 650% en el casino!</p>
           </div>
           <div class="_item_fyyq9_42">
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1805,12 +1841,12 @@ EOD;
                 d="M22 3.07056V4.92938C22 6.62238 20.7173 7.99994 19.1407 7.99994H18.8402C18.8402 7.99994 16.8432 6.00653 16.829 5.95288H19.1407C19.6663 5.95288 20.0938 5.49377 20.0938 4.92938V3.07056C20.0938 2.50616 19.6663 2.04706 19.1407 2.04706H2.85925C2.33368 2.04706 1.90619 2.50616 1.90619 3.07056V4.92938C1.90619 5.49377 2.33368 5.95288 2.85925 5.95288L5.76776 5.85663C5.74927 5.9162 3.28735 7.99994 3.28735 7.99994H2.85925C1.28271 7.99994 0 6.62238 0 4.92938V3.07056C0 1.37756 1.28271 0 2.85925 0H19.1407C20.7173 0 22 1.37756 22 3.07056ZM10.7281 15.0524C10.0745 15.0524 9.4812 14.8761 9.05817 14.683L8.75635 15.6653C9.13873 15.8502 9.79242 16.0012 10.467 16.0264V16.8239H11.453V15.9677C12.6097 15.7996 13.2437 15.1616 13.2437 14.4142C13.2437 13.6586 12.7611 13.1968 11.5633 12.8442C10.7085 12.5755 10.3563 12.3991 10.3563 12.1221C10.3563 11.887 10.5673 11.652 11.2212 11.652C11.9457 11.652 12.4085 11.845 12.6705 11.9374L12.962 10.9885C12.63 10.8542 12.1772 10.7367 11.5031 10.7115V9.97266H10.5172V10.7703C9.44061 10.9466 8.81659 11.526 8.81659 12.2648C8.81659 13.0792 9.55145 13.4991 10.6279 13.8013C11.3726 14.0111 11.6942 14.2126 11.6942 14.5318C11.6942 14.8677 11.3021 15.0524 10.7281 15.0524ZM20.0147 12.5864C20.0539 12.8716 20.0748 13.1614 20.0748 13.4553C20.0748 13.7491 20.0539 14.0389 20.0147 14.3242C20.0052 14.3927 19.9811 14.4572 19.9695 14.5251C19.902 18.6624 15.8976 22 10.9611 22C5.98242 22 1.94635 18.6063 1.94635 14.4201C1.94635 14.2967 1.95898 14.176 1.96655 14.0543C1.94757 13.8557 1.92517 13.6578 1.92517 13.4553C1.92517 13.1614 1.94604 12.8716 1.98529 12.5864C2.18304 11.1483 2.86517 9.8313 3.89221 8.75256C4.32532 8.29767 4.81958 7.88519 5.36469 7.5238C6.65735 6.66675 8.23541 6.09747 9.9588 5.93243C10.3006 5.89966 10.6479 5.88226 11 5.88226C11.3521 5.88226 11.6993 5.89966 12.0411 5.93243C13.7645 6.09747 15.3427 6.66675 16.6353 7.5238C17.1804 7.88519 17.6747 8.29767 18.1077 8.75256C19.1348 9.8313 19.8169 11.1483 20.0147 12.5864ZM3.03375 14.3242C3.22058 15.5237 3.78912 16.6246 4.63367 17.5393L6.05933 16.3495C5.55823 15.7556 5.20679 15.0676 5.05133 14.3242H3.03375ZM6.11182 14.3242C6.24097 14.8307 6.48059 15.3036 6.80872 15.7242C7.19116 16.2145 7.6936 16.6339 8.28113 16.953C8.78522 17.2267 9.35175 17.4268 9.9588 17.5345C10.2948 17.5942 10.643 17.6259 11 17.6259C11.3569 17.6259 11.7051 17.5942 12.0411 17.5345C12.6482 17.4268 13.2148 17.2267 13.7188 16.953C14.3064 16.6339 14.8088 16.2145 15.1913 15.7242C15.5193 15.3036 15.759 14.8307 15.8881 14.3242C15.9597 14.0438 15.9976 13.7532 15.9976 13.4553C15.9976 13.1574 15.9596 12.8668 15.8881 12.5864C15.759 12.0798 15.5193 11.6071 15.1912 11.1864C14.8088 10.6961 14.3064 10.2768 13.7188 9.95764C13.2148 9.68384 12.6482 9.48383 12.0411 9.37604C11.7051 9.31641 11.3569 9.28479 11 9.28479C10.643 9.28479 10.2948 9.31641 9.9588 9.37604C9.35175 9.48383 8.78522 9.68384 8.28113 9.95764C7.6936 10.2768 7.19116 10.6961 6.80872 11.1864C6.48059 11.6071 6.24097 12.0798 6.11182 12.5864C6.04034 12.8668 6.00244 13.1574 6.00244 13.4553C6.00244 13.7532 6.04034 14.0438 6.11182 14.3242ZM16.9486 14.3242C16.7932 15.0676 16.4418 15.7556 15.9406 16.3495L17.3663 17.5393C18.2109 16.6246 18.7794 15.5237 18.9662 14.3242H16.9486ZM6.10608 18.7681C7.20221 19.4728 8.52136 19.9473 9.9588 20.1032V18.4195C9.06793 18.2897 8.24353 17.9965 7.53174 17.5783L6.10608 18.7681ZM12.0411 20.1032C13.4786 19.9473 14.7977 19.4728 15.8939 18.7681L14.4682 17.5783C13.7564 17.9965 12.9321 18.2897 12.0411 18.4195V20.1032ZM17.3663 9.37134L15.9406 10.561C16.4418 11.155 16.7932 11.843 16.9486 12.5864H18.9662C18.7794 11.3868 18.2109 10.286 17.3663 9.37134ZM12.0411 6.80737V8.49109C12.932 8.62085 13.7564 8.91406 14.4682 9.33228L15.8939 8.14258C14.7977 7.43774 13.4786 6.96332 12.0411 6.80737ZM6.10614 8.14258L7.5318 9.33228C8.24353 8.91406 9.06793 8.62085 9.9588 8.49109V6.80737C8.52136 6.96332 7.20221 7.43774 6.10614 8.14258ZM3.03375 12.5864H5.05133C5.20685 11.843 5.55823 11.155 6.05933 10.561L4.63367 9.37134C3.78912 10.286 3.22058 11.3868 3.03375 12.5864Z"
                 fill="#ffffff"></path>
             </svg>
-            <p data-translate="modal.cashback" class="_text_fyyq9_60">¡Obtén hasta un 30% de reembolso!</p>
+            <p class="_text_fyyq9_60">¡Obtén hasta un 30% de reembolso!</p>
           </div>
         </div>
         <div class="_footer_10y1t_188 _footer_fyyq9_73">
-          <p data-translate="modal.already_account" class="_footer__text_fyyq9_79">¿Ya tiene cuenta?</p>
-          <button data-translate="modal.login_action" type="button" class="_link_fyyq9_85 open_register-modal">
+          <p class="_footer__text_fyyq9_79">¿Ya tiene cuenta?</p>
+          <button type="button" class="_link_fyyq9_85 open_register-modal">
             Ingresar <img src="../images/arrow-right.svg" alt>
           </button>
         </div>
@@ -1833,19 +1869,19 @@ EOD;
                 fill="black"></path>
             </g>
           </svg>
-          <h3 class="_title_10y1t_114 _title_fontSize_medium_10y1t_131" data-translate="main.welcome_bonus_title">Bono
+          <h3 class="_title_10y1t_114 _title_fontSize_medium_10y1t_131">Bono
             de Bienvenida - una gran oportunidad para que los nuevos jugadores comiencen con ventajas adicionales.</h3>
           <div data-cy="close-modal-button-bonuses" class="_close_10y1t_164" aria-hidden="true"></div>
         </div>
         <div class="_body_1sqv2_1">
           <div class="_box_1sqv2_9">
-            <p class="_subtitle_1sqv2_16" data-translate="main.how_it_works">Cómo funciona:</p>
+            <p class="_subtitle_1sqv2_16">Cómo funciona:</p>
             <div class="_row_1sqv2_27">
               <div class="_count_1sqv2_75 _count_first_1sqv2_97">
                 <p class="_countText_1sqv2_87">1</p>
               </div>
               <div class="_column_1sqv2_50">
-                <p class="_span_1sqv2_55" data-translate="main.make_deposit">Haz un depósito</p>
+                <p class="_span_1sqv2_55">Haz un depósito</p>
                 <p class="_text_1sqv2_65" data-translate="main.deposit_description">Agregue fondos a su cuenta según lo
                   especificado en los términos de la promoción.</p>
               </div>
@@ -1855,13 +1891,13 @@ EOD;
                 <p class="_countText_1sqv2_87">2</p>
               </div>
               <div class="_column_1sqv2_50">
-                <p class="_span_1sqv2_55" data-translate="main.receive_bonus">Recibe el bono</p>
+                <p class="_span_1sqv2_55">Recibe el bono</p>
                 <p class="_text_1sqv2_65" data-translate="main.bonus_description">Después de depositar, el bono será
                   acreditado automáticamente a su cuenta.</p>
               </div>
             </div>
             <div class="_divider_1sqv2_105"></div>
-            <p class="_subtitle_1sqv2_16" data-translate="main.please_note">Por favor, tenga en cuenta:</p>
+            <p class="_subtitle_1sqv2_16">Por favor, tenga en cuenta:</p>
             <div class="_row_1sqv2_27">
               <div class="_listItem_1sqv2_42">
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1883,7 +1919,7 @@ EOD;
                 </svg>
               </div>
               <div class="_column_1sqv2_50">
-                <p class="_span_1sqv2_55" data-translate="main.wagering_requirement">Requisito de apuesta</p>
+                <p class="_span_1sqv2_55">Requisito de apuesta</p>
                 <p class="_text_1sqv2_65" data-translate="main.wagering_description">Para retirar el bono, necesitas
                   cumplir con las condiciones de apuesta.</p>
               </div>
@@ -1909,7 +1945,7 @@ EOD;
                 </svg>
               </div>
               <div class="_column_1sqv2_50">
-                <p class="_span_1sqv2_55" data-translate="main.validity_period">Período de validez</p>
+                <p class="_span_1sqv2_55">Período de validez</p>
                 <p class="_text_1sqv2_65" data-translate="main.validity_description">El bono está disponible solo por
                   tiempo limitado. Asegúrate de usarlo a tiempo.</p>
               </div>
@@ -1935,7 +1971,7 @@ EOD;
                 </svg>
               </div>
               <div class="_column_1sqv2_50">
-                <p class="_span_1sqv2_55" data-translate="main.restrictions">Restricciones</p>
+                <p class="_span_1sqv2_55">Restricciones</p>
                 <p class="_text_1sqv2_65" data-translate="main.restrictions_description">No todos los juegos cuentan
                   para las apuestas de bonificación.</p>
               </div>
@@ -1961,32 +1997,32 @@ EOD;
                 fill="black"></path>
             </g>
           </svg>
-          <h3 class="_title_10y1t_114 _title_fontSize_large_10y1t_135" data-translate="main.first_deposit_bonus">İlk
+          <h3 class="_title_10y1t_114 _title_fontSize_large_10y1t_135">İlk
             para yatırma işleminizde 13.250 TL'ye kadar bonus kazanın</h3>
           <div data-cy="close-modal-button-bonuses-two" class="_close_10y1t_164" aria-hidden="true"></div>
         </div>
         <div class="_body_mxfxy_1">
           <div class="_content_mxfxy_8">
-            <h2 class="_subtitle_mxfxy_14" data-translate="main.offer_available">La oferta está disponible para nuevos
+            <h2 class="_subtitle_mxfxy_14">La oferta está disponible para nuevos
               usuarios de Valorbet.</h2>
             <div class="_conditions_mxfxy_22">
               <div class="_condition_mxfxy_22 _condition_color_dark_mxfxy_38">
-                <p class="_condition-text_mxfxy_41" data-translate="main.bet">Apuesta</p>
+                <p class="_condition-text_mxfxy_41">Apuesta</p>
                 <p class="_condition-text_mxfxy_41">50</p>
               </div>
               <div class="_condition_mxfxy_22 _condition_color_dark_mxfxy_38">
-                <p class="_condition-text_mxfxy_41" data-translate="main.min_deposit">Suma mínima de depósito</p>
+                <p class="_condition-text_mxfxy_41">Suma mínima de depósito</p>
                 <p class="_condition-text_mxfxy_41">50</p>
               </div>
               <div class="_condition_mxfxy_22 _condition_color_dark_mxfxy_38">
-                <p class="_condition-text_mxfxy_41" data-translate="main.max_deposit">Suma máxima de depósito</p>
+                <p class="_condition-text_mxfxy_41">Suma máxima de depósito</p>
                 <p class="_condition-text_mxfxy_41">10600</p>
               </div>
             </div>
             <button data-cy="button_open_register"
               class="_button_12c87_1 _button_color_purple_12c87_53 _button_height_large_12c87_68 _button_withDecor_12c87_95 _button_mxfxy_51 _button_margin_mxfxy_54">
               <div class="_content_12c87_36">
-                <p class="_label_12c87_25" data-translate="main.get_bonus">¡Consigue este bono!</p>
+                <p class="_label_12c87_25">¡Consigue este bono!</p>
               </div><img
                 src="data:image/svg+xml,%3csvg%20width='76'%20height='48'%20viewBox='0%200%2076%2048'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cg%20filter='url(%23filter0_d_32643_4546)'%3e%3cpath%20d='M67.9373%20-11.2263L68%2027.7098L30.9567%2040L8%208.65962L30.8552%20-23L67.9373%20-11.2263Z'%20fill='white'%20fill-opacity='0.15'%20shape-rendering='crispEdges'%20/%3e%3c/g%3e%3cdefs%3e%3cfilter%20id='filter0_d_32643_4546'%20x='0'%20y='-31'%20width='76'%20height='79'%20filterUnits='userSpaceOnUse'%20color-interpolation-filters='sRGB'%3e%3cfeFlood%20flood-opacity='0'%20result='BackgroundImageFix'%20/%3e%3cfeColorMatrix%20in='SourceAlpha'%20type='matrix'%20values='0%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%200%20127%200'%20result='hardAlpha'%20/%3e%3cfeOffset%20/%3e%3cfeGaussianBlur%20stdDeviation='4'%20/%3e%3cfeComposite%20in2='hardAlpha'%20operator='out'%20/%3e%3cfeColorMatrix%20type='matrix'%20values='0%200%200%200%201%200%200%200%200%201%200%200%200%200%201%200%200%200%200.15%200'%20/%3e%3cfeBlend%20mode='normal'%20in2='BackgroundImageFix'%20result='effect1_dropShadow_32643_4546'%20/%3e%3cfeBlend%20mode='normal'%20in='SourceGraphic'%20in2='effect1_dropShadow_32643_4546'%20result='shape'%20/%3e%3c/filter%3e%3c/defs%3e%3c/svg%3e"
                 class="_decor_12c87_71 _decor1_12c87_75"><img
