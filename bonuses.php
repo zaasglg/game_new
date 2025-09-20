@@ -770,7 +770,7 @@ EOD;
                   </div>
                   <div class="_content_8rn2c_51">
                     <h4 class="_title_8rn2c_55">
-                      &#304;lk para yat&#305;rma i&#351;leminizde 13.250 TL'ye kadar bonus kazan&#305;n</h4>
+                      Gana un bono de hasta 125% en tu primer depósito</h4>
                     <p data-text="125%" class="_subtitle_8rn2c_71">125%</p>
                   </div>
                 </div>
@@ -830,7 +830,7 @@ EOD;
                   </div>
                   <div class="_content_8rn2c_51">
                     <h4 class="_title_8rn2c_55">
-                      &#304;kinci para yat&#305;rma i&#351;leminizde 15.900 TL'ye kadar bonus kazan&#305;n</h4>
+                      Gana un bono de hasta 150% en tu segundo depósito</h4>
                     <p data-text="150%" class="_subtitle_8rn2c_71">150%</p>
                   </div>
                 </div>
@@ -891,10 +891,9 @@ EOD;
                     </div>
                   </div>
                   <div class="_content_8rn2c_51">
-                    <h4 class="_title_8rn2c_55"
-                      data-translate="main.&Uuml;&ccedil;&uuml;nc&uuml;_para_yat&#305;rma_i&#351;leminizde_18_550_tl_ye_kadar_bonus_kazan&#305;n">
-                      &Uuml;&ccedil;&uuml;nc&uuml; para yat&#305;rma i&#351;leminizde 18.550 TL'ye kadar bonus
-                      kazan&#305;n</h4>
+                    <h4 class="_title_8rn2c_55">
+                      Gana un bono de hasta 175% en tu tercer depósito
+                    </h4>
                     <p data-text="175%" class="_subtitle_8rn2c_71" data-translate="main.175">175%</p>
                   </div>
                 </div>
@@ -953,9 +952,8 @@ EOD;
                     </div>
                   </div>
                   <div class="_content_8rn2c_51">
-                    <h4 class="_title_8rn2c_55"
-                      data-translate="main.d&ouml;rd&uuml;nc&uuml;_para_yat&#305;rma_i&#351;leminizde_21_200_tl_ye_kadar_bonus_kazan&#305;n">
-                      D&ouml;rd&uuml;nc&uuml; para yat&#305;rma i&#351;leminizde 21.200 TL'ye kadar bonus kazan&#305;n
+                    <h4 class="_title_8rn2c_55">
+                      Gana un bono de hasta 200% en tu cuarto depósito
                     </h4>
                     <p data-text="200%" class="_subtitle_8rn2c_71" data-translate="main.200">200%</p>
                   </div>
